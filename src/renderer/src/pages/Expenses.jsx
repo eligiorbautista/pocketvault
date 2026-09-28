@@ -1,0 +1,352 @@
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { Pencil, Plus, Trash2, TrendingDown } from 'lucide-react'
+import { EXPENSE_CATEGORIES } from '@shared/constants.js'
+import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
+import { Card } from '@renderer/components/ui/Card.jsx'
+import { Button } from '@renderer/components/ui/Button.jsx'
+import { Field } from '@renderer/components/ui/Field.jsx'
+import { Input, Select, Textarea } from '@renderer/components/ui/Input.jsx'
+import { Badge } from '@renderer/components/ui/Badge.jsx'
+import { DataTable } from '@renderer/components/ui/DataTable.jsx'
+import { Pagination } from '@renderer/components/ui/Pagination.jsx'
+import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
+import { Modal } from '@renderer/components/ui/Modal.jsx'
+import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
+import { categoryLabel, formatCurrency, formatDate, todayInput } from '@renderer/lib/format.js'
+import { useApiData } from '@renderer/hooks/useApiData.js'
+import { toast } from '@renderer/store/uiStore.js'
+
+const EMPTY_FILTERS = { search: '', category: '', from: '', to: '', order: 'newest' }
+
+function ExpenseForm({ open, initial, onClose, onSaved }) {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting }
+  } = useForm()
+
+  useEffect(() => {
+    if (open) {
+      reset({
+        category: initial?.category ?? 'food',
+        amount: initial?.amount ?? '',
+        date: initial?.date ?? todayInput(),
+        notes: initial?.notes ?? ''
+      })
+    }
+  }, [open, initial, reset])
+
+  const onSubmit = async (values) => {
+    const payload = {
+      category: values.category,
+      amount: Number(values.amount),
+      date: values.date,
+      notes: values.notes
+    }
+    try {
+      if (initial) await window.api.expenses.update(initial.id, payload)
+      else await window.api.expenses.create(payload)
+      toast(initial ? 'Expense updated' : 'Expense added', 'success')
+      onSaved()
+      onClose()
+    } catch (error) {
+      toast(error.message, 'error')
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={initial ? 'Edit expense' : 'Add expense'}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="submit" form="expense-form" loading={isSubmitting}>
+            {initial ? 'Save changes' : 'Add expense'}
+          </Button>
+        </div>
+      }
+    >
+      <form id="expense-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Category" htmlFor="category" required>
+            <Select id="category" {...register('category', { required: true })}>
+              {EXPENSE_CATEGORIES.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Amount" htmlFor="amount" error={errors.amount?.message} required>
+            <Input
+              id="amount"
+              type="number"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              placeholder="0.00"
+              hasError={Boolean(errors.amount)}
+              {...register('amount', {
+                required: 'Amount is required',
+                validate: (value) => Number(value) > 0 || 'Amount must be greater than zero'
+              })}
+            />
+          </Field>
+        </div>
+
+        <Field label="Date" htmlFor="date" error={errors.date?.message} required>
+          <Input
+            id="date"
+            type="date"
+            hasError={Boolean(errors.date)}
+            {...register('date', { required: 'Date is required' })}
+          />
+        </Field>
+
+        <Field label="Notes" htmlFor="notes">
+          <Textarea id="notes" placeholder="Optional details" {...register('notes')} />
+        </Field>
+      </form>
+    </Modal>
+  )
+}
+
+export default function Expenses() {
+  const [page, setPage] = useState(1)
+  const [draft, setDraft] = useState(EMPTY_FILTERS)
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const { data, loading, error, reload } = useApiData(
+    () => window.api.expenses.list({ page, ...filters }),
+    [page, filters]
+  )
+
+  const rows = data?.rows ?? []
+
+  const applyFilters = (event) => {
+    event.preventDefault()
+    setFilters({ ...draft, search: draft.search.trim() })
+    setPage(1)
+  }
+
+  const resetFilters = () => {
+    setDraft(EMPTY_FILTERS)
+    setFilters(EMPTY_FILTERS)
+    setPage(1)
+  }
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    setDeleting(true)
+    try {
+      await window.api.expenses.remove(pendingDelete.id)
+      toast('Expense deleted', 'success')
+      setPendingDelete(null)
+      if (rows.length === 1 && page > 1) setPage(page - 1)
+      else reload()
+    } catch (err) {
+      toast(err.message, 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const columns = [
+    { key: 'date', header: 'Date', render: (row) => formatDate(row.date) },
+    {
+      key: 'category',
+      header: 'Category',
+      render: (row) => <Badge>{categoryLabel(row.category)}</Badge>
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      align: 'right',
+      render: (row) => <span className="font-medium text-slate-900">{formatCurrency(row.amount)}</span>
+    },
+    {
+      key: 'notes',
+      header: 'Notes',
+      mobile: false,
+      className: 'max-w-xs',
+      render: (row) => <span className="line-clamp-1 text-slate-500">{row.notes || '\u2014'}</span>
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Edit expense ${row.id}`}
+            onClick={() => {
+              setEditing(row)
+              setFormOpen(true)
+            }}
+          >
+            <Pencil size={16} aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Delete expense ${row.id}`}
+            onClick={() => setPendingDelete(row)}
+          >
+            <Trash2 size={16} className="text-red-500" aria-hidden="true" />
+          </Button>
+        </div>
+      )
+    }
+  ]
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="Expenses"
+        description="Review spending by category and keep records tidy."
+        actions={
+          <Button
+            onClick={() => {
+              setEditing(null)
+              setFormOpen(true)
+            }}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Add expense
+          </Button>
+        }
+      />
+
+      <Card>
+        <form onSubmit={applyFilters} className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5">
+          <Field label="Search" htmlFor="expense-search">
+            <Input
+              id="expense-search"
+              placeholder="Notes"
+              value={draft.search}
+              onChange={(event) => setDraft((prev) => ({ ...prev, search: event.target.value }))}
+            />
+          </Field>
+          <Field label="Category" htmlFor="expense-category">
+            <Select
+              id="expense-category"
+              value={draft.category}
+              onChange={(event) => setDraft((prev) => ({ ...prev, category: event.target.value }))}
+            >
+              <option value="">All categories</option>
+              {EXPENSE_CATEGORIES.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="From" htmlFor="expense-from">
+            <Input
+              id="expense-from"
+              type="date"
+              value={draft.from}
+              onChange={(event) => setDraft((prev) => ({ ...prev, from: event.target.value }))}
+            />
+          </Field>
+          <Field label="To" htmlFor="expense-to">
+            <Input
+              id="expense-to"
+              type="date"
+              value={draft.to}
+              onChange={(event) => setDraft((prev) => ({ ...prev, to: event.target.value }))}
+            />
+          </Field>
+          <Field label="Sort" htmlFor="expense-order">
+            <Select
+              id="expense-order"
+              value={draft.order}
+              onChange={(event) => setDraft((prev) => ({ ...prev, order: event.target.value }))}
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </Select>
+          </Field>
+          <div className="flex gap-2 sm:col-span-2 lg:col-span-5">
+            <Button type="submit" size="sm">
+              Apply filters
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={resetFilters}>
+              Reset
+            </Button>
+          </div>
+        </form>
+
+        {error ? (
+          <p role="alert" className="px-4 pb-4 text-sm text-red-600">
+            {error}
+          </p>
+        ) : null}
+
+        <DataTable
+          columns={columns}
+          rows={rows}
+          getRowKey={(row) => row.id}
+          loading={loading}
+          emptyState={
+            <EmptyState
+              icon={TrendingDown}
+              title="No expenses recorded"
+              description="Add an expense to see where your money goes."
+              action={
+                <Button
+                  onClick={() => {
+                    setEditing(null)
+                    setFormOpen(true)
+                  }}
+                >
+                  <Plus size={16} aria-hidden="true" />
+                  Add expense
+                </Button>
+              }
+            />
+          }
+        />
+
+        {data ? (
+          <Pagination
+            page={data.page}
+            totalPages={data.totalPages}
+            total={data.total}
+            pageSize={data.pageSize}
+            onChange={setPage}
+          />
+        ) : null}
+      </Card>
+
+      <ExpenseForm
+        open={formOpen}
+        initial={editing}
+        onClose={() => setFormOpen(false)}
+        onSaved={reload}
+      />
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Delete expense?"
+        message="This permanently removes the expense from your local database."
+        confirmLabel="Delete"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
+    </div>
+  )
+}

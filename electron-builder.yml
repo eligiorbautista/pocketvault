@@ -1,0 +1,43 @@
+appId: com.pocketvault.app
+productName: PocketVault
+copyright: Copyright (c) 2026 PocketVault
+
+directories:
+  buildResources: build
+  output: dist
+
+files:
+  - out/**/*
+  - package.json
+
+asarUnpack:
+  - '**/*.node'
+  - '**/node_modules/better-sqlite3/**'
+
+npmRebuild: true
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  category: public.app-category.finance
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  category: Utility

@@ -1,0 +1,40 @@
+name: Build installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: build:win
+            artifact: installers/windows
+          - os: macos-latest
+            script: build:mac
+            artifact: installers/macos
+          - os: ubuntu-latest
+            script: build:linux
+            artifact: installers/linux
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run ${{ matrix.script }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pocketvault-${{ matrix.os }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
