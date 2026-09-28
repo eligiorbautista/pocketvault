@@ -15,6 +15,8 @@ All data lives on your machine; no internet, cloud, telemetry, or accounts are r
 - **Reports** — monthly/yearly summaries with charts, PDF and CSV export.
 - **Backups** — export/import a per-account ZIP (that account's data + receipts only). Importing never touches other accounts.
 - **Dashboard** — income, expenses, remaining balance, unpaid debts, budget/savings bars.
+- **Currency** — pick any ISO 4217 currency (Philippine Peso by default) with correct symbols.
+- **Custom categories** — add your own expense/budget categories beyond the defaults.
 - **Responsive** — mobile-first UI from 375px up to ultrawide.
 
 ## Tech stack
@@ -50,6 +52,7 @@ taken, change `server.port` in that file.
 | --- | --- |
 | `npm run dev` | Run the app with hot reload |
 | `npm run build` | Build main / preload / renderer bundles into `out/` |
+| `npm test` | Run all repository/service smoke tests (db + backup + audit) |
 | `npm run start` | Preview the production build |
 | `npm run icons` | Regenerate `build/icon.png` and `build/icon.ico` |
 | `npm run build:win` | Windows installer → `installers/windows/` |
@@ -91,6 +94,7 @@ build/               app icons for electron-builder
 - The authenticated user id is tracked in the **main process** (per renderer); data
   handlers never trust a user id sent from the renderer.
 - All SQL uses parameterised queries; all inputs are validated before writes.
+- Optional "Require password on startup" (Settings → Preferences) disables silent session resume.
 - Strict Content-Security-Policy is injected into the production `index.html`.
 
 ## Manual test checklist
