@@ -5,7 +5,7 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
 ## Commands
 
 - Install: `npm install` (runs `postinstall`: `electron-builder install-app-deps` + ensures the Electron binary).
-- Dev: `npm run dev` (Electron + hot reload). Port 5173 may be taken by Docker on this machine → it falls back to the next free port.
+- Dev: `npm run dev` (Electron + hot reload). Renderer dev server is pinned to `127.0.0.1:4321` in `electron.vite.config.mjs`; on this machine Windows reserves the `5098-5657` range for Docker/WSL, so 5173 fails with `EACCES`.
 - Build bundles: `npm run build` → `out/`.
 - Preview build: `npm run start`.
 - Package: `npm run build:win` / `build:mac` / `build:linux` (or `./build-electron.sh [win|mac|linux|all]`).

@@ -1,0 +1,2 @@
+# Keep shell scripts LF so they run correctly in Git Bash / WSL / Unix.
+*.sh text eol=lf

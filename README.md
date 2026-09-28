@@ -35,9 +35,10 @@ npm install
 npm run dev
 ```
 
-`npm run dev` launches the Electron app with hot reload. If port 5173 is already taken
-(for example by Docker Desktop), electron-vite automatically uses the next free port and
-prints the URL in the terminal.
+`npm run dev` launches the Electron app with hot reload. The renderer dev server is pinned
+to `http://127.0.0.1:4321` (set in `electron.vite.config.mjs`), because Windows can reserve
+the `5173-5657` range for Docker/WSL, which makes Vite fail with `EACCES`. If `4321` is ever
+taken, change `server.port` in that file.
 
 > Note: `npm install` runs a `postinstall` that rebuilds native deps and ensures the
 > Electron binary is present. If it was skipped by npm's script gating, run:
@@ -54,7 +55,9 @@ prints the URL in the terminal.
 | `npm run build:win` | Windows installer → `installers/windows/` |
 | `npm run build:mac` | macOS `.dmg` → `installers/macos/` (macOS host) |
 | `npm run build:linux` | Linux AppImage → `installers/linux/` (Linux host) |
-| `./build-electron.sh [win\|mac\|linux\|all]` | Convenience packaging script |
+| `./build-electron.sh` | Auto-detect host OS and package it into `installers/<os>/` |
+| `./build-electron.sh detect` | Print the detected OS + output folder (no build) |
+| `./build-electron.sh [win\|mac\|linux\|all]` | Force a target / attempt all |
 
 Cross-building macOS/Linux installers is only reliable on the matching OS or in CI.
 
