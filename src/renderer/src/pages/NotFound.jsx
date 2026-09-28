@@ -6,7 +6,7 @@ export default function NotFound() {
       <p className="text-sm font-semibold uppercase tracking-wide text-accent-600">404</p>
       <h1 className="text-2xl font-semibold text-slate-900">Page not found</h1>
       <p className="max-w-sm text-sm text-slate-500">
-        The page you are looking for does not exist in this offline app.
+        The page you are looking for doesn&apos;t exist.
       </p>
       <Link
         to="/"

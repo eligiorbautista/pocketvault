@@ -87,7 +87,7 @@ function IncomeForm({ open, initial, onClose, onSaved }) {
       open={open}
       onClose={onClose}
       title={initial ? 'Edit income' : 'Add income'}
-      description="Record money received. Receipts are stored locally."
+      description="Record money received."
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose} disabled={isSubmitting}>

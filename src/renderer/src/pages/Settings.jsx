@@ -31,7 +31,9 @@ export default function Settings() {
       const result = await window.api.backup.import()
       setConfirmImport(false)
       if (result.imported) {
-        toast('Backup imported. Please sign in again.', 'success')
+        toast('Backup imported. Please sign in again to continue.', 'success', {
+          duration: 8000
+        })
         await logout()
       }
     } catch (error) {
@@ -42,7 +44,7 @@ export default function Settings() {
     }
   }
 
-  const versions = window.api?.versions ?? {}
+  const VERSION = '0.1.0'
 
   return (
     <div className="space-y-5">
@@ -59,9 +61,6 @@ export default function Settings() {
               <p className="text-xs uppercase tracking-wide text-slate-400">Username</p>
               <p className="text-sm font-medium text-slate-800">{user?.username}</p>
             </div>
-            <p className="text-xs text-slate-500">
-              Your password is stored only as a local hash (bcrypt) on this device.
-            </p>
             <Button variant="secondary" size="sm" onClick={logout}>
               <LogOut size={16} aria-hidden="true" />
               Sign out
@@ -101,27 +100,19 @@ export default function Settings() {
             <CardTitle>About</CardTitle>
           </CardHeader>
           <CardBody>
-            <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">App version</dt>
-                <dd className="text-slate-800">0.1.0</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Electron</dt>
-                <dd className="text-slate-800">{versions.electron ?? '\u2014'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Chromium</dt>
-                <dd className="text-slate-800">{versions.chrome ?? '\u2014'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Node</dt>
-                <dd className="text-slate-800">{versions.node ?? '\u2014'}</dd>
-              </div>
-            </dl>
-            <p className="mt-3 text-xs text-slate-500">
-              PocketVault is fully offline. No internet connection, cloud sync or telemetry is used.
+            <p className="text-sm text-slate-600">
+              PocketVault is a personal finance tracker that keeps your money organized in one
+              place.
             </p>
+            <ul className="mt-3 grid grid-cols-1 gap-1.5 text-sm text-slate-600 sm:grid-cols-2">
+              <li>Track income, expenses and receipts</li>
+              <li>Manage debts and payments</li>
+              <li>Set monthly budgets with alerts</li>
+              <li>Create and fund savings goals</li>
+              <li>View reports and export your data</li>
+              <li>Back up and restore your data</li>
+            </ul>
+            <p className="mt-4 text-xs text-slate-400">Version {VERSION}</p>
           </CardBody>
         </Card>
       </div>

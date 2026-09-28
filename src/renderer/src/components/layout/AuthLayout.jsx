@@ -13,9 +13,6 @@ export function AuthLayout({ title, subtitle, children, footer }) {
           {children}
         </div>
         {footer ? <div className="mt-4 text-center text-sm text-slate-500">{footer}</div> : null}
-        <p className="mt-6 text-center text-xs text-slate-400">
-          All data is stored locally on this device.
-        </p>
       </div>
     </div>
   )

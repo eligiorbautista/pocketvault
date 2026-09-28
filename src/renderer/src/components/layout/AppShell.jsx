@@ -2,7 +2,6 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar.jsx'
 import { Topbar } from './Topbar.jsx'
 import { MobileDrawer } from './MobileDrawer.jsx'
-import { ToastViewport } from '@renderer/components/ui/ToastViewport.jsx'
 
 export function AppShell() {
   return (
@@ -15,7 +14,6 @@ export function AppShell() {
         </main>
       </div>
       <MobileDrawer />
-      <ToastViewport />
     </div>
   )
 }

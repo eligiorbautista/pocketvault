@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { ProtectedRoute, PublicOnlyRoute } from '@renderer/components/ProtectedRoute.jsx'
 import { AppShell } from '@renderer/components/layout/AppShell.jsx'
@@ -24,30 +25,35 @@ export default function App() {
     bootstrap()
   }, [bootstrap])
 
-  if (status === 'loading') return <SplashScreen />
-
   return (
-    <Routes>
-      <Route element={<PublicOnlyRoute />}>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Route>
+    <>
+      {status === 'loading' ? (
+        <SplashScreen />
+      ) : (
+        <Routes>
+          <Route element={<PublicOnlyRoute />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+          </Route>
 
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AppShell />}>
-          <Route index element={<Dashboard />} />
-          <Route path="/income" element={<Income />} />
-          <Route path="/expenses" element={<Expenses />} />
-          <Route path="/debts" element={<Debts />} />
-          <Route path="/budgets" element={<Budgets />} />
-          <Route path="/savings" element={<Savings />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/login" element={<Navigate to="/" replace />} />
-        </Route>
-      </Route>
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppShell />}>
+              <Route index element={<Dashboard />} />
+              <Route path="/income" element={<Income />} />
+              <Route path="/expenses" element={<Expenses />} />
+              <Route path="/debts" element={<Debts />} />
+              <Route path="/budgets" element={<Budgets />} />
+              <Route path="/savings" element={<Savings />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/login" element={<Navigate to="/" replace />} />
+            </Route>
+          </Route>
 
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      )}
+      <Toaster richColors position="bottom-right" closeButton />
+    </>
   )
 }
