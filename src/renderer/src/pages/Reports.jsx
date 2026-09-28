@@ -117,7 +117,7 @@ export default function Reports() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Reports"
         description="Monthly and yearly summaries you can export."
@@ -157,7 +157,7 @@ export default function Reports() {
         </Field>
       </Card>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           label={`Income ${year}`}
           value={formatCurrency(totalIncome)}

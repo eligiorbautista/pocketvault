@@ -236,7 +236,7 @@ export default function Expenses() {
   ]
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Expenses"
         description="Review spending by category and keep records tidy."

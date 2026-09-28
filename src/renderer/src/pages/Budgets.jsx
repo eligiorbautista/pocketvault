@@ -151,7 +151,7 @@ export default function Budgets() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Budgets"
         description="Set a monthly limit per category and watch your progress."

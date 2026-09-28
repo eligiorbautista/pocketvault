@@ -38,7 +38,7 @@ export default function Dashboard() {
   const recentExpenses = data?.recentExpenses ?? []
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Dashboard"
         description={`Your finances at a glance for ${formatMonth(month)}.`}
@@ -60,7 +60,7 @@ export default function Dashboard() {
         </p>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
           label="Total income"
           value={formatCurrency(data?.totalIncome ?? 0)}

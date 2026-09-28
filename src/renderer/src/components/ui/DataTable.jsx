@@ -12,13 +12,13 @@ export function DataTable({ columns, rows, getRowKey, loading, emptyState }) {
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-slate-200">
               {columns.map((column) => (
                 <th
                   key={column.key}
                   scope="col"
                   className={cn(
-                    'px-4 py-3 font-medium',
+                    'px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500',
                     column.align === 'right' && 'text-right',
                     column.className
                   )}
@@ -57,7 +57,7 @@ export function DataTable({ columns, rows, getRowKey, loading, emptyState }) {
           <div key={getRowKey(row)} className="space-y-2 p-4">
             {mobileColumns.map((column) => (
               <div key={column.key} className="flex items-start justify-between gap-3">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   {column.header}
                 </span>
                 <span className="min-w-0 text-right text-sm text-slate-700">

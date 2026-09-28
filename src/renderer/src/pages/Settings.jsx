@@ -12,6 +12,7 @@ import {
   LogOut,
   PiggyBank,
   Receipt,
+  ShieldCheck,
   Trash2,
   TrendingUp,
   Upload,
@@ -19,10 +20,10 @@ import {
   Wallet
 } from 'lucide-react'
 import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
-import { Card, CardBody, CardHeader, CardTitle } from '@renderer/components/ui/Card.jsx'
+import { Card, CardBody, CardHeader, CardIcon, CardTitle } from '@renderer/components/ui/Card.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
-import { Field } from '@renderer/components/ui/Field.jsx'
-import { Select } from '@renderer/components/ui/Input.jsx'
+import { Field, SettingRow } from '@renderer/components/ui/Field.jsx'
+import { Select, Switch } from '@renderer/components/ui/Input.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
 import { ChangePasswordForm } from '@renderer/components/settings/ChangePasswordForm.jsx'
 import { DeleteDataForm } from '@renderer/components/settings/DeleteDataForm.jsx'
@@ -31,6 +32,8 @@ import { useSettingsStore } from '@renderer/store/settingsStore.js'
 import { currencyCodes, currencyName, currencySymbol } from '@shared/currency.js'
 import { formatCurrency } from '@renderer/lib/format.js'
 import { toast } from '@renderer/store/uiStore.js'
+
+const VERSION = '0.1.0'
 
 const FEATURES = [
   { icon: TrendingUp, label: 'Track income and expenses' },
@@ -45,11 +48,11 @@ const FEATURES = [
 export default function Settings() {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(null)
   const [confirmImport, setConfirmImport] = useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [deleteDataOpen, setDeleteDataOpen] = useState(false)
-  const navigate = useNavigate()
   const currency = useSettingsStore((state) => state.currency)
   const requirePasswordOnStart = useSettingsStore((state) => state.requirePasswordOnStart)
 
@@ -63,8 +66,7 @@ export default function Settings() {
     }
   }
 
-  const toggleRequirePassword = async (event) => {
-    const next = event.target.checked
+  const toggleRequirePassword = async (next) => {
     try {
       await useSettingsStore.getState().update({ requirePasswordOnStart: next })
       toast(
@@ -110,143 +112,154 @@ export default function Settings() {
     }
   }
 
-  const VERSION = '0.1.0'
-
   return (
-    <div className="space-y-5">
-      <PageHeader title="Settings" description="Profile, backups and application info." />
+    <div className="space-y-6">
+      <PageHeader title="Settings" description="Manage your account, preferences and data." />
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="flex items-center gap-2">
-            <User size={16} className="text-slate-400" aria-hidden="true" />
-            <CardTitle>Profile</CardTitle>
-          </CardHeader>
-          <CardBody className="space-y-3">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">Username</p>
-              <p className="text-sm font-medium text-slate-800">{user?.username}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setChangePasswordOpen(true)}>
-                <KeyRound size={16} aria-hidden="true" />
-                Change password
-              </Button>
-              <Button variant="secondary" size="sm" onClick={logout}>
-                <LogOut size={16} aria-hidden="true" />
-                Sign out
-              </Button>
-            </div>
-          </CardBody>
-        </Card>
+      <Card>
+        <CardHeader>
+          <CardIcon icon={User} />
+          <CardTitle>Account &amp; Security</CardTitle>
+        </CardHeader>
+        <CardBody className="py-2">
+          <SettingRow title="Username" description="The name you sign in with.">
+            <span className="text-sm font-medium text-slate-700">{user?.username}</span>
+          </SettingRow>
 
-        <Card>
-          <CardHeader className="flex items-center gap-2">
-            <Database size={16} className="text-slate-400" aria-hidden="true" />
-            <CardTitle>Data backup</CardTitle>
-          </CardHeader>
-          <CardBody className="space-y-3">
-            <p className="text-sm text-slate-600">
-              Export a backup of this account, or restore a previous one. Backups are tied to your
-              username and never include other accounts.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={exportBackup} loading={busy === 'export'}>
-                <Download size={16} aria-hidden="true" />
-                Export backup
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setConfirmImport(true)}
-                loading={busy === 'import'}
-              >
-                <Upload size={16} aria-hidden="true" />
-                Import backup
-              </Button>
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex items-center gap-2">
-            <Coins size={16} className="text-slate-400" aria-hidden="true" />
-            <CardTitle>Preferences</CardTitle>
-          </CardHeader>
-          <CardBody className="grid gap-5 sm:grid-cols-2">
-            <Field
-              label="Currency"
-              htmlFor="settings-currency"
-              hint={`Example: ${formatCurrency(1234.56)}`}
-            >
-              <Select id="settings-currency" value={currency} onChange={changeCurrency}>
-                {currencyCodes().map((code) => (
-                  <option key={code} value={code}>
-                    {code} — {currencyName(code)} ({currencySymbol(code)})
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <label className="flex items-start gap-3 sm:pt-6">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 cursor-pointer accent-accent-600"
-                checked={requirePasswordOnStart}
-                onChange={toggleRequirePassword}
-              />
-              <span>
-                <span className="block text-sm font-medium text-slate-800">
-                  Require password on startup
-                </span>
-                <span className="block text-xs text-slate-500">
-                  When on, PocketVault asks for your password each launch instead of resuming
-                  automatically.
-                </span>
-              </span>
-            </label>
-          </CardBody>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex items-center gap-2">
-            <Info size={16} className="text-slate-400" aria-hidden="true" />
-            <CardTitle>About</CardTitle>
-          </CardHeader>
-          <CardBody className="space-y-4">
-            <p className="max-w-2xl text-sm text-slate-600">
-              PocketVault keeps your money organized in one place so you always know what came in,
-              where it went, and what you are working toward.
-            </p>
-            <ul className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map(({ icon: Icon, label }) => (
-                <li key={label} className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent-50 text-accent-700">
-                    <Icon size={15} aria-hidden="true" />
-                  </span>
-                  <span className="text-sm text-slate-700">{label}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="text-xs text-slate-400">Version {VERSION}</p>
-          </CardBody>
-        </Card>
-
-        <Card className="border-red-200 lg:col-span-2">
-          <CardHeader className="flex items-center gap-2">
-            <AlertTriangle size={16} className="text-red-500" aria-hidden="true" />
-            <CardTitle>Delete all data</CardTitle>
-          </CardHeader>
-          <CardBody className="space-y-3">
-            <p className="text-sm text-slate-600">
-              Permanently delete every record and receipt in this account. Your account and password
-              are kept, so you can keep using PocketVault with a clean slate.
-            </p>
-            <Button variant="danger" size="sm" onClick={() => setDeleteDataOpen(true)}>
-              <Trash2 size={16} aria-hidden="true" />
-              Delete all data
+          <SettingRow title="Password" description="Change the password for this account.">
+            <Button variant="secondary" size="sm" onClick={() => setChangePasswordOpen(true)}>
+              <KeyRound size={16} aria-hidden="true" />
+              Change password
             </Button>
-          </CardBody>
-        </Card>
-      </div>
+          </SettingRow>
+
+          <SettingRow
+            title="Require password on startup"
+            description="Ask for your password each time PocketVault opens."
+          >
+            <Switch
+              checked={requirePasswordOnStart}
+              onChange={toggleRequirePassword}
+              aria-label="Require password on startup"
+            />
+          </SettingRow>
+
+          <SettingRow title="Sign out" description="End your session on this device." last>
+            <Button variant="secondary" size="sm" onClick={logout}>
+              <LogOut size={16} aria-hidden="true" />
+              Sign out
+            </Button>
+          </SettingRow>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardIcon icon={Coins} />
+          <CardTitle>Preferences</CardTitle>
+        </CardHeader>
+        <CardBody className="py-2">
+          <SettingRow
+            title="Currency"
+            description={`Formatting example: ${formatCurrency(1234.56)}`}
+            htmlFor="settings-currency"
+            last
+          >
+            <Select
+              id="settings-currency"
+              value={currency}
+              onChange={changeCurrency}
+              className="sm:w-72"
+            >
+              {currencyCodes().map((code) => (
+                <option key={code} value={code}>
+                  {code} — {currencyName(code)} ({currencySymbol(code)})
+                </option>
+              ))}
+            </Select>
+          </SettingRow>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardIcon icon={Database} />
+          <CardTitle>Data &amp; Backup</CardTitle>
+        </CardHeader>
+        <CardBody className="py-2">
+          <SettingRow
+            title="Export backup"
+            description="Save a ZIP of this account's records and receipts."
+          >
+            <Button onClick={exportBackup} loading={busy === 'export'}>
+              <Download size={16} aria-hidden="true" />
+              Export backup
+            </Button>
+          </SettingRow>
+
+          <SettingRow
+            title="Import backup"
+            description="Restore this account from a previous backup."
+            last
+          >
+            <Button
+              variant="secondary"
+              onClick={() => setConfirmImport(true)}
+              loading={busy === 'import'}
+            >
+              <Upload size={16} aria-hidden="true" />
+              Import backup
+            </Button>
+          </SettingRow>
+
+          <div className="mt-2 border-t border-red-100 pt-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+                  <AlertTriangle size={18} aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-red-700">Delete all data</p>
+                  <p className="mt-0.5 text-sm text-slate-500">
+                    Permanently delete every record and receipt in this account. Your account and
+                    password are kept.
+                  </p>
+                </div>
+              </div>
+              <Button variant="danger" size="sm" onClick={() => setDeleteDataOpen(true)}>
+                <Trash2 size={16} aria-hidden="true" />
+                Delete all data
+              </Button>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardIcon icon={Info} />
+          <CardTitle>About</CardTitle>
+        </CardHeader>
+        <CardBody className="space-y-4">
+          <p className="max-w-2xl text-sm text-slate-600">
+            PocketVault keeps your money organized in one place so you always know what came in,
+            where it went, and what you are working toward.
+          </p>
+          <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700">
+                  <Icon size={15} aria-hidden="true" />
+                </span>
+                <span className="text-sm text-slate-700">{label}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="border-t border-slate-100 pt-4 text-xs text-slate-400">
+            PocketVault v{VERSION}
+          </p>
+        </CardBody>
+      </Card>
 
       <ChangePasswordForm
         open={changePasswordOpen}

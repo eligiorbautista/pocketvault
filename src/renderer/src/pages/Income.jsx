@@ -283,7 +283,7 @@ export default function Income() {
   ]
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Income"
         description="Track every peso coming in, with optional receipts."

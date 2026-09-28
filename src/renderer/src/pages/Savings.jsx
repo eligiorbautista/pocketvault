@@ -40,7 +40,7 @@ export default function Savings() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Savings"
         description="Set targets, track progress and link contributions to income."

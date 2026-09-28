@@ -126,7 +126,7 @@ export default function Debts() {
   ]
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Debts"
         description="Track balances, flexible payments and re-borrows."
@@ -143,7 +143,7 @@ export default function Debts() {
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           label="Outstanding"
           value={formatCurrency(summary.data?.outstanding ?? 0)}

@@ -4,7 +4,7 @@ export function Field({ label, htmlFor, error, hint, required, className, childr
   return (
     <div className={cn('space-y-1.5', className)}>
       {label ? (
-        <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-700">
+        <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-900">
           {label}
           {required ? <span className="ml-0.5 text-red-500">*</span> : null}
         </label>
@@ -15,6 +15,33 @@ export function Field({ label, htmlFor, error, hint, required, className, childr
       ) : hint ? (
         <p className="text-xs text-slate-500">{hint}</p>
       ) : null}
+    </div>
+  )
+}
+
+// Left/right split row used in Settings-style cards.
+export function SettingRow({ title, description, htmlFor, children, className, last = false }) {
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6',
+        !last && 'border-b border-slate-100',
+        className
+      )}
+    >
+      <div className="min-w-0">
+        {title ? (
+          htmlFor ? (
+            <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-900">
+              {title}
+            </label>
+          ) : (
+            <p className="text-sm font-medium text-slate-900">{title}</p>
+          )
+        ) : null}
+        {description ? <p className="mt-0.5 text-sm text-slate-500">{description}</p> : null}
+      </div>
+      {children ? <div className="shrink-0 sm:text-right">{children}</div> : null}
     </div>
   )
 }
