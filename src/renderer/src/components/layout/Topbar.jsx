@@ -16,8 +16,8 @@ export function Topbar() {
         <Menu size={20} aria-hidden="true" />
       </button>
       <div className="flex items-center gap-2">
-        <BrandMark size={30} />
-        <span className="text-sm font-semibold tracking-tight text-slate-900">PocketVault</span>
+        <BrandMark size={32} />
+        <span className="text-lg font-semibold tracking-tight text-slate-900">PocketVault</span>
       </div>
     </header>
   )

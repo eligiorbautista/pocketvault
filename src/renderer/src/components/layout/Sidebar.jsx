@@ -12,7 +12,7 @@ export function Sidebar() {
     <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
       <div className="flex h-16 items-center gap-2 border-b border-slate-100 px-5">
         <BrandMark size={34} />
-        <span className="text-base font-semibold tracking-tight text-slate-900">PocketVault</span>
+        <span className="text-lg font-semibold tracking-tight text-slate-900">PocketVault</span>
       </div>
 
       <NavList />
