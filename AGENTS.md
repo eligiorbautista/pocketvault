@@ -14,6 +14,8 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
   `npx esbuild scripts/db-smoke.mjs --bundle --platform=node --format=cjs --external:better-sqlite3 --outfile=".pv-smoke.cjs"; node .pv-smoke.cjs`
 - Per-account backup isolation smoke test (run from repo root):
   `npx esbuild scripts/backup-smoke.mjs --bundle --platform=node --format=cjs --external:better-sqlite3 --external:jszip --outfile=".pv-backup-smoke.cjs"; node .pv-backup-smoke.cjs`
+- Full CRUD/validation audit (run from repo root):
+  `npx esbuild scripts/audit-smoke.mjs --bundle --platform=node --format=cjs --external:better-sqlite3 --outfile=".pv-audit.cjs"; node .pv-audit.cjs`
 - No ESLint/typecheck is configured.
 
 ## Architecture

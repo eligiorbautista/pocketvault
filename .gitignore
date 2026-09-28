@@ -12,3 +12,4 @@ Thumbs.db
 .env.*
 .pv-smoke.cjs
 .pv-backup-smoke.cjs
+.pv-audit.cjs

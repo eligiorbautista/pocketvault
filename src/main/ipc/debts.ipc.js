@@ -81,13 +81,20 @@ export function registerDebtsHandlers() {
     return rows
   })
 
-  handle('debts:addPayment', ({ userId, payload }) =>
-    debtsRepo.addPayment(getDatabase(), userId, validateId(payload.debtId, 'debtId'), {
-      amount: validateAmount(payload.amount, 'amount'),
-      date: validateDate(payload.date, 'date'),
-      notes: validateText(payload.notes, 'notes', { max: 500 })
-    })
-  )
+  handle('debts:addPayment', ({ userId, payload }) => {
+    const row = debtsRepo.addPayment(
+      getDatabase(),
+      userId,
+      validateId(payload.debtId, 'debtId'),
+      {
+        amount: validateAmount(payload.amount, 'amount'),
+        date: validateDate(payload.date, 'date'),
+        notes: validateText(payload.notes, 'notes', { max: 500 })
+      }
+    )
+    if (!row) throw new Error('Debt not found')
+    return row
+  })
 
   handle('debts:reborrow', ({ userId, payload }) => {
     const row = debtsRepo.reborrow(
