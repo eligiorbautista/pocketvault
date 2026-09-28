@@ -71,4 +71,21 @@ export function registerAuthHandlers() {
     },
     { auth: false }
   )
+
+  handle('auth:changePassword', ({ userId, payload }) => {
+    const db = getDatabase()
+    const record = users.getRecordById(db, userId)
+    if (!record) throw new Error('Account not found')
+
+    const currentPassword = String(payload.currentPassword ?? '')
+    const newPassword = String(payload.newPassword ?? '')
+
+    if (!bcrypt.compareSync(currentPassword, record.password_hash)) {
+      throw new Error('Current password is incorrect')
+    }
+    if (!newPassword) throw new Error('New password is required')
+
+    users.updatePassword(db, userId, bcrypt.hashSync(newPassword, 10))
+    return true
+  })
 }

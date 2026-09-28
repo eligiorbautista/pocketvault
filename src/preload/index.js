@@ -21,7 +21,9 @@ const api = {
     login: (username, password) => call('auth:login', { username, password }),
     restore: (userId) => call('auth:restore', { userId }),
     current: () => call('auth:current'),
-    logout: () => call('auth:logout')
+    logout: () => call('auth:logout'),
+    changePassword: (currentPassword, newPassword) =>
+      call('auth:changePassword', { currentPassword, newPassword })
   },
 
   income: {

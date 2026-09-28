@@ -17,3 +17,14 @@ export function findById(db, id) {
 export function exists(db, id) {
   return Boolean(db.prepare('SELECT 1 FROM users WHERE id = ?').get(id))
 }
+
+// Full row including password_hash - main-process auth only.
+export function getRecordById(db, id) {
+  return db.prepare('SELECT * FROM users WHERE id = ?').get(id) ?? null
+}
+
+export function updatePassword(db, id, passwordHash) {
+  return (
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, id).changes > 0
+  )
+}

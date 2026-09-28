@@ -105,6 +105,15 @@ check('duplicate username blocked at repo layer (unique)', (() => {
 check('findByUsername returns record', users.findByUsername(db, 'alice')?.id === alice.id)
 check('findById hides password_hash', !('password_hash' in users.findById(db, alice.id)))
 check('exists false for missing', users.exists(db, 9999) === false)
+const record = users.getRecordById(db, alice.id)
+check('getRecordById returns the password hash (main-only)', typeof record?.password_hash === 'string')
+check('updatePassword persists a new hash', (() => {
+  const before = record.password_hash
+  const ok = users.updatePassword(db, alice.id, 'rehashed-value')
+  const after = users.getRecordById(db, alice.id).password_hash
+  return ok === true && after === 'rehashed-value' && after !== before
+})())
+check('updatePassword missing user returns false', users.updatePassword(db, 9999, 'x') === false)
 
 // ---------- income CRUD + pagination + filters ----------
 for (let i = 1; i <= 60; i += 1) {

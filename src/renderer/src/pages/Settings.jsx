@@ -5,6 +5,7 @@ import {
   Download,
   HandCoins,
   Info,
+  KeyRound,
   LogOut,
   PiggyBank,
   Receipt,
@@ -17,6 +18,7 @@ import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
 import { Card, CardBody, CardHeader, CardTitle } from '@renderer/components/ui/Card.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
+import { ChangePasswordForm } from '@renderer/components/settings/ChangePasswordForm.jsx'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { toast } from '@renderer/store/uiStore.js'
 
@@ -35,6 +37,7 @@ export default function Settings() {
   const logout = useAuthStore((state) => state.logout)
   const [busy, setBusy] = useState(null)
   const [confirmImport, setConfirmImport] = useState(false)
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
 
   const exportBackup = async () => {
     setBusy('export')
@@ -87,10 +90,16 @@ export default function Settings() {
               <p className="text-xs uppercase tracking-wide text-slate-400">Username</p>
               <p className="text-sm font-medium text-slate-800">{user?.username}</p>
             </div>
-            <Button variant="secondary" size="sm" onClick={logout}>
-              <LogOut size={16} aria-hidden="true" />
-              Sign out
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setChangePasswordOpen(true)}>
+                <KeyRound size={16} aria-hidden="true" />
+                Change password
+              </Button>
+              <Button variant="secondary" size="sm" onClick={logout}>
+                <LogOut size={16} aria-hidden="true" />
+                Sign out
+              </Button>
+            </div>
           </CardBody>
         </Card>
 
@@ -145,6 +154,11 @@ export default function Settings() {
           </CardBody>
         </Card>
       </div>
+
+      <ChangePasswordForm
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
 
       <ConfirmDialog
         open={confirmImport}
