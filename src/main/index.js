@@ -25,7 +25,10 @@ function createWindow() {
 
   const webContentsId = mainWindow.webContents.id
 
-  mainWindow.on('ready-to-show', () => {
+  mainWindow.once('ready-to-show', () => {
+    // Open maximized (fills the screen) while keeping the standard frame with
+    // the title bar, minimize and close buttons.
+    mainWindow.maximize()
     mainWindow.show()
   })
 
