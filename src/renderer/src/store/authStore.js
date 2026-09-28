@@ -20,6 +20,18 @@ export const useAuthStore = create((set) => ({
   viaRestore: false,
 
   async bootstrap() {
+    // An in-app refresh (Ctrl+R) keeps the main-process session for this
+    // renderer alive, so resume silently without treating it as a fresh launch.
+    try {
+      const existing = await window.api.auth.current()
+      if (existing?.user) {
+        set({ user: existing.user, status: 'authenticated', error: null, viaRestore: false })
+        return
+      }
+    } catch {
+      // fall through to the persisted-session restore below
+    }
+
     let raw = null
     try {
       raw = localStorage.getItem(SESSION_STORAGE_KEY)
