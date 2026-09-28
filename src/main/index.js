@@ -15,6 +15,7 @@ function createWindow() {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#f8fafc',
+    icon: isDev ? join(__dirname, '../../build/icon.png') : undefined,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

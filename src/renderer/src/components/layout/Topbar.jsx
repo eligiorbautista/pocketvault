@@ -1,5 +1,6 @@
-import { Menu, Wallet } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { useUIStore } from '@renderer/store/uiStore.js'
+import { BrandMark } from '@renderer/components/ui/BrandMark.jsx'
 
 export function Topbar() {
   const openDrawer = useUIStore((state) => state.openDrawer)
@@ -15,9 +16,7 @@ export function Topbar() {
         <Menu size={20} aria-hidden="true" />
       </button>
       <div className="flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-600 text-white">
-          <Wallet size={16} aria-hidden="true" />
-        </span>
+        <BrandMark size={30} />
         <span className="text-sm font-semibold tracking-tight text-slate-900">PocketVault</span>
       </div>
     </header>

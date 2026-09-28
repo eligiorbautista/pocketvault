@@ -139,5 +139,10 @@ writeFileSync('build/icon.png', big)
 const small = encodePng(256, draw(256))
 writeFileSync('build/icon.ico', encodeIco(small, 256))
 
-console.log(`build/icon.png  ${big.length} bytes`)
-console.log(`build/icon.ico  ${encodeIco(small, 256).length} bytes`)
+// UI/favicon copy (served from the renderer's public dir).
+mkdirSync('src/renderer/public', { recursive: true })
+writeFileSync('src/renderer/public/icon.png', small)
+
+console.log(`build/icon.png                 ${big.length} bytes`)
+console.log(`build/icon.ico                 ${encodeIco(small, 256).length} bytes`)
+console.log(`src/renderer/public/icon.png   ${small.length} bytes`)

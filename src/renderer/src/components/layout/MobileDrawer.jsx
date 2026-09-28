@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
-import { LogOut, Wallet, X } from 'lucide-react'
+import { LogOut, X } from 'lucide-react'
 import { useUIStore } from '@renderer/store/uiStore.js'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { NavList } from './NavList.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
+import { BrandMark } from '@renderer/components/ui/BrandMark.jsx'
 
 export function MobileDrawer() {
   const drawerOpen = useUIStore((state) => state.drawerOpen)
@@ -37,9 +38,7 @@ export function MobileDrawer() {
       >
         <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4">
           <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-600 text-white">
-              <Wallet size={16} aria-hidden="true" />
-            </span>
+            <BrandMark size={30} />
             <span className="text-sm font-semibold tracking-tight text-slate-900">PocketVault</span>
           </div>
           <button
