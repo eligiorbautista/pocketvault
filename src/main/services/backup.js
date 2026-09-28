@@ -202,9 +202,8 @@ export async function parseUserBackup(buffer) {
 // A backup may only ever be restored into the account it belongs to.
 export function assertBackupMatchesAccount(accountUsername, currentUsername) {
   if (!accountUsername || !currentUsername || accountUsername !== currentUsername) {
-    const whose = accountUsername ? ` ("${accountUsername}")` : ''
     throw new Error(
-      `This backup belongs to a different account${whose}. Sign in to that account to import it.`
+      'This backup belongs to a different account. Sign in with the account that created it to import it.'
     )
   }
 }
