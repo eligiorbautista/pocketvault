@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  AlertTriangle,
   BarChart3,
   Database,
   Download,
@@ -9,6 +10,7 @@ import {
   LogOut,
   PiggyBank,
   Receipt,
+  Trash2,
   TrendingUp,
   Upload,
   User,
@@ -19,6 +21,7 @@ import { Card, CardBody, CardHeader, CardTitle } from '@renderer/components/ui/C
 import { Button } from '@renderer/components/ui/Button.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
 import { ChangePasswordForm } from '@renderer/components/settings/ChangePasswordForm.jsx'
+import { DeleteDataForm } from '@renderer/components/settings/DeleteDataForm.jsx'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { toast } from '@renderer/store/uiStore.js'
 
@@ -38,6 +41,7 @@ export default function Settings() {
   const [busy, setBusy] = useState(null)
   const [confirmImport, setConfirmImport] = useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [deleteDataOpen, setDeleteDataOpen] = useState(false)
 
   const exportBackup = async () => {
     setBusy('export')
@@ -153,12 +157,31 @@ export default function Settings() {
             <p className="text-xs text-slate-400">Version {VERSION}</p>
           </CardBody>
         </Card>
+
+        <Card className="border-red-200 lg:col-span-2">
+          <CardHeader className="flex items-center gap-2">
+            <AlertTriangle size={16} className="text-red-500" aria-hidden="true" />
+            <CardTitle>Delete all data</CardTitle>
+          </CardHeader>
+          <CardBody className="space-y-3">
+            <p className="text-sm text-slate-600">
+              Permanently delete every record and receipt in this account. Your account and password
+              are kept, so you can keep using PocketVault with a clean slate.
+            </p>
+            <Button variant="danger" size="sm" onClick={() => setDeleteDataOpen(true)}>
+              <Trash2 size={16} aria-hidden="true" />
+              Delete all data
+            </Button>
+          </CardBody>
+        </Card>
       </div>
 
       <ChangePasswordForm
         open={changePasswordOpen}
         onClose={() => setChangePasswordOpen(false)}
       />
+
+      <DeleteDataForm open={deleteDataOpen} onClose={() => setDeleteDataOpen(false)} />
 
       <ConfirmDialog
         open={confirmImport}

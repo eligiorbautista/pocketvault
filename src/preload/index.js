@@ -94,6 +94,10 @@ const api = {
   backup: {
     export: () => call('backup:export'),
     import: () => call('backup:import')
+  },
+
+  account: {
+    deleteData: (password) => call('account:deleteData', { password })
   }
 }
 

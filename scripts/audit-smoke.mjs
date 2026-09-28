@@ -1,6 +1,6 @@
 // End-to-end audit of repository CRUD/flows, validation and money handling,
 // using the real production code. Bundled with esbuild, run with Node.
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -13,6 +13,7 @@ import * as budgetsRepo from '../src/main/db/repositories/budgets.js'
 import * as savingsRepo from '../src/main/db/repositories/savings.js'
 import * as reportsRepo from '../src/main/db/repositories/reports.js'
 import * as dashboardRepo from '../src/main/db/repositories/dashboard.js'
+import { deleteUserData } from '../src/main/services/data.js'
 import {
   ValidationError,
   validateAmount,
@@ -269,6 +270,25 @@ check('dashboard totals numbers', typeof dash.totalIncome === 'number' && typeof
 check('dashboard recent lists capped', dash.recentIncome.length <= 5 && dash.recentExpenses.length <= 5)
 check('dashboard budgets structure', Array.isArray(dash.budgets.items))
 check('bob dashboard isolated (no data)', dashboardRepo.getSummary(db, bob.id, '2026-05').totalIncome === 0)
+
+// ---------- delete all data (account kept) ----------
+const delReceipts = join(dir, 'del-receipts')
+mkdirSync(delReceipts, { recursive: true })
+const delReceipt = '22222222-2222-2222-2222-222222222222.png'
+writeFileSync(join(delReceipts, delReceipt), Buffer.from('x'))
+incomeRepo.create(db, alice.id, { amount: 5, date: '2026-09-01', source: 'Del', notes: null, receipt_path: delReceipt })
+incomeRepo.create(db, bob.id, { amount: 7, date: '2026-09-01', source: 'BobKeep', notes: null, receipt_path: null })
+const bobBeforeDelete = incomeRepo.list(db, bob.id, {}).total
+const delCounts = deleteUserData(db, alice.id, delReceipts)
+check('deleteUserData removed all alice income', incomeRepo.list(db, alice.id, {}).total === 0)
+check('deleteUserData removed all alice expenses', expensesRepo.list(db, alice.id, {}).total === 0)
+check('deleteUserData removed all alice debts', debtsRepo.list(db, alice.id, {}).total === 0)
+check('deleteUserData removed all alice budgets', budgetsRepo.listMonthly(db, alice.id, '2026-06').length === 0)
+check('deleteUserData removed all alice goals', savingsRepo.list(db, alice.id).length === 0)
+check('deleteUserData removed alice receipt file', !existsSync(join(delReceipts, delReceipt)))
+check('deleteUserData reports receipt count', delCounts.receipts === 1, delCounts.receipts)
+check('deleteUserData keeps the account', users.exists(db, alice.id) === true)
+check('deleteUserData keeps other users data', incomeRepo.list(db, bob.id, {}).total === bobBeforeDelete && bobBeforeDelete === 1)
 
 closeDatabase()
 rmSync(dir, { recursive: true, force: true })
