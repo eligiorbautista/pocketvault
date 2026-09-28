@@ -40,8 +40,7 @@ const api = {
     get: (id) => call('expenses:get', { id }),
     create: (data) => call('expenses:create', data),
     update: (id, data) => call('expenses:update', { id, ...data }),
-    remove: (id) => call('expenses:remove', { id }),
-    all: (params) => call('expenses:all', params)
+    remove: (id) => call('expenses:remove', { id })
   },
 
   debts: {
@@ -98,6 +97,11 @@ const api = {
 
   account: {
     deleteData: (password) => call('account:deleteData', { password })
+  },
+
+  settings: {
+    get: () => call('settings:get'),
+    update: (patch) => call('settings:update', patch)
   }
 }
 

@@ -1,7 +1,9 @@
 import JSZip from 'jszip'
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
-import { RECEIPT_FILE_PATTERN } from '../../shared/constants.js'
+import { MAX_RECEIPT_BYTES, RECEIPT_FILE_PATTERN } from '../../shared/constants.js'
+
+const MAX_BACKUP_RECEIPTS_BYTES = 100 * 1024 * 1024
 
 const FORMAT = 2
 const RECEIPTS_PREFIX = 'receipts/'
@@ -184,11 +186,20 @@ export async function parseUserBackup(buffer) {
   }
 
   const receipts = []
+  let totalReceiptBytes = 0
   for (const path of Object.keys(zip.files)) {
     if (!path.startsWith(RECEIPTS_PREFIX) || zip.files[path].dir) continue
     const name = basename(path)
     if (!RECEIPT_FILE_PATTERN.test(name)) continue
-    receipts.push({ name, buffer: await zip.files[path].async('nodebuffer') })
+    const buffer = await zip.files[path].async('nodebuffer')
+    if (buffer.length > MAX_RECEIPT_BYTES) {
+      throw new Error('Invalid backup: a receipt exceeds the size limit')
+    }
+    totalReceiptBytes += buffer.length
+    if (totalReceiptBytes > MAX_BACKUP_RECEIPTS_BYTES) {
+      throw new Error('Invalid backup: too much receipt data')
+    }
+    receipts.push({ name, buffer })
   }
 
   return {

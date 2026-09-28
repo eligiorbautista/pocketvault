@@ -2,7 +2,6 @@ import { handle } from './handle.js'
 import { getDatabase } from '../db/connection.js'
 import * as budgetsRepo from '../db/repositories/budgets.js'
 import { validateAmount, validateCategory, validateId } from '../db/validate.js'
-import { monthRange } from '../db/repositories/helpers.js'
 
 function validateMonth(value) {
   const month = String(value ?? '')
@@ -29,6 +28,4 @@ export function registerBudgetsHandlers() {
     if (!removed) throw new Error('Budget not found')
     return { removed: true }
   })
-
-  handle('budgets:range', ({ payload }) => monthRange(validateMonth(payload.month)))
 }

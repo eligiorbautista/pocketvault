@@ -8,6 +8,7 @@ import { registerReportsHandlers } from './reports.ipc.js'
 import { registerFilesHandlers } from './files.ipc.js'
 import { registerBackupHandlers } from './backup.ipc.js'
 import { registerDataHandlers } from './data.ipc.js'
+import { registerSettingsHandlers } from './settings.ipc.js'
 
 export function registerIpcHandlers() {
   registerAuthHandlers()
@@ -20,4 +21,5 @@ export function registerIpcHandlers() {
   registerFilesHandlers()
   registerBackupHandlers()
   registerDataHandlers()
+  registerSettingsHandlers()
 }

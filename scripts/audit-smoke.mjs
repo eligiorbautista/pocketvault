@@ -13,7 +13,16 @@ import * as budgetsRepo from '../src/main/db/repositories/budgets.js'
 import * as savingsRepo from '../src/main/db/repositories/savings.js'
 import * as reportsRepo from '../src/main/db/repositories/reports.js'
 import * as dashboardRepo from '../src/main/db/repositories/dashboard.js'
+import * as settingsRepo from '../src/main/db/repositories/settings.js'
 import { deleteUserData } from '../src/main/services/data.js'
+import { reconcileReceipts } from '../src/main/services/receiptCleanup.js'
+import {
+  currencyCodes,
+  currencyName,
+  currencySymbol,
+  formatMoney,
+  isValidCurrency
+} from '../src/shared/currency.js'
 import {
   ValidationError,
   validateAmount,
@@ -63,8 +72,11 @@ check('date valid accepted', validateDate('2026-03-01') === '2026-03-01')
 throws('id 0 rejected', () => validateId(0))
 throws('id non-integer rejected', () => validateId(1.5))
 throws('id string rejected', () => validateId('x'))
-throws('category unknown rejected', () => validateCategory('nope'))
+check('unknown category treated as custom', validateCategory('nope') === 'nope')
 check('category known accepted', validateCategory('food') === 'food')
+check('custom category accepted', validateCategory('Pet care') === 'Pet care')
+throws('empty category rejected', () => validateCategory('   '))
+throws('category with path chars rejected', () => validateCategory('bad/../x'))
 throws('username short rejected', () => validateUsername('ab'))
 throws('username bad chars rejected', () => validateUsername('bad name!'))
 check('username valid accepted', validateUsername('alice_1') === 'alice_1')
@@ -88,6 +100,16 @@ check('sumPesos([0.1,0.2])===0.3 exact', sumPesos([0.1, 0.2]) === 0.3, sumPesos(
 check('sumPesos empty = 0', sumPesos([]) === 0)
 check('sumPesos handles strings', sumPesos(['1.10', '2.20']) === 3.3)
 
+// ---------- currency ----------
+check('currency list is large (ISO 4217)', currencyCodes().length > 100, currencyCodes().length)
+check('PHP valid', isValidCurrency('PHP') === true)
+check('USD valid', isValidCurrency('USD') === true)
+check('bogus currency rejected', isValidCurrency('NOPE') === false)
+check('USD symbol is $', currencySymbol('USD') === '$', currencySymbol('USD'))
+check('EUR symbol is €', currencySymbol('EUR') === '€', currencySymbol('EUR'))
+check('formatMoney USD uses symbol', formatMoney(1234.5, 'USD').includes('$'), formatMoney(1234.5, 'USD'))
+check('currencyName USD defined', (currencyName('USD') || '').length > 0)
+
 // ---------- database ----------
 const dir = mkdtempSync(join(tmpdir(), 'pocketvault-audit-'))
 const db = createDatabase(join(dir, 'audit.db'))
@@ -104,6 +126,8 @@ check('duplicate username blocked at repo layer (unique)', (() => {
   }
 })())
 check('findByUsername returns record', users.findByUsername(db, 'alice')?.id === alice.id)
+check('findByUsername is case-insensitive', users.findByUsername(db, 'ALICE')?.id === alice.id)
+check('findByUsername case-insensitive misses real absent', users.findByUsername(db, 'nobody') === null)
 check('findById hides password_hash', !('password_hash' in users.findById(db, alice.id)))
 check('exists false for missing', users.exists(db, 9999) === false)
 const record = users.getRecordById(db, alice.id)
@@ -270,6 +294,28 @@ check('dashboard totals numbers', typeof dash.totalIncome === 'number' && typeof
 check('dashboard recent lists capped', dash.recentIncome.length <= 5 && dash.recentExpenses.length <= 5)
 check('dashboard budgets structure', Array.isArray(dash.budgets.items))
 check('bob dashboard isolated (no data)', dashboardRepo.getSummary(db, bob.id, '2026-05').totalIncome === 0)
+
+// ---------- settings ----------
+check('settings default currency PHP', settingsRepo.getSettings(db, alice.id).currency === 'PHP')
+check('settings default require-password off', settingsRepo.getSettings(db, alice.id).requirePasswordOnStart === false)
+settingsRepo.upsertSettings(db, alice.id, { currency: 'USD', requirePasswordOnStart: true })
+check('settings persist currency', settingsRepo.getSettings(db, alice.id).currency === 'USD')
+check('settings persist require-password', settingsRepo.getSettings(db, alice.id).requirePasswordOnStart === true)
+settingsRepo.upsertSettings(db, alice.id, { currency: 'EUR' })
+const patched = settingsRepo.getSettings(db, alice.id)
+check('settings partial update keeps other field', patched.currency === 'EUR' && patched.requirePasswordOnStart === true)
+
+// ---------- receipt reconciliation ----------
+const recDir = join(dir, 'reconcile-receipts')
+mkdirSync(recDir, { recursive: true })
+const keepReceipt = '33333333-3333-3333-3333-333333333333.png'
+const orphanReceipt = '44444444-4444-4444-4444-444444444444.png'
+writeFileSync(join(recDir, keepReceipt), Buffer.from('k'))
+writeFileSync(join(recDir, orphanReceipt), Buffer.from('o'))
+incomeRepo.create(db, alice.id, { amount: 1, date: '2026-10-01', source: 'Rec', notes: null, receipt_path: keepReceipt })
+const removedCount = reconcileReceipts(db, recDir)
+check('reconcile removes orphan receipt', removedCount === 1 && !existsSync(join(recDir, orphanReceipt)))
+check('reconcile keeps referenced receipt', existsSync(join(recDir, keepReceipt)))
 
 // ---------- delete all data (account kept) ----------
 const delReceipts = join(dir, 'del-receipts')

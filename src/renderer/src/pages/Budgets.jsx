@@ -22,22 +22,28 @@ function BudgetForm({ open, initial, onClose, onSaved }) {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting }
   } = useForm()
+  const category = watch('category')
 
   useEffect(() => {
     if (open) {
+      const known = EXPENSE_CATEGORIES.some((c) => c.value === initial?.category)
       reset({
-        category: initial?.category ?? 'food',
+        category: !initial ? 'food' : known ? initial.category : '__custom__',
+        customCategory: initial && !known ? initial.category : '',
         monthly_limit: initial?.monthly_limit ?? ''
       })
     }
   }, [open, initial, reset])
 
   const onSubmit = async (values) => {
+    const resolvedCategory =
+      values.category === '__custom__' ? values.customCategory.trim() : values.category
     try {
       await window.api.budgets.upsert({
-        category: values.category,
+        category: resolvedCategory,
         monthly_limit: Number(values.monthly_limit)
       })
       toast('Budget saved', 'success')
@@ -73,8 +79,27 @@ function BudgetForm({ open, initial, onClose, onSaved }) {
                 {category.label}
               </option>
             ))}
+            <option value="__custom__">Custom…</option>
           </Select>
         </Field>
+        {category === '__custom__' ? (
+          <Field
+            label="Custom category"
+            htmlFor="budget-custom-category"
+            error={errors.customCategory?.message}
+            required
+          >
+            <Input
+              id="budget-custom-category"
+              placeholder="e.g. Pet care"
+              disabled={Boolean(initial)}
+              hasError={Boolean(errors.customCategory)}
+              {...register('customCategory', {
+                required: category === '__custom__' ? 'Enter a category name' : false
+              })}
+            />
+          </Field>
+        ) : null}
         <Field label="Monthly limit" htmlFor="budget-limit" error={errors.monthly_limit?.message} required>
           <Input
             id="budget-limit"

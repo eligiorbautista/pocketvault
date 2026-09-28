@@ -24,13 +24,17 @@ function ExpenseForm({ open, initial, onClose, onSaved }) {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting }
   } = useForm()
+  const category = watch('category')
 
   useEffect(() => {
     if (open) {
+      const known = EXPENSE_CATEGORIES.some((c) => c.value === initial?.category)
       reset({
-        category: initial?.category ?? 'food',
+        category: !initial ? 'food' : known ? initial.category : '__custom__',
+        customCategory: initial && !known ? initial.category : '',
         amount: initial?.amount ?? '',
         date: initial?.date ?? todayInput(),
         notes: initial?.notes ?? ''
@@ -39,8 +43,10 @@ function ExpenseForm({ open, initial, onClose, onSaved }) {
   }, [open, initial, reset])
 
   const onSubmit = async (values) => {
+    const resolvedCategory =
+      values.category === '__custom__' ? values.customCategory.trim() : values.category
     const payload = {
-      category: values.category,
+      category: resolvedCategory,
       amount: Number(values.amount),
       date: values.date,
       notes: values.notes
@@ -81,8 +87,26 @@ function ExpenseForm({ open, initial, onClose, onSaved }) {
                   {category.label}
                 </option>
               ))}
+              <option value="__custom__">Custom…</option>
             </Select>
           </Field>
+          {category === '__custom__' ? (
+            <Field
+              label="Custom category"
+              htmlFor="customCategory"
+              error={errors.customCategory?.message}
+              required
+            >
+              <Input
+                id="customCategory"
+                placeholder="e.g. Pet care"
+                hasError={Boolean(errors.customCategory)}
+                {...register('customCategory', {
+                  required: category === '__custom__' ? 'Enter a category name' : false
+                })}
+              />
+            </Field>
+          ) : null}
           <Field label="Amount" htmlFor="amount" error={errors.amount?.message} required>
             <Input
               id="amount"

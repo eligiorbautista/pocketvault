@@ -2,7 +2,7 @@ import { handle } from './handle.js'
 import { getDatabase } from '../db/connection.js'
 import * as dashboardRepo from '../db/repositories/dashboard.js'
 import * as reportsRepo from '../db/repositories/reports.js'
-import { currentMonth, monthRange } from '../db/repositories/helpers.js'
+import { currentMonth } from '../db/repositories/helpers.js'
 import { validateDate } from '../db/validate.js'
 
 function validateMonth(value) {
@@ -48,6 +48,4 @@ export function registerReportsHandlers() {
   )
 
   handle('reports:debtSummary', ({ userId }) => reportsRepo.debtSummary(getDatabase(), userId))
-
-  handle('reports:monthRange', ({ payload }) => monthRange(validateMonth(payload.month)))
 }

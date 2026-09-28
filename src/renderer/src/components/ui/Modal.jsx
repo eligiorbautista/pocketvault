@@ -17,7 +17,31 @@ export function Modal({ open, onClose, title, description, size = 'md', footer, 
     if (!open) return undefined
     const previouslyFocused = document.activeElement
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') onClose?.()
+      if (event.key === 'Escape') {
+        onClose?.()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const panel = panelRef.current
+      if (!panel) return
+      const focusable = panel.querySelectorAll(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusable.length === 0) {
+        event.preventDefault()
+        panel.focus()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (event.shiftKey && (active === first || active === panel)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     const previousOverflow = document.body.style.overflow

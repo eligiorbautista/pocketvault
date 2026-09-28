@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
   BarChart3,
+  Coins,
   Database,
   Download,
   HandCoins,
@@ -19,10 +21,15 @@ import {
 import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
 import { Card, CardBody, CardHeader, CardTitle } from '@renderer/components/ui/Card.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
+import { Field } from '@renderer/components/ui/Field.jsx'
+import { Select } from '@renderer/components/ui/Input.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
 import { ChangePasswordForm } from '@renderer/components/settings/ChangePasswordForm.jsx'
 import { DeleteDataForm } from '@renderer/components/settings/DeleteDataForm.jsx'
 import { useAuthStore } from '@renderer/store/authStore.js'
+import { useSettingsStore } from '@renderer/store/settingsStore.js'
+import { currencyCodes, currencyName, currencySymbol } from '@shared/currency.js'
+import { formatCurrency } from '@renderer/lib/format.js'
 import { toast } from '@renderer/store/uiStore.js'
 
 const FEATURES = [
@@ -42,6 +49,32 @@ export default function Settings() {
   const [confirmImport, setConfirmImport] = useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [deleteDataOpen, setDeleteDataOpen] = useState(false)
+  const navigate = useNavigate()
+  const currency = useSettingsStore((state) => state.currency)
+  const requirePasswordOnStart = useSettingsStore((state) => state.requirePasswordOnStart)
+
+  const changeCurrency = async (event) => {
+    const next = event.target.value
+    try {
+      await useSettingsStore.getState().update({ currency: next })
+      toast('Currency updated', 'success', { description: formatCurrency(1234.56) })
+    } catch (error) {
+      toast(error.message, 'error')
+    }
+  }
+
+  const toggleRequirePassword = async (event) => {
+    const next = event.target.checked
+    try {
+      await useSettingsStore.getState().update({ requirePasswordOnStart: next })
+      toast(
+        next ? 'Password will be required on startup' : 'Password no longer required on startup',
+        'success'
+      )
+    } catch (error) {
+      toast(error.message, 'error')
+    }
+  }
 
   const exportBackup = async () => {
     setBusy('export')
@@ -136,6 +169,45 @@ export default function Settings() {
 
         <Card className="lg:col-span-2">
           <CardHeader className="flex items-center gap-2">
+            <Coins size={16} className="text-slate-400" aria-hidden="true" />
+            <CardTitle>Preferences</CardTitle>
+          </CardHeader>
+          <CardBody className="grid gap-5 sm:grid-cols-2">
+            <Field
+              label="Currency"
+              htmlFor="settings-currency"
+              hint={`Example: ${formatCurrency(1234.56)}`}
+            >
+              <Select id="settings-currency" value={currency} onChange={changeCurrency}>
+                {currencyCodes().map((code) => (
+                  <option key={code} value={code}>
+                    {code} — {currencyName(code)} ({currencySymbol(code)})
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <label className="flex items-start gap-3 sm:pt-6">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 cursor-pointer accent-accent-600"
+                checked={requirePasswordOnStart}
+                onChange={toggleRequirePassword}
+              />
+              <span>
+                <span className="block text-sm font-medium text-slate-800">
+                  Require password on startup
+                </span>
+                <span className="block text-xs text-slate-500">
+                  When on, PocketVault asks for your password each launch instead of resuming
+                  automatically.
+                </span>
+              </span>
+            </label>
+          </CardBody>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex items-center gap-2">
             <Info size={16} className="text-slate-400" aria-hidden="true" />
             <CardTitle>About</CardTitle>
           </CardHeader>
@@ -181,7 +253,11 @@ export default function Settings() {
         onClose={() => setChangePasswordOpen(false)}
       />
 
-      <DeleteDataForm open={deleteDataOpen} onClose={() => setDeleteDataOpen(false)} />
+      <DeleteDataForm
+        open={deleteDataOpen}
+        onClose={() => setDeleteDataOpen(false)}
+        onDeleted={() => navigate('/')}
+      />
 
       <ConfirmDialog
         open={confirmImport}

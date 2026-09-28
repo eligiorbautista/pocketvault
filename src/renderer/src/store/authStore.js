@@ -16,6 +16,8 @@ export const useAuthStore = create((set) => ({
   user: null,
   status: 'loading',
   error: null,
+  // True when the session was resumed automatically (no password this launch).
+  viaRestore: false,
 
   async bootstrap() {
     let raw = null
@@ -25,29 +27,29 @@ export const useAuthStore = create((set) => ({
       raw = null
     }
     if (!raw) {
-      set({ status: 'unauthenticated', user: null })
+      set({ status: 'unauthenticated', user: null, viaRestore: false })
       return
     }
     try {
       const parsed = JSON.parse(raw)
       const { user } = await window.api.auth.restore(parsed.id)
-      set({ user, status: 'authenticated', error: null })
+      set({ user, status: 'authenticated', error: null, viaRestore: true })
     } catch {
       clearPersistedSession()
-      set({ user: null, status: 'unauthenticated', error: null })
+      set({ user: null, status: 'unauthenticated', error: null, viaRestore: false })
     }
   },
 
   async login(username, password) {
     const { user } = await window.api.auth.login(username, password)
     persistSession(user)
-    set({ user, status: 'authenticated', error: null })
+    set({ user, status: 'authenticated', error: null, viaRestore: false })
   },
 
   async register(username, password) {
     const { user } = await window.api.auth.register(username, password)
     persistSession(user)
-    set({ user, status: 'authenticated', error: null })
+    set({ user, status: 'authenticated', error: null, viaRestore: false })
   },
 
   async logout() {
@@ -55,7 +57,7 @@ export const useAuthStore = create((set) => ({
       await window.api.auth.logout()
     } finally {
       clearPersistedSession()
-      set({ user: null, status: 'unauthenticated', error: null })
+      set({ user: null, status: 'unauthenticated', error: null, viaRestore: false })
     }
   }
 }))

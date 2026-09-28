@@ -6,7 +6,9 @@ export function createUser(db, { username, passwordHash }) {
 }
 
 export function findByUsername(db, username) {
-  return db.prepare('SELECT * FROM users WHERE username = ?').get(username) ?? null
+  return (
+    db.prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE LIMIT 1').get(username) ?? null
+  )
 }
 
 export function findById(db, id) {

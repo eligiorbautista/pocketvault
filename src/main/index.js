@@ -1,8 +1,10 @@
 import { app, shell, BrowserWindow, dialog } from 'electron'
 import { join } from 'node:path'
-import { closeDatabase, createDatabase } from './db/connection.js'
+import { closeDatabase, createDatabase, getDatabase } from './db/connection.js'
 import { clearSession } from './db/session.js'
 import { registerIpcHandlers } from './ipc/index.js'
+import { receiptsDir } from './services/receipts.js'
+import { reconcileReceipts } from './services/receiptCleanup.js'
 
 const isDev = !app.isPackaged
 
@@ -52,6 +54,8 @@ app.whenReady().then(() => {
   try {
     createDatabase(join(app.getPath('userData'), 'pocketvault.db'))
     registerIpcHandlers()
+    // Clean up abandoned receipt uploads left by cancelled forms/crashes.
+    reconcileReceipts(getDatabase(), receiptsDir())
   } catch (error) {
     dialog.showErrorBox(
       'PocketVault could not start',

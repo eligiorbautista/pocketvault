@@ -58,11 +58,4 @@ export function registerExpensesHandlers() {
     if (!removed) throw new Error('Expense record not found')
     return { removed: true }
   })
-
-  handle('expenses:all', ({ userId, payload }) =>
-    expensesRepo.listAll(getDatabase(), userId, {
-      from: payload.from || undefined,
-      to: payload.to || undefined
-    })
-  )
 }

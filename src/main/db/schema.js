@@ -114,7 +114,18 @@ CREATE INDEX IF NOT EXISTS idx_savings_goals_user ON savings_goals (user_id);
 CREATE INDEX IF NOT EXISTS idx_savings_contrib_goal ON savings_contributions (goal_id);
 `
 
-const MIGRATIONS = [V1]
+// v2: per-user preferences (currency, security options).
+const V2 = `
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_id INTEGER PRIMARY KEY,
+  currency TEXT NOT NULL DEFAULT 'PHP',
+  require_password_on_start INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`
+
+const MIGRATIONS = [V1, V2]
 
 export function applyMigrations(db) {
   const current = db.pragma('user_version', { simple: true })

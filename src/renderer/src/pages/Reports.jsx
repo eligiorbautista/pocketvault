@@ -52,6 +52,10 @@ export default function Reports() {
   const activeMonths = months.filter((month) => month.income > 0 || month.expenses > 0)
 
   const runExport = async (kind) => {
+    if (loading || months.length === 0) {
+      toast('No data to export yet', 'warning')
+      return
+    }
     setExporting(kind)
     try {
       if (kind === 'csv') {
@@ -123,11 +127,16 @@ export default function Reports() {
               variant="secondary"
               onClick={() => runExport('csv')}
               loading={exporting === 'csv'}
+              disabled={loading || activeMonths.length === 0}
             >
               <FileSpreadsheet size={16} aria-hidden="true" />
               Export CSV
             </Button>
-            <Button onClick={() => runExport('pdf')} loading={exporting === 'pdf'}>
+            <Button
+              onClick={() => runExport('pdf')}
+              loading={exporting === 'pdf'}
+              disabled={loading || activeMonths.length === 0}
+            >
               <FileDown size={16} aria-hidden="true" />
               Export PDF
             </Button>

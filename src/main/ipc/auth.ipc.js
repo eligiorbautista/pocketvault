@@ -26,7 +26,7 @@ export function registerAuthHandlers() {
     'auth:login',
     ({ event, payload }) => {
       const db = getDatabase()
-      const username = validateUsername(payload.username)
+      const username = String(payload.username ?? '').trim()
       const password = String(payload.password ?? '')
       const record = users.findByUsername(db, username)
       if (!record || !bcrypt.compareSync(password, record.password_hash)) {

@@ -1,14 +1,9 @@
 import { format, parseISO } from 'date-fns'
-import { CURRENCY, DEBT_PAYMENT_TYPES, EXPENSE_CATEGORIES } from '@shared/constants.js'
+import { DEBT_PAYMENT_TYPES, EXPENSE_CATEGORIES } from '@shared/constants.js'
+import { currencySymbol, formatMoney } from '@shared/currency.js'
+import { useSettingsStore } from '../store/settingsStore.js'
 
-const currencyFormatter = new Intl.NumberFormat(CURRENCY.locale, {
-  style: 'currency',
-  currency: CURRENCY.code,
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2
-})
-
-const compactFormatter = new Intl.NumberFormat(CURRENCY.locale, {
+const compactFormatter = new Intl.NumberFormat('en-US', {
   notation: 'compact',
   maximumFractionDigits: 1
 })
@@ -16,12 +11,16 @@ const compactFormatter = new Intl.NumberFormat(CURRENCY.locale, {
 const CATEGORY_LABELS = new Map(EXPENSE_CATEGORIES.map((c) => [c.value, c.label]))
 const PAYMENT_TYPE_LABELS = new Map(DEBT_PAYMENT_TYPES.map((t) => [t.value, t.label]))
 
+export function currentCurrency() {
+  return useSettingsStore.getState().currency
+}
+
 export function formatCurrency(value) {
-  return currencyFormatter.format(Number(value) || 0)
+  return formatMoney(value, currentCurrency())
 }
 
 export function formatCompactCurrency(value) {
-  return `${CURRENCY.symbol}${compactFormatter.format(Number(value) || 0)}`
+  return `${currencySymbol(currentCurrency())}${compactFormatter.format(Number(value) || 0)}`
 }
 
 export function formatPercent(value) {

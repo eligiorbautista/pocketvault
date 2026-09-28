@@ -51,12 +51,13 @@ export function validateText(value, field, { required = false, max = 500 } = {})
   return text.length ? text : null
 }
 
+const CUSTOM_CATEGORY_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} &_'.\-]{0,39}$/u
+
 export function validateCategory(value) {
-  assert(
-    typeof value === 'string' && EXPENSE_CATEGORY_VALUES.includes(value),
-    'category is not recognized'
-  )
-  return value
+  const text = typeof value === 'string' ? value.trim() : ''
+  if (EXPENSE_CATEGORY_VALUES.includes(text)) return text
+  assert(CUSTOM_CATEGORY_PATTERN.test(text), 'category is not recognized')
+  return text
 }
 
 export function validateUsername(value) {
