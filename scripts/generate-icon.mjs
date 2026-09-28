@@ -3,8 +3,7 @@
 import { deflateSync } from 'node:zlib'
 import { mkdirSync, writeFileSync } from 'node:fs'
 
-const TOP = [4, 120, 87] // emerald-800
-const BOTTOM = [52, 211, 153] // emerald-400
+const BG = [5, 150, 105] // emerald-600, flat (no gradient)
 
 function clamp01(x) {
   return x < 0 ? 0 : x > 1 ? 1 : x
@@ -27,10 +26,9 @@ function draw(size) {
 
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
-      const t = (x + y) / (2 * (size - 1))
-      let r = lerp(TOP[0], BOTTOM[0], t)
-      let g = lerp(TOP[1], BOTTOM[1], t)
-      let b = lerp(TOP[2], BOTTOM[2], t)
+      let r = BG[0]
+      let g = BG[1]
+      let b = BG[2]
 
       const dx = x - c
       const dy = y - c
