@@ -1,11 +1,34 @@
 import { useState } from 'react'
-import { Database, Download, Info, LogOut, Upload, User } from 'lucide-react'
+import {
+  BarChart3,
+  Database,
+  Download,
+  HandCoins,
+  Info,
+  LogOut,
+  PiggyBank,
+  Receipt,
+  TrendingUp,
+  Upload,
+  User,
+  Wallet
+} from 'lucide-react'
 import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
 import { Card, CardBody, CardHeader, CardTitle } from '@renderer/components/ui/Card.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { toast } from '@renderer/store/uiStore.js'
+
+const FEATURES = [
+  { icon: TrendingUp, label: 'Track income and expenses' },
+  { icon: Receipt, label: 'Attach receipts to income records' },
+  { icon: HandCoins, label: 'Manage debts and payments' },
+  { icon: Wallet, label: 'Set monthly budgets with alerts' },
+  { icon: PiggyBank, label: 'Create and fund savings goals' },
+  { icon: BarChart3, label: 'View reports and export data' },
+  { icon: Database, label: 'Back up and restore your data' }
+]
 
 export default function Settings() {
   const user = useAuthStore((state) => state.user)
@@ -17,7 +40,11 @@ export default function Settings() {
     setBusy('export')
     try {
       const result = await window.api.backup.export()
-      if (result.saved) toast('Backup exported', 'success')
+      if (result.saved) {
+        toast('Backup exported', 'success', {
+          description: 'The file contains only this account\u2019s data.'
+        })
+      }
     } catch (error) {
       toast(error.message, 'error')
     } finally {
@@ -31,10 +58,9 @@ export default function Settings() {
       const result = await window.api.backup.import()
       setConfirmImport(false)
       if (result.imported) {
-        toast('Backup imported. Please sign in again to continue.', 'success', {
-          duration: 8000
+        toast('Backup imported', 'success', {
+          description: 'This account\u2019s data was restored.'
         })
-        await logout()
       }
     } catch (error) {
       toast(error.message, 'error')
@@ -75,7 +101,8 @@ export default function Settings() {
           </CardHeader>
           <CardBody className="space-y-3">
             <p className="text-sm text-slate-600">
-              Export a ZIP containing your database and receipts, or restore from a previous backup.
+              Export a backup of this account, or restore a previous one. Backups are tied to your
+              username and never include other accounts.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button onClick={exportBackup} loading={busy === 'export'}>
@@ -99,20 +126,22 @@ export default function Settings() {
             <Info size={16} className="text-slate-400" aria-hidden="true" />
             <CardTitle>About</CardTitle>
           </CardHeader>
-          <CardBody>
-            <p className="text-sm text-slate-600">
-              PocketVault is a personal finance tracker that keeps your money organized in one
-              place.
+          <CardBody className="space-y-4">
+            <p className="max-w-2xl text-sm text-slate-600">
+              PocketVault keeps your money organized in one place so you always know what came in,
+              where it went, and what you are working toward.
             </p>
-            <ul className="mt-3 grid grid-cols-1 gap-1.5 text-sm text-slate-600 sm:grid-cols-2">
-              <li>Track income, expenses and receipts</li>
-              <li>Manage debts and payments</li>
-              <li>Set monthly budgets with alerts</li>
-              <li>Create and fund savings goals</li>
-              <li>View reports and export your data</li>
-              <li>Back up and restore your data</li>
+            <ul className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map(({ icon: Icon, label }) => (
+                <li key={label} className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent-50 text-accent-700">
+                    <Icon size={15} aria-hidden="true" />
+                  </span>
+                  <span className="text-sm text-slate-700">{label}</span>
+                </li>
+              ))}
             </ul>
-            <p className="mt-4 text-xs text-slate-400">Version {VERSION}</p>
+            <p className="text-xs text-slate-400">Version {VERSION}</p>
           </CardBody>
         </Card>
       </div>
@@ -120,8 +149,8 @@ export default function Settings() {
       <ConfirmDialog
         open={confirmImport}
         title="Import backup?"
-        message="Importing replaces your entire local database and receipts with the contents of the backup file. This cannot be undone. You will be signed out afterwards."
-        confirmLabel="Replace my data"
+        message="Importing replaces all data in this account with the backup's contents. This cannot be undone. Other accounts are not affected."
+        confirmLabel="Replace account data"
         loading={busy === 'import'}
         onConfirm={importBackup}
         onCancel={() => setConfirmImport(false)}

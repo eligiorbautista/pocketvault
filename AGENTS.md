@@ -12,6 +12,8 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
 - Icons: `npm run icons` (regenerates `build/icon.png` + `build/icon.ico`, no deps).
 - DB/repository smoke test (run from repo root):
   `npx esbuild scripts/db-smoke.mjs --bundle --platform=node --format=cjs --external:better-sqlite3 --outfile=".pv-smoke.cjs"; node .pv-smoke.cjs`
+- Per-account backup isolation smoke test (run from repo root):
+  `npx esbuild scripts/backup-smoke.mjs --bundle --platform=node --format=cjs --external:better-sqlite3 --external:jszip --outfile=".pv-backup-smoke.cjs"; node .pv-backup-smoke.cjs`
 - No ESLint/typecheck is configured.
 
 ## Architecture
@@ -32,6 +34,7 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
 - **HashRouter** (not BrowserRouter) — production loads over `file://`.
 - **Money**: stored as peso numbers in SQLite (schema compatibility) but every calculation uses integer centavos (`src/shared/money.js`).
 - **Added table** `savings_contributions` beyond the original spec, to support "link contributions from income".
+- **Backups are per-account** (format v2): export contains only the signed-in user's rows + their receipts; import is refused unless the backup's username matches the signed-in user, and replaces only that user's rows (other accounts untouched). Service: `src/main/services/backup.js`.
 - **Toasts** use `sonner`; `<Toaster richColors position="bottom-right" />` is mounted at the App root (so toasts survive redirects/logout). Call `toast(message, variant, options?)` from `src/renderer/src/store/uiStore.js`.
 - Renderer bundle is large (~2.5 MB) because jsPDF/html2canvas and Recharts are eager; code-split `src/renderer/src/lib/export.js` if needed.
 - `@electron/rebuild` is a devDependency for an explicit `npm run rebuild`; electron-builder already rebuilds native deps, so its warning is informational.

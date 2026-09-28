@@ -1,14 +1,8 @@
 import { dialog } from 'electron'
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { handle } from './handle.js'
-import {
-  checkpointDatabase,
-  closeDatabase,
-  createDatabase,
-  getDatabasePath
-} from '../db/connection.js'
-import { clearSession } from '../db/session.js'
-import { buildBackup, parseBackup, writeBackupContents } from '../services/backup.js'
+import { getDatabase } from '../db/connection.js'
+import { applyUserBackup, buildUserBackup, parseUserBackup } from '../services/backup.js'
 import { receiptsDir } from '../services/receipts.js'
 
 function stamp() {
@@ -19,50 +13,52 @@ function stamp() {
   )}`
 }
 
+function currentUser(db, userId) {
+  return db.prepare('SELECT id, username FROM users WHERE id = ?').get(userId) ?? null
+}
+
 export function registerBackupHandlers() {
-  handle('backup:export', async () => {
-    checkpointDatabase()
-    const dbPath = getDatabasePath()
-    const buffer = await buildBackup(dbPath, receiptsDir())
+  handle('backup:export', async ({ userId }) => {
+    const db = getDatabase()
+    const user = currentUser(db, userId)
+    if (!user) throw new Error('Account not found')
+
+    const { buffer, counts } = await buildUserBackup(db, userId, receiptsDir())
 
     const result = await dialog.showSaveDialog({
-      title: 'Export PocketVault backup',
-      defaultPath: `pocketvault-backup-${stamp()}.zip`,
+      title: 'Export account backup',
+      defaultPath: `pocketvault-${user.username}-${stamp()}.zip`,
       filters: [{ name: 'PocketVault Backup', extensions: ['zip'] }]
     })
     if (result.canceled || !result.filePath) return { saved: false }
 
     writeFileSync(result.filePath, buffer)
-    return { saved: true, path: result.filePath }
+    return { saved: true, path: result.filePath, counts }
   })
 
-  handle('backup:import', async ({ event }) => {
+  handle('backup:import', async ({ userId }) => {
+    const db = getDatabase()
+    const user = currentUser(db, userId)
+    if (!user) throw new Error('Account not found')
+
     const picked = await dialog.showOpenDialog({
-      title: 'Import PocketVault backup',
+      title: 'Import account backup',
       properties: ['openFile'],
       filters: [{ name: 'PocketVault Backup', extensions: ['zip'] }]
     })
     if (picked.canceled || picked.filePaths.length === 0) return { imported: false }
 
     const buffer = readFileSync(picked.filePaths[0])
-    const { manifest, dbBuffer, receipts } = await parseBackup(buffer)
+    const parsed = await parseUserBackup(buffer)
 
-    const dbPath = getDatabasePath()
-    const dir = receiptsDir()
-
-    closeDatabase()
-    for (const suffix of ['-wal', '-shm']) {
-      const sidecar = `${dbPath}${suffix}`
-      if (existsSync(sidecar)) rmSync(sidecar, { force: true })
+    if (parsed.account.username !== user.username) {
+      throw new Error(
+        `This backup belongs to a different account ("${parsed.account.username}"). ` +
+          `Sign in to that account to import it.`
+      )
     }
-    writeBackupContents({ dbPath, receiptsDir: dir, dbBuffer, receipts })
-    createDatabase(dbPath)
 
-    clearSession(event.sender.id)
-    return {
-      imported: true,
-      manifest,
-      receipts: receipts.length
-    }
+    const result = applyUserBackup(db, userId, parsed, receiptsDir())
+    return { imported: true, counts: result.counts }
   })
 }

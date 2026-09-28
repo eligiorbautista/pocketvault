@@ -13,14 +13,14 @@ All data lives on your machine; no internet, cloud, telemetry, or accounts are r
 - **Budgets** — monthly limit per category with progress bars and over-budget alerts.
 - **Savings** — goals, contributions (linkable to an income record), progress.
 - **Reports** — monthly/yearly summaries with charts, PDF and CSV export.
-- **Backups** — export/import a ZIP containing the database and receipts.
+- **Backups** — export/import a per-account ZIP (that account's data + receipts only). Importing never touches other accounts.
 - **Dashboard** — income, expenses, remaining balance, unpaid debts, budget/savings bars.
 - **Responsive** — mobile-first UI from 375px up to ultrawide.
 
 ## Tech stack
 
 Electron · electron-vite (Vite 7) · React 19 · React Router · Zustand · Tailwind CSS v4 ·
-better-sqlite3 · bcryptjs · react-hook-form · Recharts · date-fns · jsPDF · JSZip · lucide-react.
+better-sqlite3 · bcryptjs · react-hook-form · Recharts · date-fns · jsPDF · JSZip · sonner · lucide-react.
 
 ## Requirements
 
@@ -102,6 +102,6 @@ build/               app icons for electron-builder
 5. Set budgets and confirm the over-budget alert and progress bars.
 6. Create a savings goal and add a contribution linked to an income record.
 7. Open Reports, change the year, export both CSV and PDF.
-8. In Settings, export a backup, then import it (you will be signed out afterwards).
-9. Register a second user and confirm you cannot see the first user's data.
+8. In Settings, export a backup, then import it (only this account's data is replaced; you stay signed in).
+9. Register a second user and confirm you cannot see the first user's data; also confirm a backup from the first account is refused when signed in as the second.
 10. Resize the window from 375px to 1920px and confirm the layout stays usable.
