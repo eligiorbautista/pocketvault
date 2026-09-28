@@ -174,6 +174,9 @@ export async function parseUserBackup(buffer) {
   }
   const username = typeof account.username === 'string' ? account.username : manifest.username
   if (!username) throw new Error('Invalid backup: the account name is missing')
+  if (manifest.username && account.username && manifest.username !== account.username) {
+    throw new Error('Invalid backup: the account details are inconsistent')
+  }
 
   const normalized = {}
   for (const key of DATA_KEYS) {
@@ -196,10 +199,21 @@ export async function parseUserBackup(buffer) {
   }
 }
 
+// A backup may only ever be restored into the account it belongs to.
+export function assertBackupMatchesAccount(accountUsername, currentUsername) {
+  if (!accountUsername || !currentUsername || accountUsername !== currentUsername) {
+    const whose = accountUsername ? ` ("${accountUsername}")` : ''
+    throw new Error(
+      `This backup belongs to a different account${whose}. Sign in to that account to import it.`
+    )
+  }
+}
+
 // Replaces ONLY the given user's rows with the backup contents. Other accounts
 // are never read or modified.
-export function applyUserBackup(db, userId, payload, receiptsDir) {
+export function applyUserBackup(db, userId, payload, receiptsDir, currentUsername) {
   const { account, data, receipts } = payload
+  assertBackupMatchesAccount(account.username, currentUsername)
   const includedReceipts = new Set(receipts.map((receipt) => receipt.name))
   const now = new Date().toISOString()
 

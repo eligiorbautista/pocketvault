@@ -2,7 +2,12 @@ import { dialog } from 'electron'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { handle } from './handle.js'
 import { getDatabase } from '../db/connection.js'
-import { applyUserBackup, buildUserBackup, parseUserBackup } from '../services/backup.js'
+import {
+  applyUserBackup,
+  assertBackupMatchesAccount,
+  buildUserBackup,
+  parseUserBackup
+} from '../services/backup.js'
 import { receiptsDir } from '../services/receipts.js'
 
 function stamp() {
@@ -27,7 +32,7 @@ export function registerBackupHandlers() {
 
     const result = await dialog.showSaveDialog({
       title: 'Export account backup',
-      defaultPath: `pocketvault-${user.username}-${stamp()}.zip`,
+      defaultPath: `pocketvault-${user.username}-backup-${stamp()}.zip`,
       filters: [{ name: 'PocketVault Backup', extensions: ['zip'] }]
     })
     if (result.canceled || !result.filePath) return { saved: false }
@@ -51,14 +56,10 @@ export function registerBackupHandlers() {
     const buffer = readFileSync(picked.filePaths[0])
     const parsed = await parseUserBackup(buffer)
 
-    if (parsed.account.username !== user.username) {
-      throw new Error(
-        `This backup belongs to a different account ("${parsed.account.username}"). ` +
-          `Sign in to that account to import it.`
-      )
-    }
+    // Authoritative, account-locked check (also enforced inside applyUserBackup).
+    assertBackupMatchesAccount(parsed.account.username, user.username)
 
-    const result = applyUserBackup(db, userId, parsed, receiptsDir())
-    return { imported: true, counts: result.counts }
+    const result = applyUserBackup(db, userId, parsed, receiptsDir(), user.username)
+    return { imported: true, counts: result.counts, username: result.username }
   })
 }

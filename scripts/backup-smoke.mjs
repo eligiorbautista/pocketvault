@@ -129,7 +129,17 @@ const bobB = seedBob(dbB)
 const bobIncomeBefore = incomeRepo.list(dbB, bobB, {}).total
 const bobExpensesBefore = expensesRepo.list(dbB, bobB, {}).total
 
-const beforeProfile = applyUserBackup(dbB, aliceB.id, parsed, destReceipts)
+check('cross-account import is rejected', (() => {
+  try {
+    applyUserBackup(dbB, bobB, parsed, destReceipts, 'bob')
+    return false
+  } catch (error) {
+    return /different account/i.test(error.message)
+  }
+})())
+check('rejected import leaves bob untouched', incomeRepo.list(dbB, bobB, {}).total === bobIncomeBefore)
+
+const beforeProfile = applyUserBackup(dbB, aliceB.id, parsed, destReceipts, 'alice')
 check('import reports alice restored counts', beforeProfile.counts.income === 2, beforeProfile.counts)
 
 check('alice income replaced (junk gone)', incomeRepo.list(dbB, aliceB.id, {}).total === 2)
@@ -163,7 +173,7 @@ check(
 check('import guard would reject a different account', parsed.account.username !== 'bob')
 
 // --- Idempotent: importing twice yields same result ---
-applyUserBackup(dbB, aliceB.id, parsed, destReceipts)
+applyUserBackup(dbB, aliceB.id, parsed, destReceipts, 'alice')
 check('second import is idempotent for alice income', incomeRepo.list(dbB, aliceB.id, {}).total === 2)
 check('second import still leaves bob intact', incomeRepo.list(dbB, bobB, {}).total === bobIncomeBefore)
 closeDatabase()
