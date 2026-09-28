@@ -5,9 +5,20 @@ const MONTH_LABELS = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
 ]
 
-export function monthlyTotals(db, userId, year) {
-  const from = `${year}-01-01`
-  const to = `${year}-12-31`
+// period: a year (number/string) or { from, to } ISO dates.
+// A year always yields 12 buckets; a range yields buckets from the first
+// month with data to the last month with data (never a giant empty series).
+export function monthlyTotals(db, userId, period) {
+  let from, to
+  const isYear = period === null || period === undefined || typeof period !== 'object'
+  if (isYear) {
+    const year = String(period ?? new Date().getFullYear())
+    from = `${year}-01-01`
+    to = `${year}-12-31`
+  } else {
+    from = period.from
+    to = period.to
+  }
 
   const incomeRows = db
     .prepare(
@@ -31,8 +42,32 @@ export function monthlyTotals(db, userId, year) {
     expenseByMonth.set(row.ym, (expenseByMonth.get(row.ym) ?? 0) + toCents(row.amount))
   }
 
-  return MONTH_LABELS.map((label, index) => {
-    const ym = `${year}-${String(index + 1).padStart(2, '0')}`
+  let monthKeys
+  if (isYear) {
+    const year = String(period ?? new Date().getFullYear())
+    monthKeys = MONTH_LABELS.map((_, index) => `${year}-${String(index + 1).padStart(2, '0')}`)
+  } else {
+    const withData = [...new Set([...incomeByMonth.keys(), ...expenseByMonth.keys()])].sort()
+    if (withData.length === 0) return []
+    // Fill contiguous months between the first and last months that have data.
+    monthKeys = []
+    let [y, m] = withData[0].split('-').map(Number)
+    const [endY, endM] = withData[withData.length - 1].split('-').map(Number)
+    while (y < endY || (y === endY && m <= endM)) {
+      monthKeys.push(`${y}-${String(m).padStart(2, '0')}`)
+      m += 1
+      if (m > 12) {
+        m = 1
+        y += 1
+      }
+    }
+  }
+
+  const multiYear = monthKeys.length > 0 && monthKeys[0].slice(0, 4) !== monthKeys[monthKeys.length - 1].slice(0, 4)
+
+  return monthKeys.map((ym) => {
+    const [y, m] = ym.split('-').map(Number)
+    const label = multiYear ? `${MONTH_LABELS[m - 1]} ${String(y).slice(-2)}` : MONTH_LABELS[m - 1]
     const incomeCents = incomeByMonth.get(ym) ?? 0
     const expenseCents = expenseByMonth.get(ym) ?? 0
     return {

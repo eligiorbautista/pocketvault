@@ -73,8 +73,9 @@ const api = {
   },
 
   reports: {
-    dashboard: (month) => call('reports:dashboard', { month }),
-    monthlyTotals: (year) => call('reports:monthlyTotals', { year }),
+    dashboard: (period) => call('reports:dashboard', period),
+    monthlyTotals: (period) =>
+      call('reports:monthlyTotals', typeof period === 'object' ? period : { year: period }),
     rangeTotals: (params) => call('reports:rangeTotals', params),
     categoryBreakdown: (params) => call('reports:categoryBreakdown', params),
     incomeBySource: (params) => call('reports:incomeBySource', params),

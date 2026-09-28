@@ -17,41 +17,54 @@ import { Badge } from '@renderer/components/ui/Badge.jsx'
 import { ProgressBar } from '@renderer/components/ui/ProgressBar.jsx'
 import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
-import { Field } from '@renderer/components/ui/Field.jsx'
-import { Input } from '@renderer/components/ui/Input.jsx'
+import {
+  PeriodFilter,
+  dashboardPeriodPayload
+} from '@renderer/components/ui/PeriodFilter.jsx'
 import {
   categoryLabel,
   currentMonthInput,
   formatCurrency,
   formatDate,
-  formatMonth
+  formatMonth,
+  todayInput
 } from '@renderer/lib/format.js'
 import { useApiData } from '@renderer/hooks/useApiData.js'
 
 export default function Dashboard() {
-  const [month, setMonth] = useState(currentMonthInput())
-  const { data, loading, error } = useApiData(() => window.api.reports.dashboard(month), [month])
+  const currentMonth = currentMonthInput()
+  const [period, setPeriod] = useState({
+    mode: 'month',
+    month: currentMonth,
+    from: `${currentMonth}-01`,
+    to: todayInput()
+  })
+
+  const { data, loading, error } = useApiData(
+    () => window.api.reports.dashboard(dashboardPeriodPayload(period, currentMonth)),
+    [period.mode, period.month, period.from, period.to]
+  )
 
   const budgets = data?.budgets?.items ?? []
   const goals = data?.goals ?? []
   const recentIncome = data?.recentIncome ?? []
   const recentExpenses = data?.recentExpenses ?? []
 
+  const periodLabel =
+    period.mode === 'all'
+      ? 'all records'
+      : period.mode === 'range'
+        ? period.from && period.to
+          ? `${formatDate(period.from)} \u2013 ${formatDate(period.to)}`
+          : 'a custom range'
+        : formatMonth(period.month || currentMonth)
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Dashboard"
-        description={`Your finances at a glance for ${formatMonth(month)}.`}
-        actions={
-          <Field label="Month" htmlFor="dash-month" className="w-40">
-            <Input
-              id="dash-month"
-              type="month"
-              value={month}
-              onChange={(event) => setMonth(event.target.value || currentMonthInput())}
-            />
-          </Field>
-        }
+        description={`Your finances at a glance for ${periodLabel}.`}
+        actions={<PeriodFilter value={period} onChange={setPeriod} idPrefix="dash" />}
       />
 
       {error ? (
@@ -98,6 +111,7 @@ export default function Dashboard() {
         <StatCard
           label="Budgets over limit"
           value={`${data?.budgets?.over ?? 0} of ${data?.budgets?.count ?? 0}`}
+          hint={period.mode !== 'month' ? `${formatMonth(data?.budgetMonth ?? currentMonth)} limits` : undefined}
           icon={Wallet}
           tone={(data?.budgets?.over ?? 0) > 0 ? 'negative' : 'default'}
           loading={loading}
@@ -113,6 +127,11 @@ export default function Dashboard() {
             </Link>
           </CardHeader>
           <CardBody className="space-y-4">
+            {period.mode !== 'month' && data?.budgetMonth ? (
+              <p className="text-xs text-slate-500">
+                Budgets are monthly — showing {formatMonth(data.budgetMonth)}.
+              </p>
+            ) : null}
             {loading ? (
               <LoadingBlock />
             ) : budgets.length === 0 ? (

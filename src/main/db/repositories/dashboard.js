@@ -7,8 +7,17 @@ import * as budgetsRepo from './budgets.js'
 import * as savingsRepo from './savings.js'
 import { debtSummary } from './reports.js'
 
-export function getSummary(db, userId, month) {
-  const { from, to } = monthRange(month)
+// period: a month string 'YYYY-MM' or { from, to, month? } where month is the
+// single month budgets are evaluated against (budgets are inherently monthly).
+export function getSummary(db, userId, period) {
+  let from, to, budgetMonth
+  if (typeof period === 'string') {
+    ;({ from, to } = monthRange(period))
+    budgetMonth = period
+  } else {
+    ;({ from, to } = period)
+    budgetMonth = period.month ?? to.slice(0, 7)
+  }
 
   const income = db
     .prepare('SELECT COALESCE(SUM(amount), 0) AS total FROM income WHERE user_id = ? AND date >= ? AND date <= ?')
@@ -20,12 +29,15 @@ export function getSummary(db, userId, month) {
   const incomeCents = toCents(income)
   const expenseCents = toCents(expenses)
 
-  const budgets = budgetsRepo.listMonthly(db, userId, month)
+  const budgets = budgetsRepo.listMonthly(db, userId, budgetMonth)
   const goals = savingsRepo.list(db, userId)
   const debts = debtSummary(db, userId)
 
   return {
-    month,
+    month: budgetMonth,
+    budgetMonth,
+    from,
+    to,
     totalIncome: fromCents(incomeCents),
     totalExpenses: fromCents(expenseCents),
     remaining: fromCents(incomeCents - expenseCents),
@@ -38,7 +50,7 @@ export function getSummary(db, userId, month) {
       items: budgets
     },
     goals: goals.slice(0, 5),
-    recentIncome: incomeRepo.list(db, userId, { page: 1, pageSize: 5 }).rows,
-    recentExpenses: expensesRepo.list(db, userId, { page: 1, pageSize: 5 }).rows
+    recentIncome: incomeRepo.list(db, userId, { page: 1, pageSize: 5, from, to }).rows,
+    recentExpenses: expensesRepo.list(db, userId, { page: 1, pageSize: 5, from, to }).rows
   }
 }
