@@ -1165,7 +1165,7 @@ export function createCapacitorApi() {
       const result = await Filesystem.writeFile({
         path: name,
         data: base64,
-        directory: Directory.Documents,
+        directory: Directory.Data,
         recursive: true
       })
       return { saved: true, path: result.uri }
@@ -1208,7 +1208,7 @@ export function createCapacitorApi() {
       const result = await Filesystem.writeFile({
         path: name,
         data: btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2)))),
-        directory: Directory.Documents,
+        directory: Directory.Data,
         recursive: true
       })
       return { saved: true, path: result.uri }

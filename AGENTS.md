@@ -17,7 +17,8 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
   `npx esbuild scripts/backup-smoke.mjs --bundle --platform=node --format=cjs --external:better-sqlite3 --external:jszip --outfile=".pv-backup-smoke.cjs"; node .pv-backup-smoke.cjs`
 - Full CRUD/validation audit (run from repo root):
   `npx esbuild scripts/audit-smoke.mjs --bundle --platform=node --format=cjs --external:better-sqlite3 --outfile=".pv-audit.cjs"; node .pv-audit.cjs`
-- All tests at once: `npm test` (runs `scripts/run-tests.mjs`: db + backup + audit).
+- Capacitor (Android data layer) smoke test: `node scripts/capacitor-smoke.mjs` — bundles `src/renderer/src/lib/capacitor/api.js` with its sqlite module swapped for a better-sqlite3 shim and exercises the whole adapter (no device/emulator needed).
+- All tests at once: `npm test` (runs `scripts/run-tests.mjs`: db + backup + audit + capacitor).
 - No ESLint/typecheck is configured.
 
 ## Architecture
@@ -50,5 +51,7 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
 - Renderer bundle is large (~2.5 MB) because jsPDF/html2canvas and Recharts are eager; code-split `src/renderer/src/lib/export.js` if needed.
 - `@electron/rebuild` is a devDependency for an explicit `npm run rebuild`; electron-builder already rebuilds native deps, so its warning is informational.
 - **Capacitor packages live in `devDependencies`** (they are bundled into the Android web build and are irrelevant to the Electron package, keeping `dependencies` = `better-sqlite3` only). The Capacitor SQLite layer applies migrations with idempotent statements so re-running is safe; it mirrors `src/main/db/repositories/*` SQL, so **change both** when altering data behavior.
-- **Mobile-specific limits:** backup export writes JSON to the app Documents dir (not the desktop ZIP format) and backup *import* from file is not wired up yet; `files.openReceipt` (system viewer) is unsupported on Android. Receipt upload on mobile uses a hidden `<input type="file">` + Filesystem write.
+- **Mobile-specific limits:** backup export writes JSON to the app's private data dir (not the desktop ZIP format) and backup *import* from file is not wired up yet; `files.openReceipt` (system viewer) is unsupported on Android. Receipt upload on mobile uses a hidden `<input type="file">` + Filesystem write. Mobile exports/backups use `Directory.Data` (app-private, no permission) because `Directory.Documents` is permission-gated and unwritable on Android 10 without a legacy flag.
+- **Android builds need JDK 21** (Capacitor 8 compiles against Java 21 via `android/app/capacitor.build.gradle`) plus the Android SDK; `build-capacitor.sh` warns if `java` is older. The APK/Gradle step is **not** covered by automated tests — it requires a configured SDK.
+- The Capacitor adapter is validated by `scripts/capacitor-smoke.mjs` (SQL logic, auth, debts math, budgets, savings, reports, account wipe) against a real SQLite engine; the native plugin bridge, Filesystem permissions and the file picker still require an emulator/device to verify.
 - `android/` and `assets/` are committed; `android/`'s own `.gitignore` excludes build outputs and the copied web assets (`app/src/main/assets/public`).

@@ -13,7 +13,8 @@
 #
 # Requirements:
 #   - Node.js + npm (dependencies installed: npm install)
-#   - JDK 17+ and the Android SDK (ANDROID_HOME / ANDROID_SDK_ROOT) for Gradle
+#   - JDK 21 (Capacitor 8 targets Java 21; Android Studio's bundled JDK works)
+#   - Android SDK (ANDROID_HOME / ANDROID_SDK_ROOT, or android/local.properties)
 #
 # Notes:
 #   - Run from Git Bash / WSL on Windows, or a normal shell on macOS/Linux.
@@ -36,6 +37,17 @@ esac
 
 OUT_DIR="installers/android"
 APK_SEARCH_DIR="android/app/build/outputs/apk/$APK_DIR"
+
+# Capacitor 8 compiles against Java 21 (see android/app/capacitor.build.gradle).
+if command -v java >/dev/null 2>&1; then
+  JAVA_MAJOR="$(java -version 2>&1 | head -n 1 | sed -E 's/.*version "([0-9]+).*/\1/')"
+  if [[ -n "$JAVA_MAJOR" ]] && [[ "$JAVA_MAJOR" -lt 21 ]]; then
+    echo "Warning: Capacitor 8 targets Java 21 but 'java' is version $JAVA_MAJOR." >&2
+    echo "         Set JAVA_HOME to a JDK 21 install or the Gradle build may fail." >&2
+  fi
+else
+  echo "Warning: 'java' was not found on PATH; Gradle needs JDK 21." >&2
+fi
 
 echo "PocketVault Android build"
 echo "Build type : $BUILD_TYPE"
