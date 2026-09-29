@@ -2,15 +2,10 @@ import { LogOut } from 'lucide-react'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { cn } from '@renderer/lib/cn.js'
 
-// "gio.pineda" -> "GP", "giopineda" -> "GI", "" -> "?"
+// "gio.pineda" -> "G", "giopineda" -> "G", "" -> "?"
 function initials(name) {
-  const parts = String(name ?? '')
-    .trim()
-    .split(/[\s._-]+/)
-    .filter(Boolean)
-  if (parts.length === 0) return '?'
-  if (parts.length === 1) return (parts[0][0] + (parts[0][1] ?? '')).toUpperCase()
-  return (parts[0][0] + parts[1][0]).toUpperCase()
+  const first = String(name ?? '').trim()[0]
+  return first ? first.toUpperCase() : '?'
 }
 
 // Account chip shown at the bottom of the sidebar / mobile drawer.
