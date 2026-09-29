@@ -11,7 +11,7 @@ are required.
 - **Income** — manual entry, optional receipt (image/PDF) attach, view, edit, delete.
 - **Expenses** — categorised, editable, filter by category/date/keyword.
 - **Debts** — no-schedule / fixed-date / monthly plans, flexible payments, re-borrow.
-  The list shows paid progress at a glance; the detail view has an activity-log
+  The list shows paid progress at a glance; the detail view has a transaction-history
   timeline (payments vs re-borrows) and prefills the amount for monthly installments.
 - **Budgets** — monthly limit per category with progress bars and over-budget alerts.
 - **Savings** — goals, contributions (linkable to an income record), progress.

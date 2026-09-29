@@ -199,8 +199,8 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
             </div>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
-            <aside className="lg:sticky lg:top-0 lg:col-start-2 lg:row-start-1">
+          <div className="grid gap-5 lg:relative lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-stretch">
+            <aside className="lg:col-start-2 lg:row-start-1">
               <Card>
                 <CardHeader>
                   <span
@@ -246,82 +246,89 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
               </Card>
             </aside>
 
-            <section className="lg:col-start-1 lg:row-start-1">
-              <Card>
-                <CardHeader>
-                  <CardIcon icon={History} />
-                  <CardTitle>Activity log</CardTitle>
-                </CardHeader>
-                <CardBody>
-                  {paymentsQuery.loading ? (
-                    <LoadingBlock />
-                  ) : payments.length === 0 ? (
-                    <EmptyState
-                      icon={History}
-                      title="No activity yet"
-                      description="Payments and re-borrows for this debt will appear here."
-                    />
-                  ) : (
-                    <ol>
-                      {payments.map((payment, index) => {
-                        const isReborrow = payment.payment_type === 'reborrow'
-                        const Icon = isReborrow ? RotateCcw : Banknote
-                        const isLast = index === payments.length - 1
-                        return (
-                          <li key={payment.id} className="group relative flex gap-3 pb-5 last:pb-0">
-                            {!isLast ? (
-                              <span
-                                className="absolute left-4 top-9 h-[calc(100%-1.75rem)] w-px -translate-x-1/2 bg-slate-200"
-                                aria-hidden="true"
-                              />
-                            ) : null}
-                            <span
-                              className={cn(
-                                'relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-                                isReborrow
-                                  ? 'bg-amber-100 text-amber-700'
-                                  : 'bg-accent-100 text-accent-700'
-                              )}
-                            >
-                              <Icon size={15} aria-hidden="true" />
-                            </span>
-                            <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="flex flex-wrap items-center gap-x-2 text-sm">
-                                  <span className="font-medium text-slate-900">
-                                    {isReborrow ? 'Re-borrow' : 'Payment'}
-                                  </span>
-                                  <span
-                                    className={cn(
-                                      'font-semibold',
-                                      isReborrow ? 'text-amber-700' : 'text-accent-700'
-                                    )}
-                                  >
-                                    {isReborrow ? '+' : '\u2212'}
-                                    {formatCurrency(payment.amount)}
-                                  </span>
-                                </p>
-                                <p className="mt-0.5 text-xs text-slate-500">
-                                  {formatDate(payment.date)}
-                                  {payment.notes ? ` \u00b7 ${payment.notes}` : ''}
-                                </p>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label="Remove ledger entry"
-                                onClick={() => setPendingPayment(payment)}
+            <section className="lg:relative lg:col-start-1 lg:row-start-1">
+              <div className="lg:absolute lg:inset-0">
+                <Card className="flex h-full min-h-0 flex-col">
+                  <CardHeader className="shrink-0">
+                    <CardIcon icon={History} />
+                    <CardTitle>Transaction History</CardTitle>
+                  </CardHeader>
+                  <CardBody className="flex min-h-0 flex-1 flex-col">
+                    {paymentsQuery.loading ? (
+                      <LoadingBlock />
+                    ) : payments.length === 0 ? (
+                      <EmptyState
+                        icon={History}
+                        title="No transactions yet"
+                        description="Payments and re-borrows for this debt will appear here."
+                      />
+                    ) : (
+                      <div className="min-h-0 flex-1 overflow-y-auto pr-2">
+                        <ol>
+                          {payments.map((payment, index) => {
+                            const isReborrow = payment.payment_type === 'reborrow'
+                            const Icon = isReborrow ? RotateCcw : Banknote
+                            const isLast = index === payments.length - 1
+                            return (
+                              <li
+                                key={payment.id}
+                                className="group relative flex gap-3 pb-5 last:pb-0"
                               >
-                                <Trash2 size={16} className="text-red-500" aria-hidden="true" />
-                              </Button>
-                            </div>
-                          </li>
-                        )
-                      })}
-                    </ol>
-                  )}
-                </CardBody>
-              </Card>
+                                {!isLast ? (
+                                  <span
+                                    className="absolute left-4 top-9 h-[calc(100%-1.75rem)] w-px -translate-x-1/2 bg-slate-200"
+                                    aria-hidden="true"
+                                  />
+                                ) : null}
+                                <span
+                                  className={cn(
+                                    'relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                                    isReborrow
+                                      ? 'bg-amber-100 text-amber-700'
+                                      : 'bg-accent-100 text-accent-700'
+                                  )}
+                                >
+                                  <Icon size={15} aria-hidden="true" />
+                                </span>
+                                <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="flex flex-wrap items-center gap-x-2 text-sm">
+                                      <span className="font-medium text-slate-900">
+                                        {isReborrow ? 'Re-borrow' : 'Payment'}
+                                      </span>
+                                      <span
+                                        className={cn(
+                                          'font-semibold',
+                                          isReborrow ? 'text-amber-700' : 'text-accent-700'
+                                        )}
+                                      >
+                                        {isReborrow ? '+' : '\u2212'}
+                                        {formatCurrency(payment.amount)}
+                                      </span>
+                                    </p>
+                                    <p className="mt-0.5 text-xs text-slate-500">
+                                      {formatDate(payment.date)}
+                                      {payment.notes ? ` \u00b7 ${payment.notes}` : ''}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label="Remove ledger entry"
+                                    onClick={() => setPendingPayment(payment)}
+                                  >
+                                    <Trash2 size={16} className="text-red-500" aria-hidden="true" />
+                                  </Button>
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ol>
+                      </div>
+                    )}
+                  </CardBody>
+                </Card>
+              </div>
             </section>
           </div>
         </div>
