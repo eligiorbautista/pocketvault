@@ -5,7 +5,7 @@ import { USERNAME_PATTERN } from '@shared/constants.js'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { AuthLayout } from '@renderer/components/layout/AuthLayout.jsx'
 import { Field } from '@renderer/components/ui/Field.jsx'
-import { Input } from '@renderer/components/ui/Input.jsx'
+import { Input, PasswordInput } from '@renderer/components/ui/Input.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
 
 export default function Register() {
@@ -66,9 +66,8 @@ export default function Register() {
         </Field>
 
         <Field label="Password" htmlFor="password" error={errors.password?.message} required>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="new-password"
             hasError={Boolean(errors.password)}
             {...register('password', {
@@ -78,9 +77,8 @@ export default function Register() {
         </Field>
 
         <Field label="Confirm password" htmlFor="confirm" error={errors.confirm?.message} required>
-          <Input
+          <PasswordInput
             id="confirm"
-            type="password"
             autoComplete="new-password"
             hasError={Boolean(errors.confirm)}
             {...register('confirm', {

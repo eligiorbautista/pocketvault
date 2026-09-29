@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { AuthLayout } from '@renderer/components/layout/AuthLayout.jsx'
 import { Field } from '@renderer/components/ui/Field.jsx'
-import { Input } from '@renderer/components/ui/Input.jsx'
+import { Input, PasswordInput } from '@renderer/components/ui/Input.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
 
 export default function Login() {
@@ -52,9 +52,8 @@ export default function Login() {
         </Field>
 
         <Field label="Password" htmlFor="password" error={errors.password?.message} required>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="current-password"
             hasError={Boolean(errors.password)}
             {...register('password', { required: 'Password is required' })}

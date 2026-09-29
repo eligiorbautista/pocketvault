@@ -1,17 +1,16 @@
 import { cn } from '@renderer/lib/cn.js'
 
-export function Field({ label, htmlFor, error, hint, required, className, children }) {
+export function Field({ label, htmlFor, error, hint, className, children }) {
   return (
     <div className={cn('space-y-1.5', className)}>
       {label ? (
         <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-900 dark:text-gray-100">
           {label}
-          {required ? <span className="ml-0.5 text-red-500">*</span> : null}
         </label>
       ) : null}
       {children}
       {error ? (
-        <p className="text-xs font-medium text-red-600 dark:text-red-400">{error}</p>
+        <p className="mt-1 text-sm text-red-500 dark:text-red-400">{error}</p>
       ) : hint ? (
         <p className="text-xs text-slate-500 dark:text-gray-400">{hint}</p>
       ) : null}

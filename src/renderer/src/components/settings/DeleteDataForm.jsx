@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
 import { Field } from '@renderer/components/ui/Field.jsx'
-import { Input } from '@renderer/components/ui/Input.jsx'
+import { Input, PasswordInput } from '@renderer/components/ui/Input.jsx'
 import { toast } from '@renderer/store/uiStore.js'
 
 const CONFIRM_PHRASE = 'delete all my data'
@@ -90,9 +90,8 @@ export function DeleteDataForm({ open, onClose, onDeleted }) {
         </Field>
 
         <Field label="Password" htmlFor="delete-password" error={errors.password?.message} required>
-          <Input
+          <PasswordInput
             id="delete-password"
-            type="password"
             autoComplete="current-password"
             hasError={Boolean(errors.password)}
             {...register('password', { required: 'Password is required' })}

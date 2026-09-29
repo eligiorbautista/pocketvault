@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
 import { Field } from '@renderer/components/ui/Field.jsx'
-import { Input } from '@renderer/components/ui/Input.jsx'
+import { PasswordInput } from '@renderer/components/ui/Input.jsx'
 import { toast } from '@renderer/store/uiStore.js'
 
 export function ChangePasswordForm({ open, onClose }) {
@@ -65,9 +65,8 @@ export function ChangePasswordForm({ open, onClose }) {
           error={errors.currentPassword?.message}
           required
         >
-          <Input
+          <PasswordInput
             id="currentPassword"
-            type="password"
             autoComplete="current-password"
             autoFocus
             hasError={Boolean(errors.currentPassword)}
@@ -76,9 +75,8 @@ export function ChangePasswordForm({ open, onClose }) {
         </Field>
 
         <Field label="New password" htmlFor="newPassword" error={errors.newPassword?.message} required>
-          <Input
+          <PasswordInput
             id="newPassword"
-            type="password"
             autoComplete="new-password"
             hasError={Boolean(errors.newPassword)}
             {...register('newPassword', { required: 'New password is required' })}
@@ -91,9 +89,8 @@ export function ChangePasswordForm({ open, onClose }) {
           error={errors.confirmPassword?.message}
           required
         >
-          <Input
+          <PasswordInput
             id="confirmPassword"
-            type="password"
             autoComplete="new-password"
             hasError={Boolean(errors.confirmPassword)}
             {...register('confirmPassword', {
