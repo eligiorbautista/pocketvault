@@ -76,6 +76,14 @@ export default function Debts() {
       render: (row) => formatCurrency(row.total_amount)
     },
     {
+      key: 'paid',
+      header: 'Paid',
+      align: 'right',
+      render: (row) => (
+        <span className="font-medium text-accent-700">{formatCurrency(row.paid_amount)}</span>
+      )
+    },
+    {
       key: 'remaining',
       header: 'Remaining',
       align: 'right',
