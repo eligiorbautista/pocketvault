@@ -212,13 +212,13 @@ export default function Settings() {
             </Button>
           </SettingRow>
 
-          <div className="mt-2 border-t border-red-100 pt-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-              <div className="flex items-start gap-3">
+          <div className="mt-2 border-t border-red-100 pb-6 pt-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="flex min-w-0 flex-1 items-start gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
                   <AlertTriangle size={18} aria-hidden="true" />
                 </span>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-red-700">Delete all data</p>
                   <p className="mt-0.5 text-sm text-slate-500">
                     Permanently delete every record and receipt in this account. Your account and
@@ -226,7 +226,12 @@ export default function Settings() {
                   </p>
                 </div>
               </div>
-              <Button variant="danger" size="sm" onClick={() => setDeleteDataOpen(true)}>
+              <Button
+                variant="danger"
+                size="sm"
+                className="w-full shrink-0 sm:w-auto"
+                onClick={() => setDeleteDataOpen(true)}
+              >
                 <Trash2 size={16} aria-hidden="true" />
                 Delete all data
               </Button>
