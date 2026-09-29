@@ -60,19 +60,19 @@ export function ReceiptViewer({ filename, open, onClose }) {
       }
     >
       {loading ? <LoadingBlock label="Loading receipt..." /> : null}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
       {receipt ? (
         receipt.mime === 'application/pdf' ? (
           <iframe
             title="Receipt PDF"
             src={receipt.dataUrl}
-            className="h-[60vh] w-full rounded-lg border border-slate-200"
+            className="h-[60vh] w-full rounded-lg border border-slate-200 dark:border-gray-700"
           />
         ) : (
           <img
             src={receipt.dataUrl}
             alt="Receipt"
-            className="mx-auto max-h-[60vh] w-auto rounded-lg border border-slate-200 object-contain"
+            className="mx-auto max-h-[60vh] w-auto rounded-lg border border-slate-200 object-contain dark:border-gray-700"
           />
         )
       ) : null}

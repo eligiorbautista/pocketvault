@@ -4,16 +4,16 @@ export function Field({ label, htmlFor, error, hint, required, className, childr
   return (
     <div className={cn('space-y-1.5', className)}>
       {label ? (
-        <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-900">
+        <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-900 dark:text-gray-100">
           {label}
           {required ? <span className="ml-0.5 text-red-500">*</span> : null}
         </label>
       ) : null}
       {children}
       {error ? (
-        <p className="text-xs font-medium text-red-600">{error}</p>
+        <p className="text-xs font-medium text-red-600 dark:text-red-400">{error}</p>
       ) : hint ? (
-        <p className="text-xs text-slate-500">{hint}</p>
+        <p className="text-xs text-slate-500 dark:text-gray-400">{hint}</p>
       ) : null}
     </div>
   )
@@ -25,21 +25,23 @@ export function SettingRow({ title, description, htmlFor, children, className, l
     <div
       className={cn(
         'flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6',
-        !last && 'border-b border-slate-100',
+        !last && 'border-b border-slate-100 dark:border-gray-800',
         className
       )}
     >
       <div className="min-w-0">
         {title ? (
           htmlFor ? (
-            <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-900">
+            <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-900 dark:text-gray-100">
               {title}
             </label>
           ) : (
-            <p className="text-sm font-medium text-slate-900">{title}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-gray-100">{title}</p>
           )
         ) : null}
-        {description ? <p className="mt-0.5 text-sm text-slate-500">{description}</p> : null}
+        {description ? (
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-gray-400">{description}</p>
+        ) : null}
       </div>
       {children ? <div className="shrink-0 sm:text-right">{children}</div> : null}
     </div>

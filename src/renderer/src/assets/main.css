@@ -1,8 +1,14 @@
 @import 'tailwindcss';
 
+/* Class-based dark mode (Tailwind v4). `dark:` activates under `.dark` on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     sans-serif;
+
+  /* App background in dark mode. */
+  --color-dark-bg: #252526;
 
   --color-accent-50: #ecfdf5;
   --color-accent-100: #d1fae5;
@@ -24,6 +30,10 @@
     color-scheme: light;
   }
 
+  html.dark {
+    color-scheme: dark;
+  }
+
   html,
   body,
   #root {
@@ -39,8 +49,17 @@
     text-rendering: optimizeLegibility;
   }
 
+  html.dark body {
+    background-color: var(--color-dark-bg);
+    color: var(--color-gray-100);
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-accent-600);
     outline-offset: 2px;
+  }
+
+  html.dark :focus-visible {
+    outline-color: var(--color-accent-400);
   }
 }

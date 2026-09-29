@@ -69,7 +69,7 @@ export default function Dashboard() {
       />
 
       {error ? (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
           {error}
         </p>
       ) : null}
@@ -123,13 +123,13 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex items-center justify-between">
             <CardTitle>Budget progress</CardTitle>
-            <Link to="/budgets" className="text-xs font-medium text-accent-700 hover:underline">
+            <Link to="/budgets" className="text-xs font-medium text-accent-700 hover:underline dark:text-accent-400">
               Manage
             </Link>
           </CardHeader>
           <CardBody className="space-y-4">
             {period.mode !== 'month' && data?.budgetMonth ? (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-gray-400">
                 Budgets are monthly — showing {formatMonth(data.budgetMonth)}.
               </p>
             ) : null}
@@ -145,10 +145,10 @@ export default function Dashboard() {
               budgets.slice(0, 5).map((budget) => (
                 <div key={budget.id} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-medium text-slate-700">
+                    <span className="truncate text-sm font-medium text-slate-700 dark:text-gray-200">
                       {categoryLabel(budget.category)}
                     </span>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-500 dark:text-gray-400">
                       {formatCurrency(budget.spent)} / {formatCurrency(budget.monthly_limit)}
                     </span>
                   </div>
@@ -162,7 +162,7 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex items-center justify-between">
             <CardTitle>Savings goals</CardTitle>
-            <Link to="/savings" className="text-xs font-medium text-accent-700 hover:underline">
+            <Link to="/savings" className="text-xs font-medium text-accent-700 hover:underline dark:text-accent-400">
               Manage
             </Link>
           </CardHeader>
@@ -179,8 +179,8 @@ export default function Dashboard() {
               goals.map((goal) => (
                 <div key={goal.id} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-medium text-slate-700">{goal.goal_name}</span>
-                    <span className="text-xs text-slate-500">
+                    <span className="truncate text-sm font-medium text-slate-700 dark:text-gray-200">{goal.goal_name}</span>
+                    <span className="text-xs text-slate-500 dark:text-gray-400">
                       {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}
                     </span>
                   </div>
@@ -194,7 +194,7 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex items-center justify-between">
             <CardTitle>Recent income</CardTitle>
-            <Link to="/income" className="text-xs font-medium text-accent-700 hover:underline">
+            <Link to="/income" className="text-xs font-medium text-accent-700 hover:underline dark:text-accent-400">
               View all
             </Link>
           </CardHeader>
@@ -204,16 +204,16 @@ export default function Dashboard() {
             ) : recentIncome.length === 0 ? (
               <EmptyState icon={TrendingUp} title="No income yet" />
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-slate-100 dark:divide-gray-800">
                 {recentIncome.map((item) => (
                   <li key={item.id} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-800">
+                      <p className="truncate text-sm font-medium text-slate-800 dark:text-gray-200">
                         {item.source || 'Income'}
                       </p>
-                      <p className="text-xs text-slate-500">{formatDate(item.date)}</p>
+                      <p className="text-xs text-slate-500 dark:text-gray-400">{formatDate(item.date)}</p>
                     </div>
-                    <span className="inline-flex items-center gap-1 text-sm font-semibold text-accent-700">
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold text-accent-700 dark:text-accent-400">
                       <ArrowUpRight size={14} aria-hidden="true" />
                       {formatCurrency(item.amount)}
                     </span>
@@ -227,7 +227,7 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex items-center justify-between">
             <CardTitle>Recent expenses</CardTitle>
-            <Link to="/expenses" className="text-xs font-medium text-accent-700 hover:underline">
+            <Link to="/expenses" className="text-xs font-medium text-accent-700 hover:underline dark:text-accent-400">
               View all
             </Link>
           </CardHeader>
@@ -237,16 +237,16 @@ export default function Dashboard() {
             ) : recentExpenses.length === 0 ? (
               <EmptyState icon={TrendingDown} title="No expenses yet" />
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-slate-100 dark:divide-gray-800">
                 {recentExpenses.map((item) => (
                   <li key={item.id} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-800">
+                      <p className="truncate text-sm font-medium text-slate-800 dark:text-gray-200">
                         {categoryLabel(item.category)}
                       </p>
-                      <p className="text-xs text-slate-500">{formatDate(item.date)}</p>
+                      <p className="text-xs text-slate-500 dark:text-gray-400">{formatDate(item.date)}</p>
                     </div>
-                    <span className="inline-flex items-center gap-1 text-sm font-semibold text-slate-900">
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold text-slate-900 dark:text-gray-100">
                       <ArrowDownRight size={14} aria-hidden="true" />
                       {formatCurrency(item.amount)}
                     </span>
@@ -261,7 +261,7 @@ export default function Dashboard() {
       <div className="flex justify-center">
         <Link
           to="/reports"
-          className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600"
+          className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-gray-600 dark:bg-[#3a3a3a] dark:text-gray-200 dark:hover:bg-[#454545] dark:focus-visible:outline-accent-400"
         >
           Open full reports
         </Link>

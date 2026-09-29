@@ -36,7 +36,7 @@ export default function Register() {
       footer={
         <>
           Already have an account?{' '}
-          <Link to="/login" className="font-medium text-accent-700 hover:underline">
+          <Link to="/login" className="font-medium text-accent-700 hover:underline dark:text-accent-400">
             Sign in
           </Link>
         </>
@@ -91,7 +91,7 @@ export default function Register() {
         </Field>
 
         {serverError ? (
-          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
             {serverError}
           </p>
         ) : null}

@@ -59,7 +59,7 @@ export default function Savings() {
       />
 
       {error ? (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
           {error}
         </p>
       ) : null}
@@ -93,8 +93,8 @@ export default function Savings() {
             <Card key={goal.id} className="flex flex-col p-4">
               <div className="mb-3 flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-900">{goal.goal_name}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-gray-100">{goal.goal_name}</p>
+                  <p className="text-xs text-slate-500 dark:text-gray-400">
                     {formatCurrency(goal.current_amount)} of {formatCurrency(goal.target_amount)}
                   </p>
                 </div>
@@ -102,7 +102,7 @@ export default function Savings() {
               </div>
 
               <ProgressBar percent={goal.percent} />
-              <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+              <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400">
                 <span>{Math.round(goal.percent)}% funded</span>
                 {goal.deadline ? (
                   <span className="inline-flex items-center gap-1">
@@ -112,7 +112,7 @@ export default function Savings() {
                 ) : null}
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 dark:border-gray-800">
                 <Button size="sm" onClick={() => setDetailId(goal.id)}>
                   Contribute
                 </Button>

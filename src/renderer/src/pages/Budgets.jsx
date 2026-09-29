@@ -181,13 +181,13 @@ export default function Budgets() {
       </Card>
 
       {overBudgets.length > 0 ? (
-        <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
-          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-red-600" aria-hidden="true" />
+        <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/40">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
           <div>
-            <p className="text-sm font-semibold text-red-800">
+            <p className="text-sm font-semibold text-red-800 dark:text-red-300">
               {overBudgets.length} category{overBudgets.length > 1 ? 'ies' : ''} over budget
             </p>
-            <p className="mt-0.5 text-xs text-red-700">
+            <p className="mt-0.5 text-xs text-red-700 dark:text-red-300/90">
               {overBudgets.map((budget) => categoryLabel(budget.category)).join(', ')} exceeded the limit
               for {formatMonth(month)}.
             </p>
@@ -196,7 +196,7 @@ export default function Budgets() {
       ) : null}
 
       {error ? (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
           {error}
         </p>
       ) : null}
@@ -230,10 +230,10 @@ export default function Budgets() {
             <Card key={budget.id} className="p-4">
               <div className="mb-3 flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-900">
+                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-gray-100">
                     {categoryLabel(budget.category)}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-gray-400">
                     {formatCurrency(budget.spent)} of {formatCurrency(budget.monthly_limit)}
                   </p>
                 </div>
@@ -241,7 +241,7 @@ export default function Budgets() {
               </div>
               <ProgressBar percent={budget.percent} over={budget.over} />
               <div className="mt-3 flex items-center justify-between">
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-500 dark:text-gray-400">
                   {budget.over
                     ? `${formatCurrency(Math.abs(budget.remaining))} over`
                     : `${formatCurrency(budget.remaining)} left`}

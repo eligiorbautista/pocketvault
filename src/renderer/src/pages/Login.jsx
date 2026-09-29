@@ -34,7 +34,7 @@ export default function Login() {
       footer={
         <>
           Don&apos;t have an account?{' '}
-          <Link to="/register" className="font-medium text-accent-700 hover:underline">
+          <Link to="/register" className="font-medium text-accent-700 hover:underline dark:text-accent-400">
             Create one
           </Link>
         </>
@@ -62,7 +62,7 @@ export default function Login() {
         </Field>
 
         {serverError ? (
-          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
             {serverError}
           </p>
         ) : null}

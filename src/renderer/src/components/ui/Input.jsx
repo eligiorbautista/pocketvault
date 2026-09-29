@@ -2,10 +2,10 @@ import { forwardRef } from 'react'
 import { cn } from '@renderer/lib/cn.js'
 
 const base =
-  'w-full rounded-lg border bg-white text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent-500/40 focus:border-accent-500 disabled:bg-slate-50 disabled:text-slate-400'
+  'w-full rounded-lg border bg-white text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent-500/40 focus:border-accent-500 disabled:bg-slate-50 disabled:text-slate-400 dark:bg-[#2f2f2f] dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-accent-400 dark:focus:ring-accent-400/30 dark:disabled:bg-gray-800 dark:disabled:text-gray-500'
 
 function border(hasError) {
-  return hasError ? 'border-red-400' : 'border-slate-300'
+  return hasError ? 'border-red-400 dark:border-red-500' : 'border-slate-300 dark:border-gray-600'
 }
 
 export function fieldClasses(hasError) {
@@ -52,8 +52,8 @@ export function Switch({ checked = false, onChange, id, disabled = false, 'aria-
       onClick={() => onChange?.(!checked)}
       className={cn(
         'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 disabled:cursor-not-allowed disabled:opacity-50',
-        checked ? 'bg-accent-600' : 'bg-slate-300'
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:outline-accent-400',
+        checked ? 'bg-accent-600' : 'bg-slate-300 dark:bg-gray-600'
       )}
     >
       <span

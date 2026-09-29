@@ -68,7 +68,7 @@ export default function Debts() {
   }
 
   const columns = [
-    { key: 'creditor', header: 'Creditor', render: (row) => <span className="font-medium text-slate-900">{row.creditor}</span> },
+    { key: 'creditor', header: 'Creditor', render: (row) => <span className="font-medium text-slate-900 dark:text-gray-100">{row.creditor}</span> },
     {
       key: 'total',
       header: 'Total',
@@ -81,14 +81,14 @@ export default function Debts() {
       header: 'Paid',
       align: 'right',
       render: (row) => (
-        <span className="font-medium text-accent-700">{formatCurrency(row.paid_amount)}</span>
+        <span className="font-medium text-accent-700 dark:text-accent-400">{formatCurrency(row.paid_amount)}</span>
       )
     },
     {
       key: 'remaining',
       header: 'Remaining',
       align: 'right',
-      render: (row) => <span className="font-medium text-red-600">{formatCurrency(row.remaining_amount)}</span>
+      render: (row) => <span className="font-medium text-red-600 dark:text-red-400">{formatCurrency(row.remaining_amount)}</span>
     },
     { key: 'due', header: 'Due date', mobile: false, render: (row) => formatDate(row.due_date) },
     {
@@ -218,7 +218,7 @@ export default function Debts() {
         </form>
 
         {error ? (
-          <p role="alert" className="px-4 pb-4 text-sm text-red-600">
+          <p role="alert" className="px-4 pb-4 text-sm text-red-600 dark:text-red-400">
             {error}
           </p>
         ) : null}

@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { useSettingsStore } from '@renderer/store/settingsStore.js'
+import { useTheme } from '@renderer/hooks/useTheme.js'
 import { ProtectedRoute, PublicOnlyRoute } from '@renderer/components/ProtectedRoute.jsx'
 import { AppShell } from '@renderer/components/layout/AppShell.jsx'
 import { SplashScreen } from '@renderer/components/layout/SplashScreen.jsx'
@@ -26,6 +27,8 @@ export default function App() {
   const bootstrap = useAuthStore((state) => state.bootstrap)
   // Subscribe so the whole tree re-renders when the currency changes.
   useSettingsStore((state) => state.currency)
+  // Keep the `dark` class on <html> in sync with the theme preference + OS.
+  const { resolved: theme } = useTheme()
 
   useEffect(() => {
     bootstrap()
@@ -87,7 +90,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       )}
-      <Toaster richColors position="bottom-right" closeButton />
+      <Toaster richColors position="bottom-right" closeButton theme={theme} />
     </>
   )
 }

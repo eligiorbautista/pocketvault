@@ -64,7 +64,7 @@ export function DeleteDataForm({ open, onClose, onDeleted }) {
       }
     >
       <form id="delete-data-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
           This permanently deletes all of your income, expenses, debts, budgets and savings records,
           including their receipts. Your account and password stay the same. This cannot be undone.
         </div>

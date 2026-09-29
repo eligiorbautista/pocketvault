@@ -140,40 +140,40 @@ export function SavingsDetail({ goalId, open, onClose, onChanged }) {
           <div>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-base font-semibold text-slate-900">{goal.goal_name}</p>
-                <p className="text-xs text-slate-500">Deadline: {formatDate(goal.deadline)}</p>
+                <p className="text-base font-semibold text-slate-900 dark:text-gray-100">{goal.goal_name}</p>
+                <p className="text-xs text-slate-500 dark:text-gray-400">Deadline: {formatDate(goal.deadline)}</p>
               </div>
-              <p className="text-sm font-semibold text-accent-700">
+              <p className="text-sm font-semibold text-accent-700 dark:text-accent-400">
                 {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}
               </p>
             </div>
             <div className="mt-3">
               <ProgressBar percent={goal.percent} />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
                 {Math.round(goal.percent)}% funded
                 {goal.complete ? ' \u00b7 goal reached!' : ` \u00b7 ${formatCurrency(goal.remaining)} to go`}
               </p>
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 p-3">
-            <h3 className="mb-3 text-sm font-semibold text-slate-900">Add contribution</h3>
+          <div className="rounded-lg border border-slate-200 p-3 dark:border-gray-700">
+            <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-gray-100">Add contribution</h3>
             <ContributionForm goalId={goal.id} incomeOptions={incomeOptions} onDone={refresh} />
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-slate-900">Contributions</h3>
+            <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-gray-100">Contributions</h3>
             {contributions.length === 0 ? (
-              <p className="text-sm text-slate-500">No contributions yet.</p>
+              <p className="text-sm text-slate-500 dark:text-gray-400">No contributions yet.</p>
             ) : (
-              <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+              <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 dark:divide-gray-800 dark:border-gray-700">
                 {contributions.map((contribution) => (
                   <li key={contribution.id} className="flex items-center justify-between gap-3 p-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-900">
+                      <p className="text-sm font-medium text-slate-900 dark:text-gray-100">
                         {formatCurrency(contribution.amount)}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500">
+                      <p className="mt-0.5 text-xs text-slate-500 dark:text-gray-400">
                         {formatDate(contribution.date)}
                         {contribution.income_source ? ` \u00b7 from ${contribution.income_source}` : ''}
                         {contribution.notes ? ` \u00b7 ${contribution.notes}` : ''}

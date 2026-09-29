@@ -24,6 +24,8 @@ are required.
 - **Custom categories** — add your own expense/budget categories beyond the defaults.
 - **Responsive** — mobile-first UI from 320px to ultrawide; data tables collapse into
   stacked cards on phones.
+- **Light / dark theme** — pick Light, Dark, or match your system; the choice is
+  remembered and follows the OS preference live.
 
 ## Platforms
 

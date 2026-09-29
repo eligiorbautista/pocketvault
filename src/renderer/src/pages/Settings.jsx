@@ -28,6 +28,7 @@ import { Select, Switch } from '@renderer/components/ui/Input.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
 import { ChangePasswordForm } from '@renderer/components/settings/ChangePasswordForm.jsx'
 import { DeleteDataForm } from '@renderer/components/settings/DeleteDataForm.jsx'
+import { ThemeSelect } from '@renderer/components/settings/ThemeSelect.jsx'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { useSettingsStore } from '@renderer/store/settingsStore.js'
 import { currencyCodes, currencyName, currencySymbol } from '@shared/currency.js'
@@ -124,7 +125,7 @@ export default function Settings() {
         </CardHeader>
         <CardBody className="py-2">
           <SettingRow title="Username" description="The name you sign in with.">
-            <span className="text-sm font-medium text-slate-700">{user?.username}</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-gray-200">{user?.username}</span>
           </SettingRow>
 
           <SettingRow title="Password" description="Change the password for this account.">
@@ -160,6 +161,14 @@ export default function Settings() {
           <CardTitle>Preferences</CardTitle>
         </CardHeader>
         <CardBody className="py-2">
+          <SettingRow
+            title="Theme"
+            description="Choose light, dark, or match your system."
+            htmlFor="settings-theme"
+          >
+            <ThemeSelect id="settings-theme" />
+          </SettingRow>
+
           <SettingRow
             title="Currency"
             description={`Formatting example: ${formatCurrency(1234.56)}`}
@@ -213,15 +222,15 @@ export default function Settings() {
             </Button>
           </SettingRow>
 
-          <div className="mt-2 border-t border-red-100 pb-6 pt-5">
+          <div className="mt-2 border-t border-red-100 pb-6 pt-5 dark:border-red-900">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
               <div className="flex min-w-0 flex-1 items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400">
                   <AlertTriangle size={18} aria-hidden="true" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-red-700">Delete all data</p>
-                  <p className="mt-0.5 text-sm text-slate-500">
+                  <p className="text-sm font-medium text-red-700 dark:text-red-400">Delete all data</p>
+                  <p className="mt-0.5 text-sm text-slate-500 dark:text-gray-400">
                     Permanently delete every record and receipt in this account. Your account and
                     password are kept.
                   </p>
@@ -247,21 +256,21 @@ export default function Settings() {
           <CardTitle>About</CardTitle>
         </CardHeader>
         <CardBody className="space-y-4">
-          <p className="max-w-2xl text-sm text-slate-600">
+          <p className="max-w-2xl text-sm text-slate-600 dark:text-gray-300">
             PocketVault keeps your money organized in one place so you always know what came in,
             where it went, and what you are working toward.
           </p>
           <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ icon: Icon, label }) => (
               <li key={label} className="flex items-center gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-950 dark:text-accent-300">
                   <Icon size={15} aria-hidden="true" />
                 </span>
-                <span className="text-sm text-slate-700">{label}</span>
+                <span className="text-sm text-slate-700 dark:text-gray-200">{label}</span>
               </li>
             ))}
           </ul>
-          <p className="border-t border-slate-100 pt-4 text-xs text-slate-400">
+          <p className="border-t border-slate-100 pt-4 text-xs text-slate-400 dark:border-gray-700 dark:text-gray-500">
             PocketVault v{VERSION}
           </p>
         </CardBody>

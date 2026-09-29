@@ -5,7 +5,7 @@ import { MobileDrawer } from './MobileDrawer.jsx'
 
 export function AppShell() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-dark-bg">
       <Sidebar />
       <div className="lg:pl-64">
         <Topbar />

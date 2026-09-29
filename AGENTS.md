@@ -34,7 +34,8 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
 ## Gotchas / decisions
 
 - **Vite pinned to 7** (electron-vite 5 peer range excludes Vite 8). `@vitejs/plugin-react` pinned to 5.x for the same reason.
-- **Tailwind v4** via `@tailwindcss/vite` — theme lives in `src/renderer/src/assets/main.css` (`@theme`), no `tailwind.config.js`/PostCSS.
+- **Tailwind v4** via `@tailwindcss/vite` — theme lives in `src/renderer/src/assets/main.css` (`@theme`), no `tailwind.config.js`/PostCSS. Dark mode is **class-based**: `@custom-variant dark (&:where(.dark, .dark *))` plus a `--color-dark-bg` (`#252526`, utility `dark:bg-dark-bg`) token.
+- **Light/dark theme**: preference (`light | dark | system`) lives in `src/renderer/src/store/themeStore.js` (persisted to `localStorage` key `pocketvault.theme`, applied to `<html>` at module load to avoid a flash). `src/renderer/src/hooks/useTheme.js` is called once in `App.jsx`, watches `matchMedia('(prefers-color-scheme: dark)')` and toggles `.dark`; manual `light`/`dark` override the OS. Settings exposes it via `src/renderer/src/components/settings/ThemeSelect.jsx` (segmented radiogroup). Conventions: main bg `dark:bg-dark-bg`, cards/modals `dark:bg-[#333333]`, primary text `dark:text-gray-100/200`, muted `dark:text-gray-400`, borders `dark:border-gray-700`, accent chips/badges `dark:bg-accent-950 dark:text-accent-300`. Reports charts read `resolved` from the theme store for grid/tick/tooltip colours.
 - **CSP** is injected by `cspPlugin()` in `electron.vite.config.mjs` **only for production builds**, so Vite's dev/React-Refresh preamble works in dev.
 - **Only `better-sqlite3` is in `dependencies`** (externalized/packaged); everything else is bundled from `devDependencies` to keep the package small.
 - **better-sqlite3 v13 is N-API** (prebuilds in `node_modules/better-sqlite3/prebuilds/`), ABI-stable across Electron versions; `asarUnpack` keeps `*.node` outside the asar.

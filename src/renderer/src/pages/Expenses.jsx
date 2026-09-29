@@ -197,14 +197,14 @@ export default function Expenses() {
       key: 'amount',
       header: 'Amount',
       align: 'right',
-      render: (row) => <span className="font-medium text-slate-900">{formatCurrency(row.amount)}</span>
+      render: (row) => <span className="font-medium text-slate-900 dark:text-gray-100">{formatCurrency(row.amount)}</span>
     },
     {
       key: 'notes',
       header: 'Notes',
       mobile: false,
       className: 'max-w-xs',
-      render: (row) => <span className="line-clamp-1 text-slate-500">{row.notes || '\u2014'}</span>
+      render: (row) => <span className="line-clamp-1 text-slate-500 dark:text-gray-400">{row.notes || '\u2014'}</span>
     },
     {
       key: 'actions',
@@ -315,7 +315,7 @@ export default function Expenses() {
         </form>
 
         {error ? (
-          <p role="alert" className="px-4 pb-4 text-sm text-red-600">
+          <p role="alert" className="px-4 pb-4 text-sm text-red-600 dark:text-red-400">
             {error}
           </p>
         ) : null}

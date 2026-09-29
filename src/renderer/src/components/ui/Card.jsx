@@ -3,7 +3,10 @@ import { cn } from '@renderer/lib/cn.js'
 export function Card({ className, children, ...props }) {
   return (
     <div
-      className={cn('rounded-2xl border border-slate-200 bg-white shadow-sm', className)}
+      className={cn(
+        'rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-700 dark:bg-[#333333]',
+        className
+      )}
       {...props}
     >
       {children}
@@ -13,7 +16,7 @@ export function Card({ className, children, ...props }) {
 
 export function CardHeader({ className, children }) {
   return (
-    <div className={cn('flex items-center gap-3 border-b border-slate-100 p-5', className)}>
+    <div className={cn('flex items-center gap-3 border-b border-slate-100 p-5 dark:border-gray-700', className)}>
       {children}
     </div>
   )
@@ -24,7 +27,7 @@ export function CardBody({ className, children }) {
 }
 
 export function CardTitle({ className, children }) {
-  return <h2 className={cn('text-lg font-semibold text-slate-900', className)}>{children}</h2>
+  return <h2 className={cn('text-lg font-semibold text-slate-900 dark:text-gray-100', className)}>{children}</h2>
 }
 
 // Small soft-colored circular icon for card/section headers.
@@ -32,7 +35,7 @@ export function CardIcon({ icon: Icon, className }) {
   return (
     <span
       className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700',
+        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-950 dark:text-accent-300',
         className
       )}
     >

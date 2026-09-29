@@ -145,7 +145,9 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
   const segmentClass = (active) =>
     cn(
       'h-9 cursor-pointer rounded-md text-sm font-medium transition-colors',
-      active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+      active
+        ? 'bg-white text-slate-900 shadow-sm dark:bg-[#3a3a3a] dark:text-gray-100'
+        : 'text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200'
     )
 
   return (
@@ -154,43 +156,43 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
         <LoadingBlock />
       ) : (
         <div className="space-y-5">
-          <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
+          <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-gray-700 dark:bg-[#2f2f2f] sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-lg font-semibold text-slate-900">{debt.creditor}</p>
-                <p className="text-xs text-slate-500">{paymentTypeLabel(debt.payment_type)}</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-gray-100">{debt.creditor}</p>
+                <p className="text-xs text-slate-500 dark:text-gray-400">{paymentTypeLabel(debt.payment_type)}</p>
               </div>
               <Badge variant={statusVariant(debt.effective_status)}>{debt.effective_status}</Badge>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">Total</p>
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500">Total</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">
                   {formatCurrency(debt.total_amount)}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">Paid</p>
-                <p className="text-sm font-semibold text-accent-700">
+                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500">Paid</p>
+                <p className="text-sm font-semibold text-accent-700 dark:text-accent-400">
                   {formatCurrency(debt.paid_amount)}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">Remaining</p>
-                <p className="text-sm font-semibold text-red-600">
+                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500">Remaining</p>
+                <p className="text-sm font-semibold text-red-600 dark:text-red-400">
                   {formatCurrency(debt.remaining_amount)}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">Due date</p>
-                <p className="text-sm font-semibold text-slate-900">{formatDate(debt.due_date)}</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500">Due date</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">{formatDate(debt.due_date)}</p>
               </div>
             </div>
 
             <div>
               <ProgressBar percent={paidPercent} />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
                 {Math.round(paidPercent)}% paid
                 {monthlyDefault
                   ? ` \u00b7 ${formatCurrency(debt.monthly_amount)} due every month on day ${debt.payment_day}`
@@ -207,8 +209,8 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
                     className={cn(
                       'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
                       mode === 'reborrow'
-                        ? 'bg-amber-50 text-amber-600'
-                        : 'bg-accent-50 text-accent-700'
+                        ? 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300'
+                        : 'bg-accent-50 text-accent-700 dark:bg-accent-950 dark:text-accent-300'
                     )}
                   >
                     {mode === 'reborrow' ? (
@@ -220,7 +222,7 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
                   <CardTitle>{mode === 'reborrow' ? 'Re-borrow' : 'Make a payment'}</CardTitle>
                 </CardHeader>
                 <CardBody className="space-y-4">
-                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
+                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 dark:bg-gray-800">
                     <button
                       type="button"
                       onClick={() => setMode('payment')}
@@ -276,7 +278,7 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
                               >
                                 {!isLast ? (
                                   <span
-                                    className="absolute left-4 top-9 h-[calc(100%-1.75rem)] w-px -translate-x-1/2 bg-slate-200"
+                                    className="absolute left-4 top-9 h-[calc(100%-1.75rem)] w-px -translate-x-1/2 bg-slate-200 dark:bg-gray-700"
                                     aria-hidden="true"
                                   />
                                 ) : null}
@@ -284,8 +286,8 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
                                   className={cn(
                                     'relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
                                     isReborrow
-                                      ? 'bg-amber-100 text-amber-700'
-                                      : 'bg-accent-100 text-accent-700'
+                                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                                      : 'bg-accent-100 text-accent-700 dark:bg-accent-950 dark:text-accent-300'
                                   )}
                                 >
                                   <Icon size={15} aria-hidden="true" />
@@ -293,20 +295,22 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
                                 <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
                                   <div className="min-w-0">
                                     <p className="flex flex-wrap items-center gap-x-2 text-sm">
-                                      <span className="font-medium text-slate-900">
+                                      <span className="font-medium text-slate-900 dark:text-gray-100">
                                         {isReborrow ? 'Re-borrow' : 'Payment'}
                                       </span>
                                       <span
                                         className={cn(
                                           'font-semibold',
-                                          isReborrow ? 'text-amber-700' : 'text-accent-700'
+                                          isReborrow
+                                            ? 'text-amber-700 dark:text-amber-300'
+                                            : 'text-accent-700 dark:text-accent-400'
                                         )}
                                       >
                                         {isReborrow ? '+' : '\u2212'}
                                         {formatCurrency(payment.amount)}
                                       </span>
                                     </p>
-                                    <p className="mt-0.5 text-xs text-slate-500">
+                                    <p className="mt-0.5 text-xs text-slate-500 dark:text-gray-400">
                                       {formatDate(payment.date)}
                                       {payment.notes ? ` \u00b7 ${payment.notes}` : ''}
                                     </p>

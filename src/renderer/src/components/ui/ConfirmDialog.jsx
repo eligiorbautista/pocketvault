@@ -29,7 +29,7 @@ export function ConfirmDialog({
         </div>
       }
     >
-      <p className="text-sm text-slate-600">{message}</p>
+      <p className="text-sm text-slate-600 dark:text-gray-300">{message}</p>
     </Modal>
   )
 }

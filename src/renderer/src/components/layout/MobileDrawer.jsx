@@ -26,7 +26,7 @@ export function MobileDrawer() {
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm dark:bg-black/60"
         onClick={closeDrawer}
         aria-hidden="true"
       />
@@ -34,18 +34,18 @@ export function MobileDrawer() {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
-        className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white shadow-xl"
+        className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white shadow-xl dark:bg-[#333333]"
       >
-        <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4">
+        <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <BrandMark size={30} />
-            <span className="text-lg font-semibold tracking-tight text-slate-900">PocketVault</span>
+            <span className="text-lg font-semibold tracking-tight text-slate-900 dark:text-gray-100">PocketVault</span>
           </div>
           <button
             type="button"
             onClick={closeDrawer}
             aria-label="Close navigation menu"
-            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-accent-600"
+            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-accent-600 dark:text-gray-400 dark:hover:bg-white/10 dark:focus-visible:outline-accent-400"
           >
             <X size={18} aria-hidden="true" />
           </button>
@@ -53,9 +53,10 @@ export function MobileDrawer() {
 
         <NavList onNavigate={closeDrawer} />
 
-        <div className="border-t border-slate-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-          <p className="mb-2 px-2 text-xs text-slate-400">
-            Signed in as <span className="font-medium text-slate-600">{user?.username}</span>
+        <div className="border-t border-slate-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-gray-700">
+          <p className="mb-2 px-2 text-xs text-slate-400 dark:text-gray-500">
+            Signed in as{' '}
+            <span className="font-medium text-slate-600 dark:text-gray-300">{user?.username}</span>
           </p>
           <Button variant="ghost" size="sm" className="w-full justify-start" onClick={logout}>
             <LogOut size={16} aria-hidden="true" />

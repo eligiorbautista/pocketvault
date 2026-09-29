@@ -145,11 +145,11 @@ function IncomeForm({ open, initial, onClose, onSaved }) {
           <Textarea id="notes" placeholder="Optional details" {...register('notes')} />
         </Field>
 
-        <div className="rounded-lg border border-slate-200 p-3">
+        <div className="rounded-lg border border-slate-200 p-3 dark:border-gray-700">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-slate-700">Receipt</p>
-              <p className="truncate text-xs text-slate-500">
+              <p className="text-sm font-medium text-slate-700 dark:text-gray-200">Receipt</p>
+              <p className="truncate text-xs text-slate-500 dark:text-gray-400">
                 {receiptPath ? receiptPath : 'No file attached (image or PDF)'}
               </p>
             </div>
@@ -232,7 +232,7 @@ export default function Income() {
       key: 'amount',
       header: 'Amount',
       align: 'right',
-      render: (row) => <span className="font-medium text-accent-700">{formatCurrency(row.amount)}</span>
+      render: (row) => <span className="font-medium text-accent-700 dark:text-accent-400">{formatCurrency(row.amount)}</span>
     },
     {
       key: 'receipt',
@@ -244,7 +244,7 @@ export default function Income() {
             View
           </Button>
         ) : (
-          <span className="text-slate-400">{'\u2014'}</span>
+          <span className="text-slate-400 dark:text-gray-500">{'\u2014'}</span>
         )
     },
     {
@@ -252,7 +252,7 @@ export default function Income() {
       header: 'Notes',
       mobile: false,
       className: 'max-w-xs',
-      render: (row) => <span className="line-clamp-1 text-slate-500">{row.notes || '\u2014'}</span>
+      render: (row) => <span className="line-clamp-1 text-slate-500 dark:text-gray-400">{row.notes || '\u2014'}</span>
     },
     {
       key: 'actions',
@@ -349,7 +349,7 @@ export default function Income() {
         </form>
 
         {error ? (
-          <p role="alert" className="px-4 pb-4 text-sm text-red-600">
+          <p role="alert" className="px-4 pb-4 text-sm text-red-600 dark:text-red-400">
             {error}
           </p>
         ) : null}

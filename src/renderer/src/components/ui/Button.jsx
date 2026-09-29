@@ -6,10 +6,13 @@ const VARIANTS = {
   primary:
     'bg-accent-600 text-white hover:bg-accent-700 active:bg-accent-800 disabled:bg-accent-300',
   secondary:
-    'border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 active:bg-slate-100 disabled:text-slate-400',
-  ghost: 'text-slate-600 hover:bg-slate-100 active:bg-slate-200 disabled:text-slate-300',
-  danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 disabled:bg-red-300',
-  subtle: 'bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:text-slate-400'
+    'border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 active:bg-slate-100 disabled:text-slate-400 dark:border-gray-600 dark:bg-[#3a3a3a] dark:text-gray-200 dark:hover:bg-[#454545] dark:active:bg-[#4f4f4f] dark:disabled:text-gray-500',
+  ghost:
+    'text-slate-600 hover:bg-slate-100 active:bg-slate-200 disabled:text-slate-300 dark:text-gray-300 dark:hover:bg-white/10 dark:active:bg-white/15 dark:disabled:text-gray-600',
+  danger:
+    'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 disabled:bg-red-300 dark:disabled:bg-red-900',
+  subtle:
+    'bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:text-slate-400 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15 dark:disabled:text-gray-600'
 }
 
 const SIZES = {
@@ -30,7 +33,7 @@ export const Button = forwardRef(function Button(
       disabled={disabled || loading}
       className={cn(
         'inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg font-medium transition-colors duration-200',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
         'disabled:cursor-not-allowed',
         VARIANTS[variant],
         SIZES[size],
