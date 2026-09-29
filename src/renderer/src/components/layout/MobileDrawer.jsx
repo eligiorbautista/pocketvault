@@ -1,16 +1,13 @@
 import { useEffect } from 'react'
-import { LogOut, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useUIStore } from '@renderer/store/uiStore.js'
-import { useAuthStore } from '@renderer/store/authStore.js'
 import { NavList } from './NavList.jsx'
-import { Button } from '@renderer/components/ui/Button.jsx'
 import { BrandMark } from '@renderer/components/ui/BrandMark.jsx'
+import { UserSummary } from './UserSummary.jsx'
 
 export function MobileDrawer() {
   const drawerOpen = useUIStore((state) => state.drawerOpen)
   const closeDrawer = useUIStore((state) => state.closeDrawer)
-  const user = useAuthStore((state) => state.user)
-  const logout = useAuthStore((state) => state.logout)
 
   useEffect(() => {
     if (!drawerOpen) return undefined
@@ -54,14 +51,7 @@ export function MobileDrawer() {
         <NavList onNavigate={closeDrawer} />
 
         <div className="border-t border-slate-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-gray-700">
-          <p className="mb-2 px-2 text-xs text-slate-400 dark:text-gray-500">
-            Signed in as{' '}
-            <span className="font-medium text-slate-600 dark:text-gray-300">{user?.username}</span>
-          </p>
-          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={logout}>
-            <LogOut size={16} aria-hidden="true" />
-            Sign out
-          </Button>
+          <UserSummary className="px-1" />
         </div>
       </div>
     </div>
