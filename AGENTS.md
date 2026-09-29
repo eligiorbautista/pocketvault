@@ -10,7 +10,7 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
 - Preview build: `npm run start`.
 - Package desktop: `npm run build:desktop`, or per-OS `npm run build:win` / `build:mac` / `build:linux` (or `./build-electron.sh [win|mac|linux|all]`).
 - Mobile / Capacitor: `npm run build:mobile` (= build + `cap sync android`), `npm run dev:mobile`, `npm run cap:sync`, `npm run cap:open`, `npm run assets` (regenerates Android icons/splash from `assets/icon.png`). Full signed APK build: `./build-capacitor.sh [debug|release]` (release is the default; it generates a gitignored `release.keystore`, verifies the signature, and names the artifact after `capacitor.config.json` → `installers/android/PocketVault.apk`, or `PocketVault-debug.apk`).
-- Icons (desktop): `npm run icons` (regenerates `build/icon.png` + `build/icon.ico`, no deps).
+- Logo / icons: `npm run icons` (`scripts/generate-icon.mjs`, uses the `sharp` devDependency) renders the "PV" monogram from Roboto Bold outlines embedded in the script (source: `assets/fonts/Roboto-Bold.ttf`, Apache-2.0) into `build/icon.png` + `build/icon.ico`, the renderer favicon, and the Android source layers (`assets/icon*`, `assets/splash*`). `npm run assets` then feeds those into `@capacitor/assets` to build the Android mipmaps/splash.
 - DB/repository smoke test (run from repo root):
   `npx esbuild scripts/db-smoke.mjs --bundle --platform=node --format=cjs --external:better-sqlite3 --outfile=".pv-smoke.cjs"; node .pv-smoke.cjs`
 - Per-account backup isolation smoke test (run from repo root):

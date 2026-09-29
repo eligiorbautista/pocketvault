@@ -53,6 +53,7 @@
     "react-hook-form": "^7.89.0",
     "react-router-dom": "^7.18.4",
     "recharts": "^3.10.1",
+    "sharp": "^0.32.6",
     "sonner": "^2.0.8",
     "tailwindcss": "^4.3.3",
     "vite": "^7.3.6",

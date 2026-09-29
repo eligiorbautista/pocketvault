@@ -119,12 +119,9 @@ echo
 echo "==> 1/6 Building the web frontend (vite)"
 npm run build
 
-echo "==> 2/6 Generating app icons and splash screens"
-if [ -f "assets/icon.png" ] || [ -f "assets/icon-foreground.png" ]; then
-  npx capacitor-assets generate --android
-else
-  echo "    assets/icon.png not found - skipping asset generation"
-fi
+echo "==> 2/6 Generating the logo, app icons and splash screens"
+node scripts/generate-icon.mjs
+npx capacitor-assets generate --android
 
 echo "==> 3/6 Syncing web assets and plugins to Android (cap sync)"
 npx cap sync android

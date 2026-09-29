@@ -1,114 +1,51 @@
-// Generates build/icon.png (1024x1024) and build/icon.ico (256x256, PNG-embedded)
-// with zero external dependencies. Run with: node scripts/generate-icon.mjs
-import { deflateSync } from 'node:zlib'
+// Generates the PocketVault "PV" logo (Roboto Bold) into all the icon/splash
+// sources. The glyph outlines below were extracted once from
+// assets/fonts/Roboto-Bold.ttf (Roboto, Apache-2.0), so no font is needed at
+// build time - just sharp (already used by @capacitor/assets).
+//
+// Outputs:
+//   build/icon.png, build/icon.ico, src/renderer/public/icon.png   (desktop + in-app)
+//   assets/icon.png, assets/icon-only.png, assets/icon-background.png,
+//   assets/icon-foreground.png, assets/splash.png, assets/splash-dark.png
+//     -> consumed by @capacitor/assets (npm run assets) to build Android icons/splash
+//
+// Run with: node scripts/generate-icon.mjs
 import { mkdirSync, writeFileSync } from 'node:fs'
+import sharp from 'sharp'
 
-const BG = [5, 150, 105] // emerald-600, flat (no gradient)
+const EMERALD = '#059669' // accent-600
+const DARK_BG = '#022c22' // accent-950
+const WHITE = '#ffffff'
 
-function clamp01(x) {
-  return x < 0 ? 0 : x > 1 ? 1 : x
+// Roboto Bold "PV" outlines in a 1000-unit em, baseline at y = 0.
+const PV_PATH =
+  'M338.38-250.49L209.96-250.49L209.96 0L63.48 0L63.48-710.94L340.82-710.94Q420.90-710.94 481.69-681.64Q542.48-652.34 575.20-598.39Q607.91-544.43 607.91-475.59Q607.91-371.09 536.38-310.79Q464.84-250.49 338.38-250.49M209.96-592.29L209.96-369.14L340.82-369.14Q398.93-369.14 429.44-396.48Q459.96-423.83 459.96-474.61Q459.96-526.86 429.20-559.08Q398.44-591.31 344.24-592.29L209.96-592.29M811.04-710.94L971.19-176.27L1132.32-710.94L1295.41-710.94L1047.85 0L895.02 0L648.44-710.94'
+const PV_BBOX = { x1: 63.4765625, y1: -710.9375, x2: 1295.41015625, y2: 0 }
+
+const svg = (size, body) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${body}</svg>`
+
+// The monogram scaled to `fraction` of the canvas and centered.
+function mark(size, fraction, color) {
+  const width = PV_BBOX.x2 - PV_BBOX.x1
+  const scale = (fraction * size) / width
+  const cx = (PV_BBOX.x1 + PV_BBOX.x2) / 2
+  const cy = (PV_BBOX.y1 + PV_BBOX.y2) / 2
+  return `<g transform="translate(${size / 2} ${size / 2}) scale(${scale.toFixed(6)}) translate(${-cx} ${-cy})"><path d="${PV_PATH}" fill="${color}"/></g>`
 }
 
-function lerp(a, b, t) {
-  return a + (b - a) * t
+function roundedTile(size, fraction = 0.62) {
+  const radius = Math.round(size * 0.21875)
+  return svg(size, `<rect width="${size}" height="${size}" rx="${radius}" fill="${EMERALD}"/>${mark(size, fraction, WHITE)}`)
 }
 
-function draw(size) {
-  const rgba = Buffer.alloc(size * size * 4)
-  const c = (size - 1) / 2
-  const ringOuter = size * 0.335
-  const ringThick = size * 0.052
-  const ringInner = size * 0.185
-  const ringInnerThick = size * 0.028
-  const disc = size * 0.072
-  const spokeHalf = size * 0.017
-  const aa = Math.max(1, (size / 1024) * 1.7)
-
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      let r = BG[0]
-      let g = BG[1]
-      let b = BG[2]
-
-      const dx = x - c
-      const dy = y - c
-      const d = Math.sqrt(dx * dx + dy * dy)
-
-      const covOuter = clamp01((ringThick / 2 - Math.abs(d - ringOuter)) / aa + 0.5)
-      const covInner = clamp01((ringInnerThick / 2 - Math.abs(d - ringInner)) / aa + 0.5)
-      const covDisc = clamp01((disc - d) / aa + 0.5)
-      const inSpokeRadius = d > ringInner && d < ringOuter
-      const covSpoke = inSpokeRadius
-        ? clamp01((spokeHalf - Math.min(Math.abs(dx), Math.abs(dy))) / aa + 0.5)
-        : 0
-
-      const cov = Math.max(covOuter, covInner, covDisc, covSpoke)
-      r = lerp(r, 255, cov)
-      g = lerp(g, 255, cov)
-      b = lerp(b, 255, cov)
-
-      const i = (y * size + x) * 4
-      rgba[i] = Math.round(r)
-      rgba[i + 1] = Math.round(g)
-      rgba[i + 2] = Math.round(b)
-      rgba[i + 3] = 255
-    }
-  }
-  return rgba
+function markOnly(size, fraction, color, background = null) {
+  const bg = background ? `<rect width="${size}" height="${size}" fill="${background}"/>` : ''
+  return svg(size, `${bg}${mark(size, fraction, color)}`)
 }
 
-const CRC_TABLE = (() => {
-  const table = new Uint32Array(256)
-  for (let n = 0; n < 256; n += 1) {
-    let c = n
-    for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
-    table[n] = c >>> 0
-  }
-  return table
-})()
-
-function crc32(buffer) {
-  let c = 0xffffffff
-  for (let i = 0; i < buffer.length; i += 1) {
-    c = CRC_TABLE[(c ^ buffer[i]) & 0xff] ^ (c >>> 8)
-  }
-  return (c ^ 0xffffffff) >>> 0
-}
-
-function chunk(type, data) {
-  const length = Buffer.alloc(4)
-  length.writeUInt32BE(data.length, 0)
-  const typeBuf = Buffer.from(type, 'ascii')
-  const crcBuf = Buffer.alloc(4)
-  crcBuf.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])), 0)
-  return Buffer.concat([length, typeBuf, data, crcBuf])
-}
-
-function encodePng(size, rgba) {
-  const ihdr = Buffer.alloc(13)
-  ihdr.writeUInt32BE(size, 0)
-  ihdr.writeUInt32BE(size, 4)
-  ihdr[8] = 8 // bit depth
-  ihdr[9] = 6 // RGBA
-  ihdr[10] = 0
-  ihdr[11] = 0
-  ihdr[12] = 0
-
-  const stride = size * 4
-  const raw = Buffer.alloc((stride + 1) * size)
-  for (let y = 0; y < size; y += 1) {
-    raw[y * (stride + 1)] = 0
-    rgba.copy(raw, y * (stride + 1) + 1, y * stride, y * stride + stride)
-  }
-
-  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
-  return Buffer.concat([
-    signature,
-    chunk('IHDR', ihdr),
-    chunk('IDAT', deflateSync(raw, { level: 9 })),
-    chunk('IEND', Buffer.alloc(0))
-  ])
-}
+const solid = (size, color) => svg(size, `<rect width="${size}" height="${size}" fill="${color}"/>`)
+const toPng = (markup, size) => sharp(Buffer.from(markup), { density: 384 }).resize(size, size).png().toBuffer()
 
 function encodeIco(pngBuffer, size) {
   const header = Buffer.alloc(6)
@@ -130,17 +67,29 @@ function encodeIco(pngBuffer, size) {
 }
 
 mkdirSync('build', { recursive: true })
-
-const big = encodePng(1024, draw(1024))
-writeFileSync('build/icon.png', big)
-
-const small = encodePng(256, draw(256))
-writeFileSync('build/icon.ico', encodeIco(small, 256))
-
-// UI/favicon copy (served from the renderer's public dir).
 mkdirSync('src/renderer/public', { recursive: true })
-writeFileSync('src/renderer/public/icon.png', small)
+mkdirSync('assets', { recursive: true })
 
-console.log(`build/icon.png                 ${big.length} bytes`)
-console.log(`build/icon.ico                 ${encodeIco(small, 256).length} bytes`)
-console.log(`src/renderer/public/icon.png   ${small.length} bytes`)
+const tile1024 = await toPng(roundedTile(1024), 1024)
+writeFileSync('build/icon.png', tile1024)
+
+const tile256 = await toPng(roundedTile(256), 256)
+writeFileSync('build/icon.ico', encodeIco(tile256, 256))
+writeFileSync('src/renderer/public/icon.png', tile256)
+
+writeFileSync('assets/icon.png', tile1024)
+writeFileSync('assets/icon-only.png', tile1024)
+writeFileSync('assets/icon-background.png', await toPng(solid(1024, EMERALD), 1024))
+writeFileSync('assets/icon-foreground.png', await toPng(markOnly(1024, 0.6, WHITE), 1024))
+writeFileSync('assets/splash.png', await toPng(markOnly(2732, 0.26, WHITE, EMERALD), 2732))
+writeFileSync('assets/splash-dark.png', await toPng(markOnly(2732, 0.26, WHITE, DARK_BG), 2732))
+
+console.log('build/icon.png              1024')
+console.log('build/icon.ico               256')
+console.log('src/renderer/public/icon.png 256')
+console.log('assets/icon.png              1024')
+console.log('assets/icon-only.png         1024')
+console.log('assets/icon-background.png   1024')
+console.log('assets/icon-foreground.png   1024')
+console.log('assets/splash.png            2732')
+console.log('assets/splash-dark.png       2732')

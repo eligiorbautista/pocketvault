@@ -74,7 +74,7 @@ taken, change `server.port` in that file.
 | `npm run build` | Build main / preload / renderer bundles into `out/` |
 | `npm run start` | Preview the production build |
 | `npm test` | All smoke tests (db + backup + audit + capacitor) |
-| `npm run icons` | Regenerate `build/icon.png` and `build/icon.ico` (desktop) |
+| `npm run icons` | Render the "PV" monogram logo (desktop icons + favicon + Android source layers) |
 | `npm run build:desktop` | Package the desktop app with electron-builder |
 | `npm run build:win` / `build:mac` / `build:linux` | Per-OS installers → `installers/<os>/` |
 | `./build-electron.sh [win\|mac\|linux\|all]` | Auto-detect host OS and package it |
@@ -122,7 +122,7 @@ assets/              master app logo used to generate Android icons/splash
 scripts/
   db-smoke.mjs / backup-smoke.mjs / audit-smoke.mjs   repository + service tests
   capacitor-smoke.mjs  runs the Android adapter against a real SQLite engine
-  generate-icon.mjs    dependency-free desktop icon generator
+  generate-icon.mjs    "PV" monogram logo / icon generator (sharp)
 build/               app icons for electron-builder
 capacitor.config.json
 ```
