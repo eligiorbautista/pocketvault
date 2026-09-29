@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { create } from 'zustand'
 import { DEFAULT_CURRENCY } from '@shared/currency.js'
 
@@ -7,7 +8,7 @@ export const useSettingsStore = create((set) => ({
   loaded: false,
 
   async load() {
-    const settings = await window.api.settings.get()
+    const settings = await api.settings.get()
     set({
       currency: settings.currency,
       requirePasswordOnStart: settings.requirePasswordOnStart,
@@ -17,7 +18,7 @@ export const useSettingsStore = create((set) => ({
   },
 
   async update(patch) {
-    const settings = await window.api.settings.update(patch)
+    const settings = await api.settings.update(patch)
     set({
       currency: settings.currency,
       requirePasswordOnStart: settings.requirePasswordOnStart

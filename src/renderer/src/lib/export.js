@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { jsPDF } from 'jspdf'
 import { formatCurrency, formatDate } from './format.js'
 
@@ -17,7 +18,7 @@ export function buildCsv(rows, columns) {
 }
 
 async function saveBytes(defaultName, bytes, filters) {
-  return window.api.files.saveExport({ defaultName, data: bytes, filters })
+  return api.files.saveExport({ defaultName, data: bytes, filters })
 }
 
 export async function exportCsv(defaultName, rows, columns) {

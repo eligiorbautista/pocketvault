@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Pencil, Plus, Receipt, Trash2, TrendingUp } from 'lucide-react'
@@ -44,7 +45,7 @@ function IncomeForm({ open, initial, onClose, onSaved }) {
   const attachReceipt = async () => {
     setAttaching(true)
     try {
-      const filename = await window.api.files.selectReceipt()
+      const filename = await api.files.selectReceipt()
       if (filename) setReceiptPath(filename)
     } catch (error) {
       toast(error.message, 'error')
@@ -63,15 +64,15 @@ function IncomeForm({ open, initial, onClose, onSaved }) {
     }
     try {
       const saved = initial
-        ? await window.api.income.update(initial.id, payload)
-        : await window.api.income.create(payload)
+        ? await api.income.update(initial.id, payload)
+        : await api.income.create(payload)
 
       if (
         initial?.receipt_path &&
         initial.receipt_path !== saved.receipt_path &&
         initial.receipt_path !== receiptPath
       ) {
-        window.api.files.deleteReceipt(initial.receipt_path).catch(() => {})
+        api.files.deleteReceipt(initial.receipt_path).catch(() => {})
       }
 
       toast(initial ? 'Income updated' : 'Income added', 'success')
@@ -187,7 +188,7 @@ export default function Income() {
   const [deleting, setDeleting] = useState(false)
 
   const { data, loading, error, reload } = useApiData(
-    () => window.api.income.list({ page, ...filters }),
+    () => api.income.list({ page, ...filters }),
     [page, filters]
   )
 
@@ -209,9 +210,9 @@ export default function Income() {
     if (!pendingDelete) return
     setDeleting(true)
     try {
-      await window.api.income.remove(pendingDelete.id)
+      await api.income.remove(pendingDelete.id)
       if (pendingDelete.receipt_path) {
-        window.api.files.deleteReceipt(pendingDelete.receipt_path).catch(() => {})
+        api.files.deleteReceipt(pendingDelete.receipt_path).catch(() => {})
       }
       toast('Income deleted', 'success')
       setPendingDelete(null)

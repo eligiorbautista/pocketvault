@@ -6,23 +6,28 @@ import { rmSync } from 'node:fs'
 const tests = [
   { name: 'db', entry: 'scripts/db-smoke.mjs', external: ['better-sqlite3'] },
   { name: 'backup', entry: 'scripts/backup-smoke.mjs', external: ['better-sqlite3', 'jszip'] },
-  { name: 'audit', entry: 'scripts/audit-smoke.mjs', external: ['better-sqlite3'] }
+  { name: 'audit', entry: 'scripts/audit-smoke.mjs', external: ['better-sqlite3'] },
+  { name: 'capacitor', run: 'node scripts/capacitor-smoke.mjs' }
 ]
 
 const outputs = []
 let failed = false
 
 for (const test of tests) {
-  const out = `.pv-${test.name}.cjs`
-  outputs.push(out)
-  const external = test.external.map((name) => `--external:${name}`).join(' ')
   console.log(`\n=== ${test.name} smoke test ===`)
   try {
-    execSync(
-      `npx esbuild ${test.entry} --bundle --platform=node --format=cjs ${external} --outfile="${out}"`,
-      { stdio: 'inherit', shell: true }
-    )
-    execSync(`node "${out}"`, { stdio: 'inherit', shell: true })
+    if (test.run) {
+      execSync(test.run, { stdio: 'inherit', shell: true })
+    } else {
+      const out = `.pv-${test.name}.cjs`
+      outputs.push(out)
+      const external = test.external.map((name) => `--external:${name}`).join(' ')
+      execSync(
+        `npx esbuild ${test.entry} --bundle --platform=node --format=cjs ${external} --outfile="${out}"`,
+        { stdio: 'inherit', shell: true }
+      )
+      execSync(`node "${out}"`, { stdio: 'inherit', shell: true })
+    }
   } catch {
     failed = true
   }

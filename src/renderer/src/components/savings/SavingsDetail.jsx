@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Trash2 } from 'lucide-react'
@@ -24,7 +25,7 @@ function ContributionForm({ goalId, incomeOptions, onDone }) {
   const onSubmit = async (values) => {
     setBusy(true)
     try {
-      await window.api.savings.addContribution(goalId, {
+      await api.savings.addContribution(goalId, {
         amount: Number(values.amount),
         date: values.date,
         income_id: values.income_id ? Number(values.income_id) : null,
@@ -93,15 +94,15 @@ export function SavingsDetail({ goalId, open, onClose, onChanged }) {
   const [removing, setRemoving] = useState(false)
 
   const goalQuery = useApiData(
-    () => (goalId ? window.api.savings.get(goalId) : Promise.resolve(null)),
+    () => (goalId ? api.savings.get(goalId) : Promise.resolve(null)),
     [goalId, open]
   )
   const contributionsQuery = useApiData(
-    () => (goalId ? window.api.savings.contributions(goalId) : Promise.resolve([])),
+    () => (goalId ? api.savings.contributions(goalId) : Promise.resolve([])),
     [goalId, open]
   )
   const incomeQuery = useApiData(
-    () => (open ? window.api.income.all({}) : Promise.resolve([])),
+    () => (open ? api.income.all({}) : Promise.resolve([])),
     [open]
   )
 
@@ -119,7 +120,7 @@ export function SavingsDetail({ goalId, open, onClose, onChanged }) {
     if (!pendingDelete) return
     setRemoving(true)
     try {
-      await window.api.savings.removeContribution(pendingDelete.id)
+      await api.savings.removeContribution(pendingDelete.id)
       toast('Contribution removed', 'success')
       setPendingDelete(null)
       refresh()

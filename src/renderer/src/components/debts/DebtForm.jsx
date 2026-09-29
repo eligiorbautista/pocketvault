@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { DEBT_PAYMENT_TYPES } from '@shared/constants.js'
@@ -44,8 +45,8 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
       notes: values.notes
     }
     try {
-      if (initial) await window.api.debts.update(initial.id, payload)
-      else await window.api.debts.create(payload)
+      if (initial) await api.debts.update(initial.id, payload)
+      else await api.debts.create(payload)
       toast(initial ? 'Debt updated' : 'Debt added', 'success')
       onSaved()
       onClose()

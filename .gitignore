@@ -9,4 +9,10 @@ Thumbs.db
 *.local
 .env
 .env.*
-.pv-*.cjs
+.pv-*
+
+# Android signing (never commit keys)
+*.keystore
+*.jks
+keystore.properties
+android/local.properties

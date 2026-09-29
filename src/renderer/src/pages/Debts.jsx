@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useState } from 'react'
 import { Eye, HandCoins, Pencil, Plus, Trash2 } from 'lucide-react'
 import { DEBT_STATUSES } from '@shared/constants.js'
@@ -30,10 +31,10 @@ export default function Debts() {
   const [deleting, setDeleting] = useState(false)
 
   const { data, loading, error, reload } = useApiData(
-    () => window.api.debts.list({ page, ...filters }),
+    () => api.debts.list({ page, ...filters }),
     [page, filters]
   )
-  const summary = useApiData(() => window.api.reports.debtSummary(), [])
+  const summary = useApiData(() => api.reports.debtSummary(), [])
 
   const rows = data?.rows ?? []
 
@@ -53,7 +54,7 @@ export default function Debts() {
     if (!pendingDelete) return
     setDeleting(true)
     try {
-      await window.api.debts.remove(pendingDelete.id)
+      await api.debts.remove(pendingDelete.id)
       toast('Debt deleted', 'success')
       setPendingDelete(null)
       if (rows.length === 1 && page > 1) setPage(page - 1)

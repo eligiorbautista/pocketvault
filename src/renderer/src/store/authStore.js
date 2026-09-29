@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { create } from 'zustand'
 import { SESSION_STORAGE_KEY } from '@shared/constants.js'
 
@@ -23,7 +24,7 @@ export const useAuthStore = create((set) => ({
     // An in-app refresh (Ctrl+R) keeps the main-process session for this
     // renderer alive, so resume silently without treating it as a fresh launch.
     try {
-      const existing = await window.api.auth.current()
+      const existing = await api.auth.current()
       if (existing?.user) {
         set({ user: existing.user, status: 'authenticated', error: null, viaRestore: false })
         return
@@ -44,7 +45,7 @@ export const useAuthStore = create((set) => ({
     }
     try {
       const parsed = JSON.parse(raw)
-      const { user } = await window.api.auth.restore(parsed.id)
+      const { user } = await api.auth.restore(parsed.id)
       set({ user, status: 'authenticated', error: null, viaRestore: true })
     } catch {
       clearPersistedSession()
@@ -53,20 +54,20 @@ export const useAuthStore = create((set) => ({
   },
 
   async login(username, password) {
-    const { user } = await window.api.auth.login(username, password)
+    const { user } = await api.auth.login(username, password)
     persistSession(user)
     set({ user, status: 'authenticated', error: null, viaRestore: false })
   },
 
   async register(username, password) {
-    const { user } = await window.api.auth.register(username, password)
+    const { user } = await api.auth.register(username, password)
     persistSession(user)
     set({ user, status: 'authenticated', error: null, viaRestore: false })
   },
 
   async logout() {
     try {
-      await window.api.auth.logout()
+      await api.auth.logout()
     } finally {
       clearPersistedSession()
       set({ user: null, status: 'unauthenticated', error: null, viaRestore: false })

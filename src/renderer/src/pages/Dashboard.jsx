@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -41,7 +42,7 @@ export default function Dashboard() {
   })
 
   const { data, loading, error } = useApiData(
-    () => window.api.reports.dashboard(dashboardPeriodPayload(period, currentMonth)),
+    () => api.reports.dashboard(dashboardPeriodPayload(period, currentMonth)),
     [period.mode, period.month, period.from, period.to]
   )
 
