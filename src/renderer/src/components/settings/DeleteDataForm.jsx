@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
@@ -29,7 +30,7 @@ export function DeleteDataForm({ open, onClose, onDeleted }) {
   const onSubmit = async (values) => {
     setBusy(true)
     try {
-      await window.api.account.deleteData(values.password)
+      await api.account.deleteData(values.password)
       toast('All data deleted', 'success', { description: 'Your account is still active.' })
       onDeleted?.()
       onClose()

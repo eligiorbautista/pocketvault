@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -81,7 +82,7 @@ export default function Settings() {
   const exportBackup = async () => {
     setBusy('export')
     try {
-      const result = await window.api.backup.export()
+      const result = await api.backup.export()
       if (result.saved) {
         toast('Backup exported', 'success', {
           description: 'The file contains only this account\u2019s data.'
@@ -97,7 +98,7 @@ export default function Settings() {
   const importBackup = async () => {
     setBusy('import')
     try {
-      const result = await window.api.backup.import()
+      const result = await api.backup.import()
       setConfirmImport(false)
       if (result.imported) {
         toast('Backup imported', 'success', {

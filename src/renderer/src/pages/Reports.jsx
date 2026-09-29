@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useState } from 'react'
 import {
   Bar,
@@ -33,12 +34,12 @@ export default function Reports() {
   const [exporting, setExporting] = useState(null)
   const range = { from: `${year}-01-01`, to: `${year}-12-31` }
 
-  const monthlyQuery = useApiData(() => window.api.reports.monthlyTotals(year), [year])
+  const monthlyQuery = useApiData(() => api.reports.monthlyTotals(year), [year])
   const categoriesQuery = useApiData(
-    () => window.api.reports.categoryBreakdown(range),
+    () => api.reports.categoryBreakdown(range),
     [year]
   )
-  const sourcesQuery = useApiData(() => window.api.reports.incomeBySource(range), [year])
+  const sourcesQuery = useApiData(() => api.reports.incomeBySource(range), [year])
 
   const months = monthlyQuery.data ?? []
   const categories = categoriesQuery.data ?? []

@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
@@ -31,8 +32,8 @@ export function SavingsGoalForm({ open, initial, onClose, onSaved }) {
       deadline: values.deadline || null
     }
     try {
-      if (initial) await window.api.savings.update(initial.id, payload)
-      else await window.api.savings.create(payload)
+      if (initial) await api.savings.update(initial.id, payload)
+      else await api.savings.create(payload)
       toast(initial ? 'Goal updated' : 'Goal created', 'success')
       onSaved()
       onClose()

@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { AlertTriangle, Pencil, Plus, Trash2, Wallet } from 'lucide-react'
@@ -42,7 +43,7 @@ function BudgetForm({ open, initial, onClose, onSaved }) {
     const resolvedCategory =
       values.category === '__custom__' ? values.customCategory.trim() : values.category
     try {
-      await window.api.budgets.upsert({
+      await api.budgets.upsert({
         category: resolvedCategory,
         monthly_limit: Number(values.monthly_limit)
       })
@@ -128,7 +129,7 @@ export default function Budgets() {
   const [deleting, setDeleting] = useState(false)
 
   const { data, loading, error, reload } = useApiData(
-    () => window.api.budgets.list(month),
+    () => api.budgets.list(month),
     [month]
   )
 
@@ -139,7 +140,7 @@ export default function Budgets() {
     if (!pendingDelete) return
     setDeleting(true)
     try {
-      await window.api.budgets.remove(pendingDelete.id)
+      await api.budgets.remove(pendingDelete.id)
       toast('Budget removed', 'success')
       setPendingDelete(null)
       reload()

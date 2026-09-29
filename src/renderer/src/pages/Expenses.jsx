@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Pencil, Plus, Trash2, TrendingDown } from 'lucide-react'
@@ -52,8 +53,8 @@ function ExpenseForm({ open, initial, onClose, onSaved }) {
       notes: values.notes
     }
     try {
-      if (initial) await window.api.expenses.update(initial.id, payload)
-      else await window.api.expenses.create(payload)
+      if (initial) await api.expenses.update(initial.id, payload)
+      else await api.expenses.create(payload)
       toast(initial ? 'Expense updated' : 'Expense added', 'success')
       onSaved()
       onClose()
@@ -151,7 +152,7 @@ export default function Expenses() {
   const [deleting, setDeleting] = useState(false)
 
   const { data, loading, error, reload } = useApiData(
-    () => window.api.expenses.list({ page, ...filters }),
+    () => api.expenses.list({ page, ...filters }),
     [page, filters]
   )
 
@@ -173,7 +174,7 @@ export default function Expenses() {
     if (!pendingDelete) return
     setDeleting(true)
     try {
-      await window.api.expenses.remove(pendingDelete.id)
+      await api.expenses.remove(pendingDelete.id)
       toast('Expense deleted', 'success')
       setPendingDelete(null)
       if (rows.length === 1 && page > 1) setPage(page - 1)

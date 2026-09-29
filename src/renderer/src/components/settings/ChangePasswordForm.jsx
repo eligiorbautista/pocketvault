@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
@@ -25,7 +26,7 @@ export function ChangePasswordForm({ open, onClose }) {
   const onSubmit = async (values) => {
     setBusy(true)
     try {
-      await window.api.auth.changePassword(values.currentPassword, values.newPassword)
+      await api.auth.changePassword(values.currentPassword, values.newPassword)
       toast('Password updated', 'success')
       onClose()
     } catch (error) {

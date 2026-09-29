@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Banknote, History, RotateCcw, Trash2 } from 'lucide-react'
@@ -40,8 +41,8 @@ function LedgerForm({ mode, debtId, defaultAmount, onDone }) {
         date: values.date,
         notes: values.notes
       }
-      if (mode === 'reborrow') await window.api.debts.reborrow(debtId, payload)
-      else await window.api.debts.addPayment(debtId, payload)
+      if (mode === 'reborrow') await api.debts.reborrow(debtId, payload)
+      else await api.debts.addPayment(debtId, payload)
       toast(mode === 'reborrow' ? 'Re-borrow recorded' : 'Payment recorded', 'success')
       reset({ amount: suggested ? String(suggested) : '', date: todayInput(), notes: '' })
       onDone()
@@ -104,11 +105,11 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
   const [removing, setRemoving] = useState(false)
 
   const debtQuery = useApiData(
-    () => (debtId ? window.api.debts.get(debtId) : Promise.resolve(null)),
+    () => (debtId ? api.debts.get(debtId) : Promise.resolve(null)),
     [debtId, open]
   )
   const paymentsQuery = useApiData(
-    () => (debtId ? window.api.debts.payments(debtId) : Promise.resolve([])),
+    () => (debtId ? api.debts.payments(debtId) : Promise.resolve([])),
     [debtId, open]
   )
 
@@ -125,7 +126,7 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
     if (!pendingPayment) return
     setRemoving(true)
     try {
-      await window.api.debts.removePayment(pendingPayment.id)
+      await api.debts.removePayment(pendingPayment.id)
       toast('Ledger entry removed', 'success')
       setPendingPayment(null)
       refresh()

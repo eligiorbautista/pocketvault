@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useEffect, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
@@ -19,7 +20,7 @@ export function ReceiptViewer({ filename, open, onClose }) {
     let active = true
     setLoading(true)
     setError(null)
-    window.api.files
+    api.files
       .readReceipt(filename)
       .then((result) => {
         if (active) setReceipt(result)
@@ -37,7 +38,7 @@ export function ReceiptViewer({ filename, open, onClose }) {
 
   const openExternally = async () => {
     try {
-      await window.api.files.openReceipt(filename)
+      await api.files.openReceipt(filename)
     } catch (err) {
       toast(err.message, 'error')
     }

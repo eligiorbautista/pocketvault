@@ -1,3 +1,4 @@
+import { api } from '@renderer/lib/api.js'
 import { useState } from 'react'
 import { CalendarClock, Pencil, Plus, Target, Trash2 } from 'lucide-react'
 import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
@@ -21,14 +22,14 @@ export default function Savings() {
   const [pendingDelete, setPendingDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  const { data, loading, error, reload } = useApiData(() => window.api.savings.list(), [])
+  const { data, loading, error, reload } = useApiData(() => api.savings.list(), [])
   const goals = data ?? []
 
   const confirmDelete = async () => {
     if (!pendingDelete) return
     setDeleting(true)
     try {
-      await window.api.savings.remove(pendingDelete.id)
+      await api.savings.remove(pendingDelete.id)
       toast('Goal deleted', 'success')
       setPendingDelete(null)
       reload()
