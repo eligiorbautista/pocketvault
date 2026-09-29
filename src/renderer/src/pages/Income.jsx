@@ -236,13 +236,14 @@ export default function Income() {
     {
       key: 'receipt',
       header: 'Receipt',
+      action: true,
       render: (row) =>
         row.receipt_path ? (
           <Button variant="ghost" size="sm" onClick={() => setViewingReceipt(row.receipt_path)}>
             View
           </Button>
         ) : (
-          <span className="text-slate-400">\u2014</span>
+          <span className="text-slate-400">{'\u2014'}</span>
         )
     },
     {
