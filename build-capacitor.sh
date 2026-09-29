@@ -43,6 +43,14 @@ OUT_DIR="installers/android"
 APK_SEARCH_DIR="android/app/build/outputs/apk/$APK_DIR"
 KEYSTORE="release.keystore"
 
+# Name the output APK after the app (from capacitor.config.json).
+APP_NAME="$(node -p "require('./capacitor.config.json').appName" 2>/dev/null || true)"
+[ -n "$APP_NAME" ] || APP_NAME="PocketVault"
+APK_NAME="${APP_NAME// /}.apk"
+if [ "$BUILD_TYPE" = "debug" ]; then
+  APK_NAME="${APP_NAME// /}-debug.apk"
+fi
+
 # ---------------------------------------------------------------------------
 # Android build environment
 # ---------------------------------------------------------------------------
@@ -105,6 +113,7 @@ echo "Build type : $BUILD_TYPE"
 echo "Gradle task: $GRADLE_TASK"
 echo "Android SDK: $ANDROID_HOME"
 echo "JAVA_HOME  : ${JAVA_HOME:-(system java)}"
+echo "Output APK : $APK_NAME"
 echo
 
 echo "==> 1/6 Building the web frontend (vite)"
@@ -146,6 +155,7 @@ echo "==> 4/6 Compiling the APK with Gradle ($GRADLE_TASK)"
 
 echo "==> 5/6 Preparing output directory ($OUT_DIR)"
 mkdir -p "$OUT_DIR"
+rm -f "$OUT_DIR"/app-*.apk # drop legacy Gradle-named artifacts
 
 echo "==> 6/6 Copying the APK into $OUT_DIR"
 shopt -s nullglob
@@ -158,8 +168,8 @@ if [ ${#APKS[@]} -eq 0 ]; then
 fi
 
 for apk in "${APKS[@]}"; do
-  cp -f "$apk" "$OUT_DIR/"
-  echo "    copied: $(basename "$apk")"
+  cp -f "$apk" "$OUT_DIR/$APK_NAME"
+  echo "    copied: $(basename "$apk") -> $APK_NAME"
 done
 
 # Confirm the APK is signed (so it will not install as "unsigned").
@@ -181,5 +191,5 @@ else
 fi
 
 echo
-echo "Success. APK written to: $ROOT_DIR/$OUT_DIR"
+echo "Success. APK written to: $ROOT_DIR/$OUT_DIR/$APK_NAME"
 ls -la "$OUT_DIR"

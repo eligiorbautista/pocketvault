@@ -9,7 +9,7 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
 - Build bundles: `npm run build` → `out/` (`out/renderer` is also the Capacitor `webDir`).
 - Preview build: `npm run start`.
 - Package desktop: `npm run build:desktop`, or per-OS `npm run build:win` / `build:mac` / `build:linux` (or `./build-electron.sh [win|mac|linux|all]`).
-- Mobile / Capacitor: `npm run build:mobile` (= build + `cap sync android`), `npm run dev:mobile`, `npm run cap:sync`, `npm run cap:open`, `npm run assets` (regenerates Android icons/splash from `assets/icon.png`). Full signed APK build: `./build-capacitor.sh [debug|release]` (release is the default; it generates a gitignored `release.keystore` and verifies the signature) → `installers/android/`.
+- Mobile / Capacitor: `npm run build:mobile` (= build + `cap sync android`), `npm run dev:mobile`, `npm run cap:sync`, `npm run cap:open`, `npm run assets` (regenerates Android icons/splash from `assets/icon.png`). Full signed APK build: `./build-capacitor.sh [debug|release]` (release is the default; it generates a gitignored `release.keystore`, verifies the signature, and names the artifact after `capacitor.config.json` → `installers/android/PocketVault.apk`, or `PocketVault-debug.apk`).
 - Icons (desktop): `npm run icons` (regenerates `build/icon.png` + `build/icon.ico`, no deps).
 - DB/repository smoke test (run from repo root):
   `npx esbuild scripts/db-smoke.mjs --bundle --platform=node --format=cjs --external:better-sqlite3 --outfile=".pv-smoke.cjs"; node .pv-smoke.cjs`
