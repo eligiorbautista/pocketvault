@@ -1,3 +1,9 @@
+// Lets Gradle auto-provision a Java 21 toolchain (Capacitor 8 compiles against
+// Java 21) without requiring a machine-wide JDK 21 install.
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+
 include ':app'
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')

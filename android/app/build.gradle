@@ -16,8 +16,24 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            // Reads android/../keystore.properties (repo root) when present so the
+            // passwords are not committed. Falls back to the build script defaults.
+            def keystorePropertiesFile = file('../../keystore.properties')
+            def keystoreProperties = new Properties()
+            if (keystorePropertiesFile.exists()) {
+                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+            }
+            storeFile file(keystoreProperties['storeFile'] ?: '../../release.keystore')
+            storePassword keystoreProperties['storePassword'] ?: 'android'
+            keyAlias keystoreProperties['keyAlias'] ?: 'release'
+            keyPassword keystoreProperties['keyPassword'] ?: 'android'
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
