@@ -222,10 +222,10 @@ export default function Settings() {
             </Button>
           </SettingRow>
 
-          <div className="mt-2 border-t border-red-100 pb-6 pt-5 dark:border-red-900">
+          <div className="mt-2 border-t border-slate-100 pb-6 pt-5 dark:border-gray-800">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
               <div className="flex min-w-0 flex-1 items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-900 dark:text-red-300">
                   <AlertTriangle size={18} aria-hidden="true" />
                 </span>
                 <div className="min-w-0">
