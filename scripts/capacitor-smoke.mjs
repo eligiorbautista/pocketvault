@@ -137,6 +137,10 @@ await check('settings reminders persist + validate', async () => {
   const s = await api.settings.update({ remindersEnabled: true, reminderLeadDays: 5 })
   return s.remindersEnabled === true && s.reminderLeadDays === 5
 })
+await check('settings allow zero lead days', async () => {
+  const s = await api.settings.update({ reminderLeadDays: 0 })
+  return s.reminderLeadDays === 0
+})
 await expectThrow(
   'settings out-of-range lead days rejected',
   () => api.settings.update({ reminderLeadDays: 99 }),

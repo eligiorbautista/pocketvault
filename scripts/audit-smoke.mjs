@@ -327,6 +327,8 @@ const remSettings = settingsRepo.getSettings(db, alice.id)
 check('settings persist reminders', remSettings.remindersEnabled === true && remSettings.reminderLeadDays === 5)
 settingsRepo.upsertSettings(db, alice.id, { currency: 'USD' })
 check('settings partial keeps reminders', settingsRepo.getSettings(db, alice.id).reminderLeadDays === 5)
+settingsRepo.upsertSettings(db, alice.id, { reminderLeadDays: 0 })
+check('settings allow zero lead days', settingsRepo.getSettings(db, alice.id).reminderLeadDays === 0)
 
 // ---------- reminder plan (pure) ----------
 const now = new Date('2026-06-10T08:00:00')
@@ -366,6 +368,12 @@ check(
 )
 check('effectiveDueDate uses due_date for fixed', effectiveDueDate(fixedDebt, []) === '2026-06-20')
 check('monthly plan schedules later installments', buildReminderPlan([planMonthlyDebt], { 2: [] }, { leadDays: 2, now }).length >= 3)
+check(
+  'monthly reminder uses the installment amount',
+  buildReminderPlan([planMonthlyDebt], { 2: [] }, { leadDays: 0, now })
+    .find((reminder) => reminder.kind === 'due')
+    .body.includes('1000.00')
+)
 check('installmentStatus paid', installmentStatus(1000, 1000, '2026-06-15', '2026-06-20') === 'paid')
 check('installmentStatus overdue', installmentStatus(0, 1000, '2026-06-15', '2026-06-20') === 'overdue')
 

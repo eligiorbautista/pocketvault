@@ -126,8 +126,8 @@ export function effectiveDueDate(debt, payments = []) {
 
 // --- reminder plan ---------------------------------------------------------
 
-function makeReminder(debt, kind, at, dueDate) {
-  const amount = fromCents(toCents(debt.remaining_amount)).toFixed(2)
+function makeReminder(debt, kind, at, dueDate, amountValue) {
+  const amount = fromCents(toCents(amountValue ?? debt.remaining_amount)).toFixed(2)
   const titles = {
     upcoming: `Payment due soon: ${debt.creditor}`,
     due: `Payment due today: ${debt.creditor}`,
@@ -176,7 +176,7 @@ export function buildReminderPlan(debts, paymentsByDebtId = {}, opts = {}) {
         if ((paidMap.get(installment.due_date) ?? 0) >= toCents(installment.amount)) continue
         if (installment.due_date < today) {
           if (!overdueReported) {
-            plan.push(makeReminder(debt, 'overdue', now, installment.due_date))
+            plan.push(makeReminder(debt, 'overdue', now, installment.due_date, installment.amount))
             overdueReported = true
           }
           continue
@@ -185,9 +185,11 @@ export function buildReminderPlan(debts, paymentsByDebtId = {}, opts = {}) {
         if (!dueAt || dueAt > horizonEnd) continue
         if (leadDays > 0) {
           const remindAt = new Date(dueAt.getTime() - leadDays * DAY_MS)
-          if (remindAt > now) plan.push(makeReminder(debt, 'upcoming', remindAt, installment.due_date))
+          if (remindAt > now) {
+            plan.push(makeReminder(debt, 'upcoming', remindAt, installment.due_date, installment.amount))
+          }
         }
-        if (dueAt > now) plan.push(makeReminder(debt, 'due', dueAt, installment.due_date))
+        if (dueAt > now) plan.push(makeReminder(debt, 'due', dueAt, installment.due_date, installment.amount))
         scheduled += 1
         if (scheduled >= maxPerDebt) break
       }

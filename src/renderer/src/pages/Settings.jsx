@@ -236,7 +236,11 @@ export default function Settings() {
 
           <SettingRow
             title="Remind me before due"
-            description={`Upcoming reminders are sent ${reminderLeadDays} day(s) before the due date, at 9:00 AM.`}
+            description={
+              reminderLeadDays > 0
+                ? `Upcoming reminders are sent ${reminderLeadDays} day(s) before the due date, at 9:00 AM.`
+                : 'Upcoming reminders are off — you will still be notified on the due date and once a payment is overdue.'
+            }
             htmlFor="settings-lead-days"
             last
           >

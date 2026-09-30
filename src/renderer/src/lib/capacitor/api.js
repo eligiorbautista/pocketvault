@@ -564,11 +564,12 @@ export function createCapacitorApi() {
           reminderLeadDays: DEFAULT_LEAD_DAYS
         }
       }
+      const lead = Number(row.reminder_lead_days)
       return {
         currency: row.currency || DEFAULT_CURRENCY,
         requirePasswordOnStart: Boolean(row.require_password_on_start),
         remindersEnabled: Boolean(row.reminders_enabled),
-        reminderLeadDays: Number(row.reminder_lead_days) || DEFAULT_LEAD_DAYS
+        reminderLeadDays: Number.isFinite(lead) ? lead : DEFAULT_LEAD_DAYS
       }
     },
     update: async (patch = {}) => {
