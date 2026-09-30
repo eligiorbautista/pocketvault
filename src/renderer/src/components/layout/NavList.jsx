@@ -18,7 +18,7 @@ export function NavList({ onNavigate }) {
                 'flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors',
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
                 isActive
-                  ? 'bg-accent-50 text-accent-700 dark:bg-accent-950 dark:text-white'
+                  ? 'bg-accent-50 text-accent-700 dark:bg-accent-900 dark:text-accent-200'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-gray-100'
               )
             }

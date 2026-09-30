@@ -35,7 +35,7 @@ export function CardIcon({ icon: Icon, className }) {
   return (
     <span
       className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-950 dark:text-accent-300',
+        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-900 dark:text-accent-300',
         className
       )}
     >

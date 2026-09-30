@@ -210,7 +210,7 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
                       'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
                       mode === 'reborrow'
                         ? 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300'
-                        : 'bg-accent-50 text-accent-700 dark:bg-accent-950 dark:text-accent-300'
+                        : 'bg-accent-50 text-accent-700 dark:bg-accent-900 dark:text-accent-300'
                     )}
                   >
                     {mode === 'reborrow' ? (
@@ -287,7 +287,7 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
                                     'relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
                                     isReborrow
                                       ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-                                      : 'bg-accent-100 text-accent-700 dark:bg-accent-950 dark:text-accent-300'
+                                      : 'bg-accent-100 text-accent-700 dark:bg-accent-900 dark:text-accent-300'
                                   )}
                                 >
                                   <Icon size={15} aria-hidden="true" />

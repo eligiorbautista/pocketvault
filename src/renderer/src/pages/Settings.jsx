@@ -263,7 +263,7 @@ export default function Settings() {
           <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ icon: Icon, label }) => (
               <li key={label} className="flex items-center gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-950 dark:text-accent-300">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-900 dark:text-accent-300">
                   <Icon size={15} aria-hidden="true" />
                 </span>
                 <span className="text-sm text-slate-700 dark:text-gray-200">{label}</span>

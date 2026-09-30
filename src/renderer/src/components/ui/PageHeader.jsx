@@ -41,7 +41,7 @@ export function StatCard({ label, value, hint, icon: Icon, tone = 'default', loa
           {hint ? <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">{hint}</p> : null}
         </div>
         {Icon ? (
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-950 dark:text-accent-300">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-900 dark:text-accent-300">
             <Icon size={18} aria-hidden="true" />
           </span>
         ) : null}

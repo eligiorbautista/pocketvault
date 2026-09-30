@@ -18,7 +18,7 @@ export function UserSummary({ className }) {
     <div className={cn('flex items-center gap-3', className)}>
       <span
         aria-hidden="true"
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-100 text-sm font-semibold text-accent-700 dark:bg-accent-950 dark:text-accent-300"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-100 text-sm font-semibold text-accent-700 dark:bg-accent-900 dark:text-accent-300"
       >
         {initials(name)}
       </span>
