@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs'
+import JSZip from 'jszip'
 import { Directory, Filesystem } from '@capacitor/filesystem'
+import { Share } from '@capacitor/share'
 import {
   DEBT_PAYMENT_TYPE_VALUES,
   MAX_RECEIPT_BYTES,
@@ -34,6 +36,8 @@ const MIME_BY_EXT = {
 }
 
 const RECEIPTS_DIR = 'receipts'
+const BACKUP_FORMAT = 2
+const BACKUP_RECEIPTS_PREFIX = 'receipts/'
 const INCOME_COLUMNS =
   'id, user_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
 const EXPENSE_COLUMNS =
@@ -97,6 +101,28 @@ async function readAsBase64(file) {
     reader.onerror = () => reject(new Error('Could not read the selected file'))
     reader.readAsDataURL(file)
   })
+}
+
+async function readAsArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('Could not read the selected file'))
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+function num(value) {
+  const n = typeof value === 'string' ? Number(value) : value
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0
+}
+
+function stamp() {
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(
+    d.getMinutes()
+  )}`
 }
 
 function pickFile(accept) {
@@ -1330,49 +1356,413 @@ export function createCapacitorApi() {
   }
 
   const backup = {
+    // Same ZIP layout as the desktop build (manifest + account + data +
+    // receipts/), so a backup can be moved between desktop and Android.
     export: async () => {
       const userId = requireUserId()
-      const payload = {
-        app: 'PocketVault',
-        format: 'json',
-        version: 1,
-        username: session.username,
-        exportedAt: new Date().toISOString(),
-        data: {
-          settings: await settings.get(),
-          income: await query(`SELECT ${INCOME_COLUMNS} FROM income WHERE user_id = ?`, [userId]),
-          expenses: await query(`SELECT ${EXPENSE_COLUMNS} FROM expenses WHERE user_id = ?`, [userId]),
-          debts: await query(`SELECT ${DEBT_COLUMNS} FROM debts WHERE user_id = ?`, [userId]),
-          debtPayments: await query(
-            `SELECT p.* FROM debt_payments p JOIN debts d ON d.id = p.debt_id WHERE d.user_id = ?`,
-            [userId]
-          ),
-          budgets: await query(
-            'SELECT id, user_id, category, monthly_limit, is_archived, created_at, updated_at FROM budgets WHERE user_id = ?',
-            [userId]
-          ),
-          savingsGoals: await query(
-            `SELECT ${GOAL_COLUMNS} FROM savings_goals WHERE user_id = ?`,
-            [userId]
-          ),
-          savingsContributions: await query(
-            `SELECT c.* FROM savings_contributions c JOIN savings_goals g ON g.id = c.goal_id WHERE g.user_id = ?`,
-            [userId]
+      const user = await getOne('SELECT id, username, created_at FROM users WHERE id = ?', [userId])
+      if (!user) throw new Error('Account not found')
+
+      const income = await query(
+        `SELECT id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at
+         FROM income WHERE user_id = ? ORDER BY id`,
+        [userId]
+      )
+      const expenses = await query(
+        `SELECT category, amount, date, notes, is_archived, created_at, updated_at
+         FROM expenses WHERE user_id = ? ORDER BY id`,
+        [userId]
+      )
+      const debts = await query(
+        `SELECT id, creditor, total_amount, paid_amount, remaining_amount, due_date,
+                payment_type, monthly_amount, payment_day, first_payment_date, receipt_path,
+                status, notes, is_archived, created_at, updated_at
+         FROM debts WHERE user_id = ? ORDER BY id`,
+        [userId]
+      )
+      const debtIds = debts.map((row) => row.id)
+      const debtPayments = debtIds.length
+        ? await query(
+            `SELECT debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
+             FROM debt_payments WHERE debt_id IN (${debtIds.map(() => '?').join(',')}) ORDER BY id`,
+            debtIds
           )
-        }
+        : []
+      const budgets = await query(
+        `SELECT category, monthly_limit, is_archived, created_at, updated_at
+         FROM budgets WHERE user_id = ? ORDER BY id`,
+        [userId]
+      )
+      const savingsGoals = await query(
+        `SELECT id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at
+         FROM savings_goals WHERE user_id = ? ORDER BY id`,
+        [userId]
+      )
+      const goalIds = savingsGoals.map((row) => row.id)
+      const savingsContributions = goalIds.length
+        ? await query(
+            `SELECT goal_id, income_id, amount, date, notes, created_at
+             FROM savings_contributions WHERE goal_id IN (${goalIds.map(() => '?').join(',')}) ORDER BY id`,
+            goalIds
+          )
+        : []
+
+      const counts = {
+        income: income.length,
+        expenses: expenses.length,
+        debts: debts.length,
+        debtPayments: debtPayments.length,
+        budgets: budgets.length,
+        savingsGoals: savingsGoals.length,
+        savingsContributions: savingsContributions.length,
+        receipts: 0
       }
-      const name = `pocketvault-${session.username}-backup.json`
-      const result = await Filesystem.writeFile({
+
+      const zip = new JSZip()
+      zip.file(
+        'account.json',
+        JSON.stringify({ username: user.username, created_at: user.created_at }, null, 2)
+      )
+      zip.file(
+        'data.json',
+        JSON.stringify(
+          {
+            income,
+            expenses,
+            debts,
+            debt_payments: debtPayments,
+            budgets,
+            savings_goals: savingsGoals,
+            savings_contributions: savingsContributions
+          },
+          null,
+          2
+        )
+      )
+
+      const folder = zip.folder('receipts')
+      const seen = new Set()
+      const refs = [
+        ...income.map((row) => row.receipt_path),
+        ...debts.map((row) => row.receipt_path),
+        ...debtPayments.map((row) => row.receipt_path)
+      ]
+      for (const name of refs) {
+        if (!name || seen.has(name) || !RECEIPT_FILE_PATTERN.test(name)) continue
+        seen.add(name)
+        const file = await Filesystem.readFile({
+          path: `${RECEIPTS_DIR}/${name}`,
+          directory: Directory.Data
+        }).catch(() => null)
+        if (!file?.data) continue
+        folder.file(name, file.data, { base64: true })
+        counts.receipts += 1
+      }
+
+      zip.file(
+        'manifest.json',
+        JSON.stringify(
+          {
+            app: 'PocketVault',
+            format: BACKUP_FORMAT,
+            username: user.username,
+            createdAt: new Date().toISOString(),
+            counts
+          },
+          null,
+          2
+        )
+      )
+
+      const base64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' })
+      const name = `pocketvault-${user.username}-backup-${stamp()}.zip`
+      const written = await Filesystem.writeFile({
         path: name,
-        data: btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2)))),
-        directory: Directory.Data,
+        data: base64,
+        directory: Directory.Cache,
         recursive: true
       })
-      return { saved: true, path: result.uri }
+
+      // Hand the file to the Android share sheet so it can be saved to Files,
+      // Drive, or sent anywhere (no storage permission required).
+      await Share.share({
+        title: 'PocketVault backup',
+        text: `PocketVault backup for ${user.username}`,
+        url: written.uri,
+        dialogTitle: 'Save or share your backup'
+      })
+
+      return { saved: true, path: written.uri, counts }
     },
 
     import: async () => {
-      throw new Error('Backup import from file is not available on mobile yet')
+      const userId = requireUserId()
+      const user = await getOne('SELECT id, username FROM users WHERE id = ?', [userId])
+      if (!user) throw new Error('Account not found')
+
+      const file = await pickFile('.zip,application/zip')
+      if (!file) return { imported: false }
+
+      const buffer = await readAsArrayBuffer(file)
+      let zip
+      try {
+        zip = await JSZip.loadAsync(buffer)
+      } catch {
+        throw new Error('Invalid backup file: not a readable ZIP archive')
+      }
+
+      const manifestEntry = zip.file('manifest.json')
+      const accountEntry = zip.file('account.json')
+      const dataEntry = zip.file('data.json')
+      if (!manifestEntry || !accountEntry || !dataEntry) {
+        throw new Error('Invalid backup: this is not a PocketVault account backup')
+      }
+
+      let manifest
+      let account
+      let data
+      try {
+        manifest = JSON.parse(await manifestEntry.async('string'))
+        account = JSON.parse(await accountEntry.async('string'))
+        data = JSON.parse(await dataEntry.async('string'))
+      } catch {
+        throw new Error('Invalid backup: the archive contents are corrupted')
+      }
+
+      if (!manifest || manifest.format !== BACKUP_FORMAT) {
+        throw new Error('Unsupported backup format. This file was made by a different version.')
+      }
+      const username = typeof account.username === 'string' ? account.username : manifest.username
+      if (!username) throw new Error('Invalid backup: the account name is missing')
+      if (username !== user.username) {
+        throw new Error(
+          'This backup belongs to a different account. Sign in with the account that created it to import it.'
+        )
+      }
+
+      const receipts = []
+      for (const path of Object.keys(zip.files)) {
+        if (!path.startsWith(BACKUP_RECEIPTS_PREFIX) || zip.files[path].dir) continue
+        const name = path.slice(BACKUP_RECEIPTS_PREFIX.length)
+        if (name.includes('/') || !RECEIPT_FILE_PATTERN.test(name)) continue
+        receipts.push({ name, base64: await zip.files[path].async('base64') })
+      }
+      const included = new Set(receipts.map((receipt) => receipt.name))
+
+      const oldReceipts = (
+        await query(
+          `SELECT receipt_path FROM income WHERE user_id = ? AND receipt_path IS NOT NULL
+           UNION
+           SELECT receipt_path FROM debts WHERE user_id = ? AND receipt_path IS NOT NULL
+           UNION
+           SELECT p.receipt_path FROM debt_payments p
+             JOIN debts d ON d.id = p.debt_id
+             WHERE d.user_id = ? AND p.receipt_path IS NOT NULL`,
+          [userId, userId, userId]
+        )
+      ).map((row) => row.receipt_path)
+
+      const incomeRows = Array.isArray(data.income) ? data.income : []
+      const expenseRows = Array.isArray(data.expenses) ? data.expenses : []
+      const debtRows = Array.isArray(data.debts) ? data.debts : []
+      const paymentRows = Array.isArray(data.debt_payments) ? data.debt_payments : []
+      const budgetRows = Array.isArray(data.budgets) ? data.budgets : []
+      const goalRows = Array.isArray(data.savings_goals) ? data.savings_goals : []
+      const contribRows = Array.isArray(data.savings_contributions) ? data.savings_contributions : []
+      const now = new Date().toISOString()
+
+      await executeSet([
+        {
+          statement:
+            'DELETE FROM debt_payments WHERE debt_id IN (SELECT id FROM debts WHERE user_id = ?)',
+          values: [userId]
+        },
+        { statement: 'DELETE FROM debts WHERE user_id = ?', values: [userId] },
+        {
+          statement:
+            'DELETE FROM savings_contributions WHERE goal_id IN (SELECT id FROM savings_goals WHERE user_id = ?)',
+          values: [userId]
+        },
+        { statement: 'DELETE FROM savings_goals WHERE user_id = ?', values: [userId] },
+        { statement: 'DELETE FROM income WHERE user_id = ?', values: [userId] },
+        { statement: 'DELETE FROM expenses WHERE user_id = ?', values: [userId] },
+        { statement: 'DELETE FROM budgets WHERE user_id = ?', values: [userId] }
+      ])
+
+      const incomeMap = new Map()
+      for (const row of incomeRows) {
+        const receipt =
+          row.receipt_path && included.has(row.receipt_path) ? row.receipt_path : null
+        const info = await run(
+          `INSERT INTO income (user_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId,
+            num(row.amount),
+            row.date,
+            row.source ?? null,
+            row.notes ?? null,
+            receipt,
+            row.is_archived ? 1 : 0,
+            row.created_at ?? now,
+            row.updated_at ?? null
+          ]
+        )
+        if (row.id != null) incomeMap.set(row.id, info.lastId)
+      }
+
+      for (const row of expenseRows) {
+        await run(
+          `INSERT INTO expenses (user_id, category, amount, date, notes, is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId,
+            row.category,
+            num(row.amount),
+            row.date,
+            row.notes ?? null,
+            row.is_archived ? 1 : 0,
+            row.created_at ?? now,
+            row.updated_at ?? null
+          ]
+        )
+      }
+
+      const debtMap = new Map()
+      for (const row of debtRows) {
+        const receipt =
+          row.receipt_path && included.has(row.receipt_path) ? row.receipt_path : null
+        const info = await run(
+          `INSERT INTO debts (user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
+                              payment_type, monthly_amount, payment_day, first_payment_date, receipt_path,
+                              status, notes, is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId,
+            row.creditor,
+            num(row.total_amount),
+            num(row.paid_amount),
+            num(row.remaining_amount),
+            row.due_date ?? null,
+            row.payment_type ?? 'no-schedule',
+            row.monthly_amount ?? null,
+            row.payment_day ?? null,
+            row.first_payment_date ?? null,
+            receipt,
+            row.status ?? 'unpaid',
+            row.notes ?? null,
+            row.is_archived ? 1 : 0,
+            row.created_at ?? now,
+            row.updated_at ?? null
+          ]
+        )
+        if (row.id != null) debtMap.set(row.id, info.lastId)
+      }
+
+      for (const row of paymentRows) {
+        const debtId = debtMap.get(row.debt_id)
+        if (!debtId) continue
+        const receipt =
+          row.receipt_path && included.has(row.receipt_path) ? row.receipt_path : null
+        await run(
+          `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            debtId,
+            num(row.amount),
+            row.date,
+            row.notes ?? null,
+            row.payment_type ?? 'payment',
+            row.installment_due ?? null,
+            receipt,
+            row.created_at ?? now
+          ]
+        )
+      }
+
+      for (const row of budgetRows) {
+        await run(
+          `INSERT INTO budgets (user_id, category, monthly_limit, is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT (user_id, category)
+           DO UPDATE SET monthly_limit = excluded.monthly_limit,
+                         is_archived = excluded.is_archived,
+                         updated_at = excluded.updated_at`,
+          [
+            userId,
+            row.category,
+            num(row.monthly_limit),
+            row.is_archived ? 1 : 0,
+            row.created_at ?? now,
+            row.updated_at ?? null
+          ]
+        )
+      }
+
+      const goalMap = new Map()
+      for (const row of goalRows) {
+        const info = await run(
+          `INSERT INTO savings_goals (user_id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId,
+            row.goal_name,
+            num(row.target_amount),
+            num(row.current_amount),
+            row.deadline ?? null,
+            row.is_archived ? 1 : 0,
+            row.created_at ?? now,
+            row.updated_at ?? null
+          ]
+        )
+        if (row.id != null) goalMap.set(row.id, info.lastId)
+      }
+
+      for (const row of contribRows) {
+        const goalId = goalMap.get(row.goal_id)
+        if (!goalId) continue
+        const incomeId = row.income_id != null ? incomeMap.get(row.income_id) ?? null : null
+        await run(
+          `INSERT INTO savings_contributions (goal_id, income_id, amount, date, notes, created_at)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [goalId, incomeId, num(row.amount), row.date, row.notes ?? null, row.created_at ?? now]
+        )
+      }
+
+      for (const name of oldReceipts) {
+        if (!name || included.has(name) || !RECEIPT_FILE_PATTERN.test(name)) continue
+        await Filesystem.deleteFile({ path: `${RECEIPTS_DIR}/${name}`, directory: Directory.Data }).catch(
+          () => {}
+        )
+      }
+      await Filesystem.mkdir({
+        path: RECEIPTS_DIR,
+        directory: Directory.Data,
+        recursive: true
+      }).catch(() => {})
+      for (const receipt of receipts) {
+        await Filesystem.writeFile({
+          path: `${RECEIPTS_DIR}/${receipt.name}`,
+          data: receipt.base64,
+          directory: Directory.Data,
+          recursive: true
+        })
+      }
+
+      return {
+        imported: true,
+        username,
+        counts: {
+          income: incomeRows.length,
+          expenses: expenseRows.length,
+          debts: debtRows.length,
+          debtPayments: paymentRows.length,
+          budgets: budgetRows.length,
+          savingsGoals: goalRows.length,
+          savingsContributions: contribRows.length,
+          receipts: receipts.length
+        }
+      }
     }
   }
 

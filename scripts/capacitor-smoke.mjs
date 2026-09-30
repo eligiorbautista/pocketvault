@@ -12,12 +12,19 @@ const require = createRequire(import.meta.url)
 const ROOT = path.resolve(import.meta.dirname, '..')
 
 const fsStub = `
+const store = new Map()
+globalThis.__fsStore = store
 export const Directory = { Data: 'DATA', Documents: 'DOCUMENTS', Cache: 'CACHE', External: 'EXTERNAL' }
 export const Filesystem = {
-  writeFile: async ({ path }) => ({ uri: 'file:///mock/' + path }),
-  readFile: async () => ({ data: 'QUJD' }),
-  deleteFile: async () => {},
+  writeFile: async ({ path, data }) => { store.set(path, data); return { uri: 'file:///mock/' + path } },
+  readFile: async ({ path }) => ({ data: store.get(path) ?? 'QUJD' }),
+  deleteFile: async ({ path }) => { store.delete(path) },
+  mkdir: async () => {},
 }
+`
+
+const shareStub = `
+export const Share = { share: async () => ({ activityType: 'mock' }) }
 `
 
 const sqliteShim = `
@@ -54,6 +61,7 @@ export async function paginate({ select, from, where = [], params = [], orderBy 
 `
 
 writeFileSync(path.join(ROOT, '.pv-fs-stub.js'), fsStub)
+writeFileSync(path.join(ROOT, '.pv-share-stub.js'), shareStub)
 writeFileSync(path.join(ROOT, '.pv-sqlite-shim.js'), sqliteShim)
 
 const OUT = path.join(ROOT, '.pv-cap-api.cjs')
@@ -66,7 +74,8 @@ await build({
   outfile: OUT,
   external: ['better-sqlite3'],
   alias: {
-    '@capacitor/filesystem': path.join(ROOT, '.pv-fs-stub.js')
+    '@capacitor/filesystem': path.join(ROOT, '.pv-fs-stub.js'),
+    '@capacitor/share': path.join(ROOT, '.pv-share-stub.js')
   },
   plugins: [
     {
@@ -82,6 +91,29 @@ await build({
 })
 
 const { createCapacitorApi } = require(OUT)
+
+// Minimal DOM + FileReader stubs so the adapter's hidden <input type="file">
+// picker and file reads can run head-lessly. The picker returns
+// globalThis.__pickFile when set (used by the backup round-trip test).
+globalThis.document = {
+  createElement() {
+    const input = { style: {}, files: globalThis.__pickFile ? [globalThis.__pickFile] : null, remove() {} }
+    input.click = () => input.onchange?.(input)
+    return input
+  },
+  body: { appendChild() {} }
+}
+globalThis.FileReader = class {
+  readAsArrayBuffer(file) {
+    Promise.resolve()
+      .then(() => file.arrayBuffer())
+      .then((buffer) => {
+        this.result = buffer
+        this.onload?.()
+      })
+      .catch((error) => this.onerror?.(error))
+  }
+}
 
 let passed = 0
 const failures = []
@@ -261,8 +293,31 @@ await check('categoryBreakdown + incomeBySource + debtSummary', async () => {
 
 await check('receipt read returns dataUrl', async () => (await api.files.readReceipt('abc.png')).dataUrl.startsWith('data:image/png;base64,'))
 await check('saveExport writes via filesystem', async () => (await api.files.saveExport({ defaultName: 'report.csv', data: new Uint8Array([1, 2, 3]) })).saved === true)
-await check('backup export writes json', async () => (await api.backup.export()).saved === true)
-await expectThrow('backup import reports unsupported', () => api.backup.import(), 'not available on mobile')
+await check('backup export builds a zip and shares', async () => {
+  const result = await api.backup.export()
+  return result.saved === true && result.counts && result.counts.income >= 1
+})
+await check('backup import can be cancelled', async () => {
+  globalThis.__pickFile = null
+  return (await api.backup.import()).imported === false
+})
+await check('backup export/import round-trips', async () => {
+  const exported = await api.backup.export()
+  const zipPath = [...globalThis.__fsStore.keys()].reverse().find((p) => p.endsWith('.zip'))
+  const bytes = Buffer.from(globalThis.__fsStore.get(zipPath), 'base64')
+  globalThis.__pickFile = {
+    name: 'backup.zip',
+    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+  }
+  const imported = await api.backup.import()
+  globalThis.__pickFile = null
+  return (
+    imported.imported === true &&
+    imported.username === 'alice' &&
+    imported.counts.income === exported.counts.income &&
+    imported.counts.debts === exported.counts.debts
+  )
+})
 await expectThrow('openReceipt reports unsupported', () => api.files.openReceipt('abc.png'), 'not supported on mobile')
 
 await expectThrow('deleteData rejects wrong password', () => api.account.deleteData('nope'), 'Password is incorrect')

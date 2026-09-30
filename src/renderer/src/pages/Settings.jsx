@@ -131,6 +131,7 @@ export default function Settings() {
         toast('Backup imported', 'success', {
           description: 'This account\u2019s data was restored.'
         })
+        syncDebtReminders()
       }
     } catch (error) {
       toast(error.message, 'error')

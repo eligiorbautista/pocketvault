@@ -23,8 +23,9 @@ are required.
 - **Reports** — monthly/yearly summaries with charts, PDF and CSV export.
 - **Dashboard** — totals and recent activity, filterable by **month, custom date range,
   or all records**.
-- **Backups (desktop)** — export/import a per-account ZIP (that account's data + receipts
-  only). Importing never touches other accounts.
+- **Backups** — export/import a per-account ZIP (that account's data + receipts only).
+  Importing never touches other accounts. The format is identical on desktop and Android
+  (Android exports open the share sheet; imports use the file picker).
 - **Currency** — pick any ISO 4217 currency (Philippine Peso by default) with correct symbols.
 - **Custom categories** — add your own expense/budget categories beyond the defaults.
 - **Responsive** — mobile-first UI from 320px to ultrawide; data tables collapse into
@@ -50,7 +51,7 @@ Capacitor SQLite/Filesystem adapter. Both use the **same schema** (`src/shared/s
 
 Electron · electron-vite (Vite 7) · React 19 · React Router · Zustand · Tailwind CSS v4 ·
 better-sqlite3 · Capacitor 8 (`@capacitor-community/sqlite`, `@capacitor/filesystem`,
-`@capacitor/local-notifications`) ·
+`@capacitor/local-notifications`, `@capacitor/share`) ·
 bcryptjs · react-hook-form · Recharts · date-fns · jsPDF · JSZip · sonner · lucide-react.
 
 ## Requirements
@@ -159,8 +160,9 @@ capacitor.config.json
 
 ## Mobile notes
 
-- Backup **export** on Android writes JSON to the app's private data directory; importing a
-  backup from file is not implemented yet.
+- Backup **export** on Android builds the same ZIP as desktop and opens the system **share
+  sheet** so you can save it to Files, Drive, etc. (no storage permission needed); **import**
+  uses the file picker. Backups move freely between desktop and Android.
 - Opening a receipt in the system viewer is not supported on Android (in-app preview works).
 - Receipt upload uses the system file picker.
 - Debt reminders need notification permission (requested the first time you enable them). The
