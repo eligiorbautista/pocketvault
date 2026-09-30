@@ -39,7 +39,7 @@ import { MAX_LEAD_DAYS } from '@shared/reminders.js'
 import { formatCurrency } from '@renderer/lib/format.js'
 import { toast } from '@renderer/store/uiStore.js'
 
-const VERSION = '0.1.0'
+const VERSION = '1.0.0'
 
 const FEATURES = [
   { icon: TrendingUp, label: 'Track income and expenses' },
