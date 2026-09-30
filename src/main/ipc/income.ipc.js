@@ -62,6 +62,14 @@ export function registerIncomeHandlers() {
     return { removed: true }
   })
 
+  handle('income:restore', ({ userId, payload }) => {
+    const restored = incomeRepo.restore(getDatabase(), userId, validateId(payload.id))
+    if (!restored) throw new Error('Archived income record not found')
+    return { restored: true }
+  })
+
+  handle('income:archived', ({ userId }) => incomeRepo.listArchived(getDatabase(), userId))
+
   handle('income:all', ({ userId, payload }) =>
     incomeRepo.listAll(getDatabase(), userId, {
       from: payload.from || undefined,

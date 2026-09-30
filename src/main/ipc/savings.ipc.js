@@ -46,6 +46,14 @@ export function registerSavingsHandlers() {
     return { removed: true }
   })
 
+  handle('savings:restore', ({ userId, payload }) => {
+    const restored = savingsRepo.restore(getDatabase(), userId, validateId(payload.id))
+    if (!restored) throw new Error('Archived savings goal not found')
+    return { restored: true }
+  })
+
+  handle('savings:archived', ({ userId }) => savingsRepo.listArchived(getDatabase(), userId))
+
   handle('savings:contributions', ({ userId, payload }) => {
     const rows = savingsRepo.listContributions(
       getDatabase(),

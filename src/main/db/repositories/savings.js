@@ -1,7 +1,7 @@
 import { fromCents, toCents } from '../../../shared/money.js'
 
 const GOAL_COLUMNS =
-  'id, user_id, goal_name, target_amount, current_amount, deadline, created_at, updated_at'
+  'id, user_id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at'
 
 function syncCurrentAmount(db, goalId, userId) {
   const total = db
@@ -28,7 +28,9 @@ function decorate(goal) {
 
 export function list(db, userId) {
   const rows = db
-    .prepare(`SELECT ${GOAL_COLUMNS} FROM savings_goals WHERE user_id = ? ORDER BY created_at DESC, id DESC`)
+    .prepare(
+      `SELECT ${GOAL_COLUMNS} FROM savings_goals WHERE user_id = ? AND is_archived = 0 ORDER BY created_at DESC, id DESC`
+    )
     .all(userId)
   return rows.map(decorate)
 }
@@ -62,7 +64,32 @@ export function update(db, userId, id, data) {
 }
 
 export function remove(db, userId, id) {
-  return db.prepare('DELETE FROM savings_goals WHERE id = ? AND user_id = ?').run(id, userId).changes > 0
+  return (
+    db
+      .prepare(
+        'UPDATE savings_goals SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0'
+      )
+      .run(id, userId).changes > 0
+  )
+}
+
+export function restore(db, userId, id) {
+  return (
+    db
+      .prepare(
+        'UPDATE savings_goals SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1'
+      )
+      .run(id, userId).changes > 0
+  )
+}
+
+export function listArchived(db, userId) {
+  const rows = db
+    .prepare(
+      `SELECT ${GOAL_COLUMNS} FROM savings_goals WHERE user_id = ? AND is_archived = 1 ORDER BY created_at DESC, id DESC`
+    )
+    .all(userId)
+  return rows.map(decorate)
 }
 
 export function listContributions(db, userId, goalId) {
@@ -112,7 +139,9 @@ export function removeContribution(db, userId, contributionId) {
 
 export function totalSaved(db, userId) {
   const row = db
-    .prepare('SELECT COALESCE(SUM(current_amount), 0) AS total FROM savings_goals WHERE user_id = ?')
+    .prepare(
+      'SELECT COALESCE(SUM(current_amount), 0) AS total FROM savings_goals WHERE user_id = ? AND is_archived = 0'
+    )
     .get(userId)
   return row.total
 }

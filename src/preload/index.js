@@ -32,6 +32,8 @@ const api = {
     create: (data) => call('income:create', data),
     update: (id, data) => call('income:update', { id, ...data }),
     remove: (id) => call('income:remove', { id }),
+    restore: (id) => call('income:restore', { id }),
+    archived: () => call('income:archived'),
     all: (params) => call('income:all', params)
   },
 
@@ -40,7 +42,9 @@ const api = {
     get: (id) => call('expenses:get', { id }),
     create: (data) => call('expenses:create', data),
     update: (id, data) => call('expenses:update', { id, ...data }),
-    remove: (id) => call('expenses:remove', { id })
+    remove: (id) => call('expenses:remove', { id }),
+    restore: (id) => call('expenses:restore', { id }),
+    archived: () => call('expenses:archived')
   },
 
   debts: {
@@ -49,6 +53,8 @@ const api = {
     create: (data) => call('debts:create', data),
     update: (id, data) => call('debts:update', { id, ...data }),
     remove: (id) => call('debts:remove', { id }),
+    restore: (id) => call('debts:restore', { id }),
+    archived: () => call('debts:archived'),
     payments: (debtId) => call('debts:payments', { debtId }),
     addPayment: (debtId, data) => call('debts:addPayment', { debtId, ...data }),
     reborrow: (debtId, data) => call('debts:reborrow', { debtId, ...data }),
@@ -58,7 +64,9 @@ const api = {
   budgets: {
     list: (month) => call('budgets:list', { month }),
     upsert: (data) => call('budgets:upsert', data),
-    remove: (id) => call('budgets:remove', { id })
+    remove: (id) => call('budgets:remove', { id }),
+    restore: (id) => call('budgets:restore', { id }),
+    archived: () => call('budgets:archived')
   },
 
   savings: {
@@ -67,6 +75,8 @@ const api = {
     create: (data) => call('savings:create', data),
     update: (id, data) => call('savings:update', { id, ...data }),
     remove: (id) => call('savings:remove', { id }),
+    restore: (id) => call('savings:restore', { id }),
+    archived: () => call('savings:archived'),
     contributions: (goalId) => call('savings:contributions', { goalId }),
     addContribution: (goalId, data) => call('savings:addContribution', { goalId, ...data }),
     removeContribution: (contributionId) => call('savings:removeContribution', { contributionId })

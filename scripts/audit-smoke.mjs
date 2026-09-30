@@ -221,7 +221,11 @@ check('debt cross-user addPayment returns null', debtsRepo.addPayment(db, bob.id
 const updatedDebt = debtsRepo.update(db, alice.id, debt.id, { creditor: 'Bank', total_amount: 20000, due_date: '2026-12-31', payment_type: 'fixed-date', monthly_amount: null, payment_day: null, notes: null })
 check('debt update recomputes remaining', updatedDebt.remaining_amount === 9900, updatedDebt.remaining_amount)
 check('debt remove works', debtsRepo.remove(db, alice.id, debt.id) === true)
-check('debt payments cascade after delete', debtsRepo.listPayments(db, alice.id, debt.id) === null)
+check('archiving debt keeps its payments', (debtsRepo.listPayments(db, alice.id, debt.id) ?? []).length > 0)
+check('archived debt hidden from active list', debtsRepo.list(db, alice.id, {}).rows.every((r) => r.id !== debt.id))
+check('archived debt appears in archive list', debtsRepo.listArchived(db, alice.id).some((r) => r.id === debt.id))
+check('restoring debt returns it to active list', debtsRepo.restore(db, alice.id, debt.id) === true && debtsRepo.list(db, alice.id, {}).rows.some((r) => r.id === debt.id))
+debtsRepo.remove(db, alice.id, debt.id)
 
 // monthly debt requires amounts (repo just stores)
 const monthlyDebt = debtsRepo.create(db, alice.id, {
@@ -269,7 +273,10 @@ check('savings update persists name/target', savingsRepo.update(db, alice.id, go
 check('savings cross-user get blocked', savingsRepo.getById(db, bob.id, goal.id) === null)
 check('savings cross-user contributions blocked', savingsRepo.listContributions(db, bob.id, goal.id) === null)
 check('savings remove works', savingsRepo.remove(db, alice.id, goal.id) === true)
-check('goal delete cascades contributions', savingsRepo.listContributions(db, alice.id, goal.id) === null)
+check('archiving goal keeps contributions', (savingsRepo.listContributions(db, alice.id, goal.id) ?? []).length === 1)
+check('archived goal hidden from active list', savingsRepo.list(db, alice.id).every((r) => r.id !== goal.id))
+check('restoring goal returns it to active list', savingsRepo.restore(db, alice.id, goal.id) === true && savingsRepo.list(db, alice.id).some((r) => r.id === goal.id))
+savingsRepo.remove(db, alice.id, goal.id)
 check('income survives contribution cascade (SET NULL)', incomeRepo.getById(db, alice.id, incLink.id) !== null)
 
 // ---------- reports ----------

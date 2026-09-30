@@ -211,10 +211,7 @@ export default function Income() {
     setDeleting(true)
     try {
       await api.income.remove(pendingDelete.id)
-      if (pendingDelete.receipt_path) {
-        api.files.deleteReceipt(pendingDelete.receipt_path).catch(() => {})
-      }
-      toast('Income deleted', 'success')
+      toast('Income archived', 'success')
       setPendingDelete(null)
       if (rows.length === 1 && page > 1) setPage(page - 1)
       else reload()
@@ -259,7 +256,7 @@ export default function Income() {
         setFormOpen(true)
       }
     },
-    { key: 'delete', label: 'Delete', tone: 'danger', onSelect: () => setPendingDelete(row) }
+    { key: 'archive', label: 'Archive', tone: 'danger', onSelect: () => setPendingDelete(row) }
   ]
 
   return (
@@ -389,9 +386,9 @@ export default function Income() {
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}
-        title="Delete income record?"
-        message="This permanently removes the record (and its receipt) from your local database."
-        confirmLabel="Delete"
+        title="Archive income record?"
+        message="This moves the record to the Archive. You can restore it anytime from the Archive page."
+        confirmLabel="Archive"
         loading={deleting}
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}

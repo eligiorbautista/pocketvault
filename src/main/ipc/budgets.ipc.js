@@ -28,4 +28,12 @@ export function registerBudgetsHandlers() {
     if (!removed) throw new Error('Budget not found')
     return { removed: true }
   })
+
+  handle('budgets:restore', ({ userId, payload }) => {
+    const restored = budgetsRepo.restore(getDatabase(), userId, validateId(payload.id))
+    if (!restored) throw new Error('Archived budget not found')
+    return { restored: true }
+  })
+
+  handle('budgets:archived', ({ userId }) => budgetsRepo.listArchived(getDatabase(), userId))
 }

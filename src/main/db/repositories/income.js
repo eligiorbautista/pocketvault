@@ -2,10 +2,10 @@ import { PAGE_SIZE } from '../../../shared/constants.js'
 import { runPaginated } from './helpers.js'
 
 const COLUMNS =
-  'id, user_id, amount, date, source, notes, receipt_path, created_at, updated_at'
+  'id, user_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
 
 export function list(db, userId, opts = {}) {
-  const where = ['user_id = ?']
+  const where = ['user_id = ?', 'is_archived = 0']
   const params = [userId]
 
   if (opts.from) {
@@ -39,7 +39,7 @@ export function getById(db, userId, id) {
 }
 
 export function listAll(db, userId, { from, to } = {}) {
-  const where = ['user_id = ?']
+  const where = ['user_id = ?', 'is_archived = 0']
   const params = [userId]
   if (from) {
     where.push('date >= ?')
@@ -77,5 +77,29 @@ export function update(db, userId, id, data) {
 }
 
 export function remove(db, userId, id) {
-  return db.prepare('DELETE FROM income WHERE id = ? AND user_id = ?').run(id, userId).changes > 0
+  return (
+    db
+      .prepare(
+        'UPDATE income SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0'
+      )
+      .run(id, userId).changes > 0
+  )
+}
+
+export function restore(db, userId, id) {
+  return (
+    db
+      .prepare(
+        'UPDATE income SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1'
+      )
+      .run(id, userId).changes > 0
+  )
+}
+
+export function listArchived(db, userId) {
+  return db
+    .prepare(
+      `SELECT ${COLUMNS} FROM income WHERE user_id = ? AND is_archived = 1 ORDER BY date DESC, id DESC`
+    )
+    .all(userId)
 }

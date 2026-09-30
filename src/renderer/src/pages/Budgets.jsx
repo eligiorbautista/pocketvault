@@ -141,7 +141,7 @@ export default function Budgets() {
     setDeleting(true)
     try {
       await api.budgets.remove(pendingDelete.id)
-      toast('Budget removed', 'success')
+      toast('Budget archived', 'success')
       setPendingDelete(null)
       reload()
     } catch (err) {
@@ -263,7 +263,7 @@ export default function Budgets() {
                     className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
                     onClick={() => setPendingDelete(budget)}
                   >
-                    Delete
+                    Archive
                   </Button>
                 </div>
               </div>
@@ -281,9 +281,9 @@ export default function Budgets() {
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}
-        title="Remove budget?"
-        message="This deletes the monthly limit for this category. Existing expenses are not affected."
-        confirmLabel="Remove"
+        title="Archive budget?"
+        message="This moves the monthly limit to the Archive. Existing expenses are not affected, and you can restore it from the Archive page."
+        confirmLabel="Archive"
         loading={deleting}
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}

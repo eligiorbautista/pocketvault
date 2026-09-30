@@ -175,7 +175,7 @@ export default function Expenses() {
     setDeleting(true)
     try {
       await api.expenses.remove(pendingDelete.id)
-      toast('Expense deleted', 'success')
+      toast('Expense archived', 'success')
       setPendingDelete(null)
       if (rows.length === 1 && page > 1) setPage(page - 1)
       else reload()
@@ -217,7 +217,7 @@ export default function Expenses() {
         setFormOpen(true)
       }
     },
-    { key: 'delete', label: 'Delete', tone: 'danger', onSelect: () => setPendingDelete(row) }
+    { key: 'archive', label: 'Archive', tone: 'danger', onSelect: () => setPendingDelete(row) }
   ]
 
   return (
@@ -355,9 +355,9 @@ export default function Expenses() {
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}
-        title="Delete expense?"
-        message="This permanently removes the expense from your local database."
-        confirmLabel="Delete"
+        title="Archive expense?"
+        message="This moves the expense to the Archive. You can restore it anytime from the Archive page."
+        confirmLabel="Archive"
         loading={deleting}
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}

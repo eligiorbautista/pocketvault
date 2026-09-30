@@ -58,4 +58,12 @@ export function registerExpensesHandlers() {
     if (!removed) throw new Error('Expense record not found')
     return { removed: true }
   })
+
+  handle('expenses:restore', ({ userId, payload }) => {
+    const restored = expensesRepo.restore(getDatabase(), userId, validateId(payload.id))
+    if (!restored) throw new Error('Archived expense record not found')
+    return { restored: true }
+  })
+
+  handle('expenses:archived', ({ userId }) => expensesRepo.listArchived(getDatabase(), userId))
 }

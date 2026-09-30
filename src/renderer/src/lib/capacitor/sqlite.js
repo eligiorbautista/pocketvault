@@ -14,10 +14,23 @@ async function migrate(db) {
   } catch {
     current = 0
   }
-  // Every statement is idempotent (CREATE ... IF NOT EXISTS), so even if the
-  // version probe fails we simply re-run the migrations.
+  // Most statements are idempotent (CREATE ... IF NOT EXISTS). ALTER TABLE ADD
+  // COLUMN is not, so we run statement-by-statement and tolerate the
+  // "duplicate column name" error (hit when the version probe fails and all
+  // migrations are re-applied).
   for (let version = current; version < MIGRATIONS.length; version += 1) {
-    await db.execute(MIGRATIONS[version])
+    const statements = MIGRATIONS[version]
+      .split(';')
+      .map((statement) => statement.trim())
+      .filter(Boolean)
+    for (const statement of statements) {
+      try {
+        await db.execute(`${statement};`)
+      } catch (error) {
+        if (/duplicate column name/i.test(String(error?.message))) continue
+        throw error
+      }
+    }
   }
   try {
     await db.execute(`PRAGMA user_version = ${MIGRATIONS.length};`)

@@ -15,6 +15,7 @@ import Expenses from '@renderer/pages/Expenses.jsx'
 import Debts from '@renderer/pages/Debts.jsx'
 import Budgets from '@renderer/pages/Budgets.jsx'
 import Savings from '@renderer/pages/Savings.jsx'
+import Archive from '@renderer/pages/Archive.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
 
 // Reports pulls in Recharts + jsPDF, so load it on demand.
@@ -82,6 +83,7 @@ export default function App() {
                   </Suspense>
                 }
               />
+              <Route path="/archive" element={<Archive />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/login" element={<Navigate to="/" replace />} />
             </Route>

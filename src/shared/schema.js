@@ -131,5 +131,16 @@ CREATE TABLE IF NOT EXISTS user_settings (
 );
 `
 
-export const MIGRATIONS = [V1, V2]
+// v3: soft delete / archive support. ALTER TABLE ADD COLUMN is not idempotent,
+// so the migration runners tolerate the "duplicate column name" error (needed
+// because the Capacitor runner re-runs migrations if the version probe fails).
+const V3 = `
+ALTER TABLE income ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE expenses ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE debts ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE budgets ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE savings_goals ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0;
+`
+
+export const MIGRATIONS = [V1, V2, V3]
 export const SCHEMA_VERSION = MIGRATIONS.length

@@ -26,6 +26,9 @@ are required.
   stacked cards on phones.
 - **Light / dark theme** — pick Light, Dark, or match your system; the choice is
   remembered and follows the OS preference live.
+- **Archive (soft delete)** — deleting a record moves it to the Archive instead of
+  erasing it; restore anything from the Archive page. Only Settings → Danger Zone
+  ("Delete all data") truly deletes.
 
 ## Platforms
 

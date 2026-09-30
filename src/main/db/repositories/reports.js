@@ -23,13 +23,13 @@ export function monthlyTotals(db, userId, period) {
   const incomeRows = db
     .prepare(
       `SELECT substr(date, 1, 7) AS ym, amount FROM income
-       WHERE user_id = ? AND date >= ? AND date <= ?`
+       WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0`
     )
     .all(userId, from, to)
   const expenseRows = db
     .prepare(
       `SELECT substr(date, 1, 7) AS ym, amount FROM expenses
-       WHERE user_id = ? AND date >= ? AND date <= ?`
+       WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0`
     )
     .all(userId, from, to)
 
@@ -82,10 +82,14 @@ export function monthlyTotals(db, userId, period) {
 
 export function rangeTotals(db, userId, { from, to }) {
   const income = db
-    .prepare('SELECT COALESCE(SUM(amount), 0) AS total FROM income WHERE user_id = ? AND date >= ? AND date <= ?')
+    .prepare(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM income WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0'
+    )
     .get(userId, from, to).total
   const expenses = db
-    .prepare('SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ?')
+    .prepare(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0'
+    )
     .get(userId, from, to).total
   const incomeCents = toCents(income)
   const expenseCents = toCents(expenses)
@@ -100,7 +104,7 @@ export function categoryBreakdown(db, userId, { from, to }) {
   const rows = db
     .prepare(
       `SELECT category, COUNT(*) AS count, SUM(amount) AS total
-       FROM expenses WHERE user_id = ? AND date >= ? AND date <= ?
+       FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0
        GROUP BY category ORDER BY total DESC`
     )
     .all(userId, from, to)
@@ -115,7 +119,7 @@ export function incomeBySource(db, userId, { from, to }) {
   const rows = db
     .prepare(
       `SELECT COALESCE(NULLIF(source, ''), 'Unspecified') AS source, COUNT(*) AS count, SUM(amount) AS total
-       FROM income WHERE user_id = ? AND date >= ? AND date <= ?
+       FROM income WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0
        GROUP BY source ORDER BY total DESC`
     )
     .all(userId, from, to)
@@ -134,7 +138,7 @@ export function debtSummary(db, userId) {
          COALESCE(SUM(remaining_amount), 0) AS outstanding,
          COALESCE(SUM(paid_amount), 0) AS paid,
          SUM(CASE WHEN remaining_amount > 0 AND due_date IS NOT NULL AND due_date < date('now') THEN 1 ELSE 0 END) AS overdue_count
-       FROM debts WHERE user_id = ?`
+       FROM debts WHERE user_id = ? AND is_archived = 0`
     )
     .get(userId)
   return {

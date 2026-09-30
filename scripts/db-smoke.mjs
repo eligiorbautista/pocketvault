@@ -203,6 +203,31 @@ check('overdue status derived from due date', debtsRepo.getById(db, alice.id, ov
 check('overdue appears in status filter', debtsRepo.list(db, alice.id, { status: 'overdue' }).total === 1)
 check('debt summary counts overdue', reportsRepo.debtSummary(db, alice.id).overdueCount === 1)
 
+// soft delete (archive) semantics
+const archIncome = incomeRepo.create(db, alice.id, {
+  amount: 77,
+  date: '2026-05-01',
+  source: 'Archive me',
+  notes: null,
+  receipt_path: null
+})
+const activeBefore = incomeRepo.list(db, alice.id, {}).total
+check(
+  'archive hides the row from the active list',
+  incomeRepo.remove(db, alice.id, archIncome.id) === true &&
+    incomeRepo.list(db, alice.id, {}).total === activeBefore - 1
+)
+check('archive keeps the row retrievable by id', incomeRepo.getById(db, alice.id, archIncome.id) !== null)
+check(
+  'archive list contains the row',
+  incomeRepo.listArchived(db, alice.id).some((row) => row.id === archIncome.id)
+)
+check(
+  'restore returns the row to the active list',
+  incomeRepo.restore(db, alice.id, archIncome.id) === true &&
+    incomeRepo.list(db, alice.id, {}).total === activeBefore
+)
+
 closeDatabase()
 rmSync(dir, { recursive: true, force: true })
 

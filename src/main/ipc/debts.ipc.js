@@ -75,6 +75,14 @@ export function registerDebtsHandlers() {
     return { removed: true }
   })
 
+  handle('debts:restore', ({ userId, payload }) => {
+    const restored = debtsRepo.restore(getDatabase(), userId, validateId(payload.id))
+    if (!restored) throw new Error('Archived debt not found')
+    return { restored: true }
+  })
+
+  handle('debts:archived', ({ userId }) => debtsRepo.listArchived(getDatabase(), userId))
+
   handle('debts:payments', ({ userId, payload }) => {
     const rows = debtsRepo.listPayments(getDatabase(), userId, validateId(payload.debtId, 'debtId'))
     if (rows === null) throw new Error('Debt not found')

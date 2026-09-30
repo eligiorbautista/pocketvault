@@ -5,15 +5,15 @@ export function listMonthly(db, userId, month) {
   const { from, to } = monthRange(month)
   const budgets = db
     .prepare(
-      `SELECT id, user_id, category, monthly_limit, created_at, updated_at
-       FROM budgets WHERE user_id = ? ORDER BY category ASC`
+      `SELECT id, user_id, category, monthly_limit, is_archived, created_at, updated_at
+       FROM budgets WHERE user_id = ? AND is_archived = 0 ORDER BY category ASC`
     )
     .all(userId)
 
   const spentRows = db
     .prepare(
       `SELECT category, amount FROM expenses
-       WHERE user_id = ? AND date >= ? AND date <= ?`
+       WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0`
     )
     .all(userId, from, to)
 
@@ -38,16 +38,45 @@ export function listMonthly(db, userId, month) {
 
 export function upsert(db, userId, { category, monthly_limit }) {
   db.prepare(
-    `INSERT INTO budgets (user_id, category, monthly_limit, updated_at)
-     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    `INSERT INTO budgets (user_id, category, monthly_limit, is_archived, updated_at)
+     VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
      ON CONFLICT (user_id, category)
-     DO UPDATE SET monthly_limit = excluded.monthly_limit, updated_at = CURRENT_TIMESTAMP`
+     DO UPDATE SET monthly_limit = excluded.monthly_limit,
+                   is_archived = 0,
+                   updated_at = CURRENT_TIMESTAMP`
   ).run(userId, category, monthly_limit)
   return db
-    .prepare('SELECT id, user_id, category, monthly_limit, created_at, updated_at FROM budgets WHERE user_id = ? AND category = ?')
+    .prepare(
+      'SELECT id, user_id, category, monthly_limit, is_archived, created_at, updated_at FROM budgets WHERE user_id = ? AND category = ?'
+    )
     .get(userId, category)
 }
 
 export function remove(db, userId, id) {
-  return db.prepare('DELETE FROM budgets WHERE id = ? AND user_id = ?').run(id, userId).changes > 0
+  return (
+    db
+      .prepare(
+        'UPDATE budgets SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0'
+      )
+      .run(id, userId).changes > 0
+  )
+}
+
+export function restore(db, userId, id) {
+  return (
+    db
+      .prepare(
+        'UPDATE budgets SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1'
+      )
+      .run(id, userId).changes > 0
+  )
+}
+
+export function listArchived(db, userId) {
+  return db
+    .prepare(
+      `SELECT id, user_id, category, monthly_limit, is_archived, created_at, updated_at
+       FROM budgets WHERE user_id = ? AND is_archived = 1 ORDER BY category ASC`
+    )
+    .all(userId)
 }

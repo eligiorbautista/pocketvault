@@ -31,20 +31,20 @@ export async function buildUserBackup(db, userId, receiptsDir) {
 
   const income = db
     .prepare(
-      `SELECT id, amount, date, source, notes, receipt_path, created_at, updated_at
+      `SELECT id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at
        FROM income WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
   const expenses = db
     .prepare(
-      `SELECT category, amount, date, notes, created_at, updated_at
+      `SELECT category, amount, date, notes, is_archived, created_at, updated_at
        FROM expenses WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
   const debts = db
     .prepare(
       `SELECT id, creditor, total_amount, paid_amount, remaining_amount, due_date,
-              payment_type, monthly_amount, payment_day, status, notes, created_at, updated_at
+              payment_type, monthly_amount, payment_day, status, notes, is_archived, created_at, updated_at
        FROM debts WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
@@ -59,13 +59,13 @@ export async function buildUserBackup(db, userId, receiptsDir) {
     : []
   const budgets = db
     .prepare(
-      `SELECT category, monthly_limit, created_at, updated_at
+      `SELECT category, monthly_limit, is_archived, created_at, updated_at
        FROM budgets WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
   const savings_goals = db
     .prepare(
-      `SELECT id, goal_name, target_amount, current_amount, deadline, created_at, updated_at
+      `SELECT id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at
        FROM savings_goals WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
@@ -246,8 +246,8 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     db.prepare('DELETE FROM budgets WHERE user_id = ?').run(userId)
 
     const insertIncome = db.prepare(
-      `INSERT INTO income (user_id, amount, date, source, notes, receipt_path, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO income (user_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const incomeMap = new Map()
     for (const row of data.income) {
@@ -260,6 +260,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         row.source ?? null,
         row.notes ?? null,
         receipt,
+        row.is_archived ? 1 : 0,
         row.created_at ?? now,
         row.updated_at ?? null
       )
@@ -267,8 +268,8 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     }
 
     const insertExpense = db.prepare(
-      `INSERT INTO expenses (user_id, category, amount, date, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO expenses (user_id, category, amount, date, notes, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
     for (const row of data.expenses) {
       insertExpense.run(
@@ -277,6 +278,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         num(row.amount),
         row.date,
         row.notes ?? null,
+        row.is_archived ? 1 : 0,
         row.created_at ?? now,
         row.updated_at ?? null
       )
@@ -284,8 +286,8 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
 
     const insertDebt = db.prepare(
       `INSERT INTO debts (user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
-                          payment_type, monthly_amount, payment_day, status, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                          payment_type, monthly_amount, payment_day, status, notes, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const debtMap = new Map()
     for (const row of data.debts) {
@@ -301,6 +303,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         row.payment_day ?? null,
         row.status ?? 'unpaid',
         row.notes ?? null,
+        row.is_archived ? 1 : 0,
         row.created_at ?? now,
         row.updated_at ?? null
       )
@@ -325,24 +328,27 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     }
 
     const insertBudget = db.prepare(
-      `INSERT INTO budgets (user_id, category, monthly_limit, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO budgets (user_id, category, monthly_limit, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT (user_id, category)
-       DO UPDATE SET monthly_limit = excluded.monthly_limit, updated_at = excluded.updated_at`
+       DO UPDATE SET monthly_limit = excluded.monthly_limit,
+                     is_archived = excluded.is_archived,
+                     updated_at = excluded.updated_at`
     )
     for (const row of data.budgets) {
       insertBudget.run(
         userId,
         row.category,
         num(row.monthly_limit),
+        row.is_archived ? 1 : 0,
         row.created_at ?? now,
         row.updated_at ?? null
       )
     }
 
     const insertGoal = db.prepare(
-      `INSERT INTO savings_goals (user_id, goal_name, target_amount, current_amount, deadline, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO savings_goals (user_id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const goalMap = new Map()
     for (const row of data.savings_goals) {
@@ -352,6 +358,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         num(row.target_amount),
         num(row.current_amount),
         row.deadline ?? null,
+        row.is_archived ? 1 : 0,
         row.created_at ?? now,
         row.updated_at ?? null
       )

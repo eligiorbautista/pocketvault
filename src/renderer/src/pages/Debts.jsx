@@ -55,7 +55,7 @@ export default function Debts() {
     setDeleting(true)
     try {
       await api.debts.remove(pendingDelete.id)
-      toast('Debt deleted', 'success')
+      toast('Debt archived', 'success')
       setPendingDelete(null)
       if (rows.length === 1 && page > 1) setPage(page - 1)
       else reload()
@@ -108,7 +108,7 @@ export default function Debts() {
         setFormOpen(true)
       }
     },
-    { key: 'delete', label: 'Delete', tone: 'danger', onSelect: () => setPendingDelete(row) }
+    { key: 'archive', label: 'Archive', tone: 'danger', onSelect: () => setPendingDelete(row) }
   ]
 
   return (
@@ -261,9 +261,9 @@ export default function Debts() {
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}
-        title="Delete debt?"
-        message="This removes the debt and its entire payment history from your local database."
-        confirmLabel="Delete"
+        title="Archive debt?"
+        message="This moves the debt and its payment history to the Archive. You can restore it anytime from the Archive page."
+        confirmLabel="Archive"
         loading={deleting}
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}

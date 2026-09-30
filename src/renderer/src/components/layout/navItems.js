@@ -1,4 +1,5 @@
 import {
+  Archive,
   BarChart3,
   HandCoins,
   LayoutDashboard,
@@ -17,5 +18,6 @@ export const NAV_ITEMS = [
   { to: '/budgets', label: 'Budgets', icon: Wallet },
   { to: '/savings', label: 'Savings', icon: Target },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
+  { to: '/archive', label: 'Archive', icon: Archive },
   { to: '/settings', label: 'Settings', icon: Settings }
 ]

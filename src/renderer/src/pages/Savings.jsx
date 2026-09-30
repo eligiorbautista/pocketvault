@@ -30,7 +30,7 @@ export default function Savings() {
     setDeleting(true)
     try {
       await api.savings.remove(pendingDelete.id)
-      toast('Goal deleted', 'success')
+      toast('Goal archived', 'success')
       setPendingDelete(null)
       reload()
     } catch (err) {
@@ -132,7 +132,7 @@ export default function Savings() {
                   className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
                   onClick={() => setPendingDelete(goal)}
                 >
-                  Delete
+                  Archive
                 </Button>
               </div>
             </Card>
@@ -156,9 +156,9 @@ export default function Savings() {
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}
-        title="Delete savings goal?"
-        message="This removes the goal and all of its contributions from your local database."
-        confirmLabel="Delete"
+        title="Archive savings goal?"
+        message="This moves the goal and its contributions to the Archive. You can restore it anytime from the Archive page."
+        confirmLabel="Archive"
         loading={deleting}
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}

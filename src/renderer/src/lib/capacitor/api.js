@@ -32,11 +32,14 @@ const MIME_BY_EXT = {
 }
 
 const RECEIPTS_DIR = 'receipts'
-const INCOME_COLUMNS = 'id, user_id, amount, date, source, notes, receipt_path, created_at, updated_at'
-const EXPENSE_COLUMNS = 'id, user_id, category, amount, date, notes, created_at, updated_at'
-const GOAL_COLUMNS = 'id, user_id, goal_name, target_amount, current_amount, deadline, created_at, updated_at'
+const INCOME_COLUMNS =
+  'id, user_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
+const EXPENSE_COLUMNS =
+  'id, user_id, category, amount, date, notes, is_archived, created_at, updated_at'
+const GOAL_COLUMNS =
+  'id, user_id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at'
 const DEBT_COLUMNS = `id, user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
-  payment_type, monthly_amount, payment_day, status, notes, created_at, updated_at`
+  payment_type, monthly_amount, payment_day, status, notes, is_archived, created_at, updated_at`
 
 let session = null // { id, username } - in-memory, mirrors the main-process session
 
@@ -136,7 +139,7 @@ async function debtSummary(userId) {
        COALESCE(SUM(remaining_amount), 0) AS outstanding,
        COALESCE(SUM(paid_amount), 0) AS paid,
        SUM(CASE WHEN remaining_amount > 0 AND due_date IS NOT NULL AND due_date < date('now') THEN 1 ELSE 0 END) AS overdue_count
-     FROM debts WHERE user_id = ?`,
+     FROM debts WHERE user_id = ? AND is_archived = 0`,
     [userId]
   )
   return {
@@ -150,12 +153,12 @@ async function debtSummary(userId) {
 async function budgetListMonthly(userId, month) {
   const { from, to } = monthRange(month)
   const budgets = await query(
-    `SELECT id, user_id, category, monthly_limit, created_at, updated_at
-     FROM budgets WHERE user_id = ? ORDER BY category ASC`,
+    `SELECT id, user_id, category, monthly_limit, is_archived, created_at, updated_at
+     FROM budgets WHERE user_id = ? AND is_archived = 0 ORDER BY category ASC`,
     [userId]
   )
   const spentRows = await query(
-    'SELECT category, amount FROM expenses WHERE user_id = ? AND date >= ? AND date <= ?',
+    'SELECT category, amount FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0',
     [userId, from, to]
   )
   const spentMap = new Map()
@@ -178,7 +181,7 @@ async function budgetListMonthly(userId, month) {
 
 async function savingsList(userId) {
   const rows = await query(
-    `SELECT ${GOAL_COLUMNS} FROM savings_goals WHERE user_id = ? ORDER BY created_at DESC, id DESC`,
+    `SELECT ${GOAL_COLUMNS} FROM savings_goals WHERE user_id = ? AND is_archived = 0 ORDER BY created_at DESC, id DESC`,
     [userId]
   )
   return rows.map(decorateGoal)
@@ -199,7 +202,7 @@ function decorateGoal(goal) {
 
 async function incomesInRange(userId, from, to) {
   return query(
-    `SELECT ${INCOME_COLUMNS} FROM income WHERE user_id = ? AND date >= ? AND date <= ?
+    `SELECT ${INCOME_COLUMNS} FROM income WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0
      ORDER BY date DESC, id DESC LIMIT 5`,
     [userId, from, to]
   )
@@ -207,7 +210,7 @@ async function incomesInRange(userId, from, to) {
 
 async function expensesInRange(userId, from, to) {
   return query(
-    `SELECT ${EXPENSE_COLUMNS} FROM expenses WHERE user_id = ? AND date >= ? AND date <= ?
+    `SELECT ${EXPENSE_COLUMNS} FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0
      ORDER BY date DESC, id DESC LIMIT 5`,
     [userId, from, to]
   )
@@ -216,11 +219,11 @@ async function expensesInRange(userId, from, to) {
 async function getDashboard(userId, payload) {
   const { from, to, month } = normalizeDashboardPeriod(payload)
   const incomeRow = await getOne(
-    'SELECT COALESCE(SUM(amount), 0) AS total FROM income WHERE user_id = ? AND date >= ? AND date <= ?',
+    'SELECT COALESCE(SUM(amount), 0) AS total FROM income WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0',
     [userId, from, to]
   )
   const expenseRow = await getOne(
-    'SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ?',
+    'SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0',
     [userId, from, to]
   )
   const incomeCents = toCents(incomeRow?.total ?? 0)
@@ -230,7 +233,7 @@ async function getDashboard(userId, payload) {
   const goals = await savingsList(userId)
   const debts = await debtSummary(userId)
   const savedRow = await getOne(
-    'SELECT COALESCE(SUM(current_amount), 0) AS total FROM savings_goals WHERE user_id = ?',
+    'SELECT COALESCE(SUM(current_amount), 0) AS total FROM savings_goals WHERE user_id = ? AND is_archived = 0',
     [userId]
   )
 
@@ -274,11 +277,11 @@ async function monthlyTotals(userId, period) {
   }
 
   const incomeRows = await query(
-    'SELECT substr(date, 1, 7) AS ym, amount FROM income WHERE user_id = ? AND date >= ? AND date <= ?',
+    'SELECT substr(date, 1, 7) AS ym, amount FROM income WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0',
     [userId, from, to]
   )
   const expenseRows = await query(
-    'SELECT substr(date, 1, 7) AS ym, amount FROM expenses WHERE user_id = ? AND date >= ? AND date <= ?',
+    'SELECT substr(date, 1, 7) AS ym, amount FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0',
     [userId, from, to]
   )
 
@@ -332,11 +335,11 @@ async function monthlyTotals(userId, period) {
 
 async function rangeTotals(userId, { from, to }) {
   const incomeRow = await getOne(
-    'SELECT COALESCE(SUM(amount), 0) AS total FROM income WHERE user_id = ? AND date >= ? AND date <= ?',
+    'SELECT COALESCE(SUM(amount), 0) AS total FROM income WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0',
     [userId, from, to]
   )
   const expenseRow = await getOne(
-    'SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ?',
+    'SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0',
     [userId, from, to]
   )
   const incomeCents = toCents(incomeRow?.total ?? 0)
@@ -351,7 +354,7 @@ async function rangeTotals(userId, { from, to }) {
 async function categoryBreakdown(userId, { from, to }) {
   const rows = await query(
     `SELECT category, COUNT(*) AS count, SUM(amount) AS total
-     FROM expenses WHERE user_id = ? AND date >= ? AND date <= ?
+     FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0
      GROUP BY category ORDER BY total DESC`,
     [userId, from, to]
   )
@@ -365,7 +368,7 @@ async function categoryBreakdown(userId, { from, to }) {
 async function incomeBySource(userId, { from, to }) {
   const rows = await query(
     `SELECT COALESCE(NULLIF(source, ''), 'Unspecified') AS source, COUNT(*) AS count, SUM(amount) AS total
-     FROM income WHERE user_id = ? AND date >= ? AND date <= ?
+     FROM income WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0
      GROUP BY source ORDER BY total DESC`,
     [userId, from, to]
   )
@@ -533,7 +536,7 @@ export function createCapacitorApi() {
   const income = {
     list: async (opts = {}) => {
       const userId = requireUserId()
-      const where = ['user_id = ?']
+      const where = ['user_id = ?', 'is_archived = 0']
       const params = [userId]
       if (opts.from) {
         where.push('date >= ?')
@@ -569,7 +572,7 @@ export function createCapacitorApi() {
 
     all: async (opts = {}) => {
       const userId = requireUserId()
-      const where = ['user_id = ?']
+      const where = ['user_id = ?', 'is_archived = 0']
       const params = [userId]
       if (opts.from) {
         where.push('date >= ?')
@@ -627,15 +630,35 @@ export function createCapacitorApi() {
 
     remove: async (id) => {
       const userId = requireUserId()
-      const info = await run('DELETE FROM income WHERE id = ? AND user_id = ?', [validateId(id), userId])
+      const info = await run(
+        'UPDATE income SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0',
+        [validateId(id), userId]
+      )
       return info.changes > 0
+    },
+
+    restore: async (id) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE income SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+
+    archived: async () => {
+      const userId = requireUserId()
+      return query(
+        `SELECT ${INCOME_COLUMNS} FROM income WHERE user_id = ? AND is_archived = 1 ORDER BY date DESC, id DESC`,
+        [userId]
+      )
     }
   }
 
   const expenses = {
     list: async (opts = {}) => {
       const userId = requireUserId()
-      const where = ['user_id = ?']
+      const where = ['user_id = ?', 'is_archived = 0']
       const params = [userId]
       if (opts.category) {
         where.push('category = ?')
@@ -716,11 +739,28 @@ export function createCapacitorApi() {
 
     remove: async (id) => {
       const userId = requireUserId()
-      const info = await run('DELETE FROM expenses WHERE id = ? AND user_id = ?', [
-        validateId(id),
-        userId
-      ])
+      const info = await run(
+        'UPDATE expenses SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0',
+        [validateId(id), userId]
+      )
       return info.changes > 0
+    },
+
+    restore: async (id) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE expenses SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+
+    archived: async () => {
+      const userId = requireUserId()
+      return query(
+        `SELECT ${EXPENSE_COLUMNS} FROM expenses WHERE user_id = ? AND is_archived = 1 ORDER BY date DESC, id DESC`,
+        [userId]
+      )
     }
   }
 
@@ -728,7 +768,7 @@ export function createCapacitorApi() {
     list: async (opts = {}) => {
       const userId = requireUserId()
       const today = todayISO()
-      const where = ['user_id = ?']
+      const where = ['user_id = ?', 'is_archived = 0']
       const params = [userId]
       if (opts.search) {
         where.push("(COALESCE(creditor, '') LIKE ? OR COALESCE(notes, '') LIKE ?)")
@@ -824,12 +864,29 @@ export function createCapacitorApi() {
 
     remove: async (id) => {
       const userId = requireUserId()
-      const debtId = validateId(id)
-      await executeSet([
-        { statement: 'DELETE FROM debt_payments WHERE debt_id = ?', values: [debtId] },
-        { statement: 'DELETE FROM debts WHERE id = ? AND user_id = ?', values: [debtId, userId] }
-      ])
-      return true
+      const info = await run(
+        'UPDATE debts SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+
+    restore: async (id) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE debts SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+
+    archived: async () => {
+      const userId = requireUserId()
+      const rows = await query(
+        `SELECT ${DEBT_COLUMNS} FROM debts WHERE user_id = ? AND is_archived = 1 ORDER BY created_at DESC, id DESC`,
+        [userId]
+      )
+      return rows.map((row) => decorateDebt(row))
     },
 
     payments: async (debtId) => {
@@ -912,25 +969,45 @@ export function createCapacitorApi() {
       const category = validateCategory(data.category)
       const limit = validateAmount(data.monthly_limit, 'monthly_limit')
       await run(
-        `INSERT INTO budgets (user_id, category, monthly_limit, updated_at)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        `INSERT INTO budgets (user_id, category, monthly_limit, is_archived, updated_at)
+         VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
          ON CONFLICT (user_id, category)
-         DO UPDATE SET monthly_limit = excluded.monthly_limit, updated_at = CURRENT_TIMESTAMP`,
+         DO UPDATE SET monthly_limit = excluded.monthly_limit,
+                       is_archived = 0,
+                       updated_at = CURRENT_TIMESTAMP`,
         [userId, category, limit]
       )
       return getOne(
-        'SELECT id, user_id, category, monthly_limit, created_at, updated_at FROM budgets WHERE user_id = ? AND category = ?',
+        'SELECT id, user_id, category, monthly_limit, is_archived, created_at, updated_at FROM budgets WHERE user_id = ? AND category = ?',
         [userId, category]
       )
     },
 
     remove: async (id) => {
       const userId = requireUserId()
-      const info = await run('DELETE FROM budgets WHERE id = ? AND user_id = ?', [
-        validateId(id),
-        userId
-      ])
+      const info = await run(
+        'UPDATE budgets SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0',
+        [validateId(id), userId]
+      )
       return info.changes > 0
+    },
+
+    restore: async (id) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE budgets SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+
+    archived: async () => {
+      const userId = requireUserId()
+      return query(
+        `SELECT id, user_id, category, monthly_limit, is_archived, created_at, updated_at
+         FROM budgets WHERE user_id = ? AND is_archived = 1 ORDER BY category ASC`,
+        [userId]
+      )
     }
   }
 
@@ -995,12 +1072,29 @@ export function createCapacitorApi() {
 
     remove: async (id) => {
       const userId = requireUserId()
-      const goalId = validateId(id)
-      await executeSet([
-        { statement: 'DELETE FROM savings_contributions WHERE goal_id = ?', values: [goalId] },
-        { statement: 'DELETE FROM savings_goals WHERE id = ? AND user_id = ?', values: [goalId, userId] }
-      ])
-      return true
+      const info = await run(
+        'UPDATE savings_goals SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+
+    restore: async (id) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE savings_goals SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+
+    archived: async () => {
+      const userId = requireUserId()
+      const rows = await query(
+        `SELECT ${GOAL_COLUMNS} FROM savings_goals WHERE user_id = ? AND is_archived = 1 ORDER BY created_at DESC, id DESC`,
+        [userId]
+      )
+      return rows.map(decorateGoal)
     },
 
     contributions: async (goalId) => {
@@ -1191,7 +1285,7 @@ export function createCapacitorApi() {
             [userId]
           ),
           budgets: await query(
-            'SELECT id, user_id, category, monthly_limit, created_at, updated_at FROM budgets WHERE user_id = ?',
+            'SELECT id, user_id, category, monthly_limit, is_archived, created_at, updated_at FROM budgets WHERE user_id = ?',
             [userId]
           ),
           savingsGoals: await query(

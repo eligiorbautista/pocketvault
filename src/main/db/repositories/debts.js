@@ -3,7 +3,7 @@ import { fromCents, toCents } from '../../../shared/money.js'
 import { runPaginated, todayISO } from './helpers.js'
 
 const COLUMNS = `id, user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
-  payment_type, monthly_amount, payment_day, status, notes, created_at, updated_at`
+  payment_type, monthly_amount, payment_day, status, notes, is_archived, created_at, updated_at`
 
 export function effectiveStatus(row, today = todayISO()) {
   if (toCents(row.remaining_amount) <= 0) return 'paid'
@@ -19,7 +19,7 @@ function decorate(row, today = todayISO()) {
 
 export function list(db, userId, opts = {}) {
   const today = todayISO()
-  const where = ['user_id = ?']
+  const where = ['user_id = ?', 'is_archived = 0']
   const params = [userId]
 
   if (opts.search) {
@@ -116,7 +116,32 @@ export function update(db, userId, id, data) {
 }
 
 export function remove(db, userId, id) {
-  return db.prepare('DELETE FROM debts WHERE id = ? AND user_id = ?').run(id, userId).changes > 0
+  return (
+    db
+      .prepare(
+        'UPDATE debts SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0'
+      )
+      .run(id, userId).changes > 0
+  )
+}
+
+export function restore(db, userId, id) {
+  return (
+    db
+      .prepare(
+        'UPDATE debts SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1'
+      )
+      .run(id, userId).changes > 0
+  )
+}
+
+export function listArchived(db, userId) {
+  const rows = db
+    .prepare(
+      `SELECT ${COLUMNS} FROM debts WHERE user_id = ? AND is_archived = 1 ORDER BY created_at DESC, id DESC`
+    )
+    .all(userId)
+  return rows.map((row) => decorate(row))
 }
 
 export function listPayments(db, userId, debtId) {
@@ -187,7 +212,9 @@ export function removePayment(db, userId, paymentId) {
 
 export function totalUnpaid(db, userId) {
   const row = db
-    .prepare('SELECT COALESCE(SUM(remaining_amount), 0) AS total FROM debts WHERE user_id = ? AND remaining_amount > 0')
+    .prepare(
+      'SELECT COALESCE(SUM(remaining_amount), 0) AS total FROM debts WHERE user_id = ? AND remaining_amount > 0 AND is_archived = 0'
+    )
     .get(userId)
   return row.total
 }

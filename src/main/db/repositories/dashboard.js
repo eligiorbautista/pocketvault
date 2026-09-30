@@ -20,10 +20,14 @@ export function getSummary(db, userId, period) {
   }
 
   const income = db
-    .prepare('SELECT COALESCE(SUM(amount), 0) AS total FROM income WHERE user_id = ? AND date >= ? AND date <= ?')
+    .prepare(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM income WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0'
+    )
     .get(userId, from, to).total
   const expenses = db
-    .prepare('SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ?')
+    .prepare(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0'
+    )
     .get(userId, from, to).total
 
   const incomeCents = toCents(income)
