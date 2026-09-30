@@ -3,7 +3,8 @@ import { fromCents, toCents } from '../../../shared/money.js'
 import { runPaginated, todayISO } from './helpers.js'
 
 const COLUMNS = `id, user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
-  payment_type, monthly_amount, payment_day, status, notes, is_archived, created_at, updated_at`
+  payment_type, monthly_amount, payment_day, first_payment_date, receipt_path, status, notes,
+  is_archived, created_at, updated_at`
 
 export function effectiveStatus(row, today = todayISO()) {
   if (toCents(row.remaining_amount) <= 0) return 'paid'
@@ -68,8 +69,8 @@ export function create(db, userId, data) {
     .prepare(
       `INSERT INTO debts
         (user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
-         payment_type, monthly_amount, payment_day, status, notes, updated_at)
-       VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, 'unpaid', ?, CURRENT_TIMESTAMP)`
+         payment_type, monthly_amount, payment_day, first_payment_date, receipt_path, status, notes, updated_at)
+       VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 'unpaid', ?, CURRENT_TIMESTAMP)`
     )
     .run(
       userId,
@@ -80,6 +81,8 @@ export function create(db, userId, data) {
       data.payment_type,
       data.monthly_amount,
       data.payment_day,
+      data.first_payment_date,
+      data.receipt_path,
       data.notes
     )
   return getById(db, userId, info.lastInsertRowid)
@@ -94,8 +97,8 @@ export function update(db, userId, id, data) {
     .prepare(
       `UPDATE debts
        SET creditor = ?, total_amount = ?, remaining_amount = ?, due_date = ?,
-           payment_type = ?, monthly_amount = ?, payment_day = ?, notes = ?,
-           updated_at = CURRENT_TIMESTAMP
+           payment_type = ?, monthly_amount = ?, payment_day = ?, first_payment_date = ?,
+           receipt_path = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND user_id = ?`
     )
     .run(
@@ -106,6 +109,8 @@ export function update(db, userId, id, data) {
       data.payment_type,
       data.monthly_amount,
       data.payment_day,
+      data.first_payment_date,
+      data.receipt_path,
       data.notes,
       id,
       userId
@@ -149,7 +154,7 @@ export function listPayments(db, userId, debtId) {
   if (!debt) return null
   return db
     .prepare(
-      `SELECT id, debt_id, amount, date, notes, payment_type, created_at
+      `SELECT id, debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
        FROM debt_payments WHERE debt_id = ? ORDER BY date DESC, id DESC`
     )
     .all(debtId)
@@ -161,26 +166,9 @@ export function addPayment(db, userId, debtId, data) {
 
   const run = db.transaction(() => {
     db.prepare(
-      `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type)
-       VALUES (?, ?, ?, ?, 'payment')`
-    ).run(debtId, data.amount, data.date, data.notes)
-    syncStatus(db, debtId, userId)
-  })
-  run()
-  return getById(db, userId, debtId)
-}
-
-export function reborrow(db, userId, debtId, data) {
-  const debt = db.prepare('SELECT * FROM debts WHERE id = ? AND user_id = ?').get(debtId, userId)
-  if (!debt) return null
-
-  const run = db.transaction(() => {
-    db.prepare(
-      `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type)
-       VALUES (?, ?, ?, ?, 'reborrow')`
-    ).run(debtId, data.amount, data.date, data.notes)
-    const newTotal = fromCents(toCents(debt.total_amount) + toCents(data.amount))
-    db.prepare('UPDATE debts SET total_amount = ? WHERE id = ?').run(newTotal, debtId)
+      `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type, installment_due, receipt_path)
+       VALUES (?, ?, ?, ?, 'payment', ?, ?)`
+    ).run(debtId, data.amount, data.date, data.notes, data.installment_due ?? null, data.receipt_path ?? null)
     syncStatus(db, debtId, userId)
   })
   run()
@@ -199,11 +187,6 @@ export function removePayment(db, userId, paymentId) {
 
   const run = db.transaction(() => {
     db.prepare('DELETE FROM debt_payments WHERE id = ?').run(paymentId)
-    if (payment.payment_type === 'reborrow') {
-      const debt = db.prepare('SELECT * FROM debts WHERE id = ?').get(payment.debt_id)
-      const newTotal = fromCents(Math.max(0, toCents(debt.total_amount) - toCents(payment.amount)))
-      db.prepare('UPDATE debts SET total_amount = ? WHERE id = ?').run(newTotal, payment.debt_id)
-    }
     syncStatus(db, payment.debt_id, userId)
   })
   run()

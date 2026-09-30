@@ -10,7 +10,15 @@ import {
   validatePaymentType,
   validateText
 } from '../db/validate.js'
-import { DEBT_PAYMENT_TYPE_VALUES, DEBT_STATUSES } from '../../shared/constants.js'
+import { DEBT_PAYMENT_TYPE_VALUES, DEBT_STATUSES, RECEIPT_FILE_PATTERN } from '../../shared/constants.js'
+
+function normalizeReceipt(value) {
+  if (value === undefined || value === null || value === '') return null
+  if (typeof value !== 'string' || !RECEIPT_FILE_PATTERN.test(value)) {
+    throw new Error('Invalid receipt reference')
+  }
+  return value
+}
 
 function normalize(payload) {
   const payment_type = validatePaymentType(
@@ -20,14 +28,25 @@ function normalize(payload) {
   let due_date = validateDate(payload.due_date, 'due_date', { required: false })
   let monthly_amount = null
   let payment_day = null
+  let first_payment_date = null
 
   if (payment_type === 'fixed-date') {
     if (!due_date) throw new Error('A due date is required for fixed-date debts')
   }
   if (payment_type === 'monthly') {
     monthly_amount = validateAmount(payload.monthly_amount, 'monthly_amount')
-    payment_day = validateInt(payload.payment_day, 'payment_day', { min: 1, max: 31 })
-    if (!due_date) due_date = null
+    first_payment_date = validateDate(payload.first_payment_date, 'first_payment_date', {
+      required: false
+    })
+    payment_day = payload.payment_day
+      ? validateInt(payload.payment_day, 'payment_day', { min: 1, max: 31 })
+      : first_payment_date
+        ? Number(first_payment_date.slice(8, 10))
+        : null
+    if (!first_payment_date && !payment_day) {
+      throw new Error('A first payment date is required for monthly debts')
+    }
+    due_date = null
   }
 
   return {
@@ -37,6 +56,8 @@ function normalize(payload) {
     payment_type,
     monthly_amount,
     payment_day,
+    first_payment_date,
+    receipt_path: normalizeReceipt(payload.receipt_path),
     notes: validateText(payload.notes, 'notes', { max: 500 })
   }
 }
@@ -97,22 +118,11 @@ export function registerDebtsHandlers() {
       {
         amount: validateAmount(payload.amount, 'amount'),
         date: validateDate(payload.date, 'date'),
-        notes: validateText(payload.notes, 'notes', { max: 500 })
-      }
-    )
-    if (!row) throw new Error('Debt not found')
-    return row
-  })
-
-  handle('debts:reborrow', ({ userId, payload }) => {
-    const row = debtsRepo.reborrow(
-      getDatabase(),
-      userId,
-      validateId(payload.debtId, 'debtId'),
-      {
-        amount: validateAmount(payload.amount, 'amount'),
-        date: validateDate(payload.date, 'date'),
-        notes: validateText(payload.notes, 'notes', { max: 500 })
+        notes: validateText(payload.notes, 'notes', { max: 500 }),
+        installment_due: payload.installment_due
+          ? validateDate(payload.installment_due, 'installment_due')
+          : null,
+        receipt_path: normalizeReceipt(payload.receipt_path)
       }
     )
     if (!row) throw new Error('Debt not found')

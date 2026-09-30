@@ -1,7 +1,7 @@
 import { api } from '@renderer/lib/api.js'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Banknote, History, RotateCcw, Trash2 } from 'lucide-react'
+import { Banknote, CircleMinus, FileText, History } from 'lucide-react'
 import { cn } from '@renderer/lib/cn.js'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
 import { Card, CardBody, CardHeader, CardIcon, CardTitle } from '@renderer/components/ui/Card.jsx'
@@ -13,57 +13,56 @@ import { ProgressBar } from '@renderer/components/ui/ProgressBar.jsx'
 import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
+import { ReceiptViewer } from '@renderer/components/income/ReceiptViewer.jsx'
+import { ReceiptField } from '@renderer/components/ui/ReceiptField.jsx'
+import { buildInstallments, installmentStatus } from '@renderer/lib/installments.js'
 import { formatCurrency, formatDate, paymentTypeLabel, todayInput } from '@renderer/lib/format.js'
+import { toCents } from '@shared/money.js'
 import { useApiData } from '@renderer/hooks/useApiData.js'
 import { toast } from '@renderer/store/uiStore.js'
 
-function LedgerForm({ mode, debtId, defaultAmount, onDone }) {
-  const [busy, setBusy] = useState(false)
-  const suggested = mode === 'payment' && defaultAmount ? defaultAmount : null
+const SCHEDULE_VARIANT = {
+  paid: 'success',
+  partial: 'info',
+  overdue: 'danger',
+  upcoming: 'neutral'
+}
+const SCHEDULE_LABEL = { paid: 'Paid', partial: 'Partial', overdue: 'Overdue', upcoming: 'Upcoming' }
+
+// Records one payment (a free-form payment, or one tied to a schedule row).
+function LedgerForm({ idPrefix, debtId, installment, defaultAmount, onDone }) {
+  const [receiptPath, setReceiptPath] = useState(null)
+  const suggested = defaultAmount != null ? String(defaultAmount) : ''
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors }
-  } = useForm({
-    defaultValues: { amount: suggested ? String(suggested) : '', date: todayInput(), notes: '' }
-  })
-
-  useEffect(() => {
-    reset({ amount: suggested ? String(suggested) : '', date: todayInput(), notes: '' })
-  }, [mode, suggested, reset])
+    formState: { errors, isSubmitting }
+  } = useForm({ defaultValues: { amount: suggested, date: todayInput(), notes: '' } })
 
   const onSubmit = async (values) => {
-    setBusy(true)
     try {
-      const payload = {
+      await api.debts.addPayment(debtId, {
         amount: Number(values.amount),
         date: values.date,
-        notes: values.notes
-      }
-      if (mode === 'reborrow') await api.debts.reborrow(debtId, payload)
-      else await api.debts.addPayment(debtId, payload)
-      toast(mode === 'reborrow' ? 'Re-borrow recorded' : 'Payment recorded', 'success')
-      reset({ amount: suggested ? String(suggested) : '', date: todayInput(), notes: '' })
+        notes: values.notes,
+        installment_due: installment?.due_date ?? null,
+        receipt_path: receiptPath
+      })
+      toast('Payment recorded', 'success')
+      reset({ amount: suggested, date: todayInput(), notes: '' })
+      setReceiptPath(null)
       onDone()
     } catch (error) {
       toast(error.message, 'error')
-    } finally {
-      setBusy(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-      <Field
-        label="Amount"
-        htmlFor={`${mode}-amount`}
-        error={errors.amount?.message}
-        hint={suggested ? 'Prefilled from your monthly installment' : undefined}
-        required
-      >
+      <Field label="Amount" htmlFor={`${idPrefix}-amount`} error={errors.amount?.message}>
         <Input
-          id={`${mode}-amount`}
+          id={`${idPrefix}-amount`}
           type="number"
           step="0.01"
           min="0"
@@ -76,32 +75,240 @@ function LedgerForm({ mode, debtId, defaultAmount, onDone }) {
           })}
         />
       </Field>
-      <Field label="Date" htmlFor={`${mode}-date`} error={errors.date?.message} required>
+      <Field label="Date" htmlFor={`${idPrefix}-date`} error={errors.date?.message}>
         <Input
-          id={`${mode}-date`}
+          id={`${idPrefix}-date`}
           type="date"
           hasError={Boolean(errors.date)}
           {...register('date', { required: 'Date is required' })}
         />
       </Field>
-      <Field label="Notes" htmlFor={`${mode}-notes`}>
-        <Input id={`${mode}-notes`} placeholder="Optional" {...register('notes')} />
+      <Field label="Proof" htmlFor={`${idPrefix}-receipt`}>
+        <ReceiptField value={receiptPath} onChange={setReceiptPath} />
       </Field>
-      <Button
-        type="submit"
-        className="w-full"
-        loading={busy}
-        variant={mode === 'reborrow' ? 'secondary' : 'primary'}
-      >
-        {mode === 'reborrow' ? 'Add re-borrow' : 'Record payment'}
+      <Field label="Notes" htmlFor={`${idPrefix}-notes`}>
+        <Input id={`${idPrefix}-notes`} placeholder="Optional" {...register('notes')} />
+      </Field>
+      <Button type="submit" className="w-full" loading={isSubmitting}>
+        {installment ? 'Record payment' : 'Add payment'}
       </Button>
     </form>
   )
 }
 
+function DebtSchedule({ debt, payments, onChanged, onViewProof }) {
+  const today = todayInput()
+  const installments = buildInstallments(debt)
+  const [payTarget, setPayTarget] = useState(null)
+  const [pendingRemove, setPendingRemove] = useState(null)
+  const [removing, setRemoving] = useState(false)
+
+  const byDue = new Map()
+  for (const payment of payments) {
+    if (!payment.installment_due) continue
+    const list = byDue.get(payment.installment_due) ?? []
+    list.push(payment)
+    byDue.set(payment.installment_due, list)
+  }
+
+  const removeInstallment = async () => {
+    if (!pendingRemove) return
+    setRemoving(true)
+    try {
+      for (const payment of pendingRemove.payments) {
+        await api.debts.removePayment(payment.id)
+        if (payment.receipt_path) api.files.deleteReceipt(payment.receipt_path).catch(() => {})
+      }
+      toast('Payment removed', 'success')
+      setPendingRemove(null)
+      onChanged()
+    } catch (error) {
+      toast(error.message, 'error')
+    } finally {
+      setRemoving(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardIcon icon={History} />
+        <CardTitle>Payment schedule</CardTitle>
+      </CardHeader>
+      <CardBody className="p-0">
+        {installments.length === 0 ? (
+          <EmptyState
+            icon={History}
+            title="No schedule"
+            description="Set a monthly amount and a first payment date to generate the installments."
+          />
+        ) : (
+          <ul className="divide-y divide-slate-100 dark:divide-gray-800">
+            {installments.map((installment) => {
+              const linked = byDue.get(installment.due_date) ?? []
+              const paidCents = linked.reduce((sum, payment) => sum + toCents(payment.amount), 0)
+              const amountCents = toCents(installment.amount)
+              const status = installmentStatus(paidCents, amountCents, installment.due_date, today)
+              const remainingPesos = Math.max(0, amountCents - paidCents) / 100
+              const proof = linked.find((payment) => payment.receipt_path)
+              return (
+                <li
+                  key={installment.index}
+                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-800 dark:text-gray-100">
+                      {installment.due_date ? formatDate(installment.due_date) : 'No date'}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-gray-400">
+                      {formatCurrency(installment.amount)}
+                      {status === 'partial' ? ` · ${formatCurrency(remainingPesos)} left` : ''}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={SCHEDULE_VARIANT[status]}>{SCHEDULE_LABEL[status]}</Badge>
+                    {proof ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onViewProof(proof.receipt_path)}
+                      >
+                        <FileText size={15} aria-hidden="true" />
+                        Proof
+                      </Button>
+                    ) : null}
+                    {status !== 'paid' ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setPayTarget({ ...installment, paid: paidCents })}
+                      >
+                        <Banknote size={15} aria-hidden="true" />
+                        Pay
+                      </Button>
+                    ) : null}
+                    {linked.length ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Undo payment for ${installment.due_date}`}
+                        onClick={() => setPendingRemove({ payments: linked })}
+                      >
+                        <CircleMinus size={16} aria-hidden="true" />
+                      </Button>
+                    ) : null}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </CardBody>
+
+      <Modal
+        open={Boolean(payTarget)}
+        onClose={() => setPayTarget(null)}
+        title="Record payment"
+        description={
+          payTarget?.due_date ? `Installment due ${formatDate(payTarget.due_date)}` : undefined
+        }
+      >
+        {payTarget ? (
+          <LedgerForm
+            idPrefix={`sched-${payTarget.index}`}
+            debtId={debt.id}
+            installment={payTarget}
+            defaultAmount={Math.max(0, toCents(payTarget.amount) - payTarget.paid) / 100}
+            onDone={() => {
+              setPayTarget(null)
+              onChanged()
+            }}
+          />
+        ) : null}
+      </Modal>
+
+      <ConfirmDialog
+        open={Boolean(pendingRemove)}
+        title="Undo this payment?"
+        message="This removes the payment(s) recorded for this installment and recalculates the balance."
+        confirmLabel="Remove"
+        loading={removing}
+        onConfirm={removeInstallment}
+        onCancel={() => setPendingRemove(null)}
+      />
+    </Card>
+  )
+}
+
+function TransactionLedger({ payments, onViewProof, onRemove }) {
+  if (payments.length === 0) {
+    return (
+      <EmptyState
+        icon={History}
+        title="No transactions yet"
+        description="Payments recorded for this debt will appear here."
+      />
+    )
+  }
+  return (
+    <ol>
+      {payments.map((payment, index) => {
+        const isLast = index === payments.length - 1
+        return (
+          <li key={payment.id} className="relative flex gap-3 pb-5 last:pb-0">
+            {!isLast ? (
+              <span
+                className="absolute left-4 top-9 h-[calc(100%-1.75rem)] w-px -translate-x-1/2 bg-slate-200 dark:bg-gray-700"
+                aria-hidden="true"
+              />
+            ) : null}
+            <span className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-100 text-accent-700 dark:bg-accent-900 dark:text-accent-300">
+              <Banknote size={15} aria-hidden="true" />
+            </span>
+            <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="flex flex-wrap items-center gap-x-2 text-sm">
+                  <span className="font-medium text-slate-900 dark:text-gray-100">Payment</span>
+                  <span className="font-semibold text-accent-700 dark:text-accent-400">
+                    {formatCurrency(payment.amount)}
+                  </span>
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-gray-400">
+                  {formatDate(payment.date)}
+                  {payment.notes ? ` · ${payment.notes}` : ''}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                {payment.receipt_path ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="View payment proof"
+                    onClick={() => onViewProof(payment.receipt_path)}
+                  >
+                    <FileText size={16} aria-hidden="true" />
+                  </Button>
+                ) : null}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Remove payment"
+                  onClick={() => onRemove(payment)}
+                >
+                  <CircleMinus size={16} aria-hidden="true" />
+                </Button>
+              </div>
+            </div>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
 export function DebtDetail({ debtId, open, onClose, onChanged }) {
-  const [mode, setMode] = useState('payment')
-  const [pendingPayment, setPendingPayment] = useState(null)
+  const [viewReceipt, setViewReceipt] = useState(null)
+  const [pendingRemove, setPendingRemove] = useState(null)
   const [removing, setRemoving] = useState(false)
 
   const debtQuery = useApiData(
@@ -123,12 +330,15 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
   }
 
   const confirmRemovePayment = async () => {
-    if (!pendingPayment) return
+    if (!pendingRemove) return
     setRemoving(true)
     try {
-      await api.debts.removePayment(pendingPayment.id)
-      toast('Ledger entry removed', 'success')
-      setPendingPayment(null)
+      await api.debts.removePayment(pendingRemove.id)
+      if (pendingRemove.receipt_path) {
+        api.files.deleteReceipt(pendingRemove.receipt_path).catch(() => {})
+      }
+      toast('Payment removed', 'success')
+      setPendingRemove(null)
       refresh()
     } catch (error) {
       toast(error.message, 'error')
@@ -139,16 +349,7 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
 
   const paidPercent =
     debt && debt.total_amount > 0 ? (debt.paid_amount / debt.total_amount) * 100 : 0
-  const monthlyDefault =
-    debt?.payment_type === 'monthly' && debt?.monthly_amount ? debt.monthly_amount : null
-
-  const segmentClass = (active) =>
-    cn(
-      'h-9 cursor-pointer rounded-md text-sm font-medium transition-colors',
-      active
-        ? 'bg-white text-slate-900 shadow-sm dark:bg-[#3a3a3a] dark:text-gray-100'
-        : 'text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200'
-    )
+  const isMonthly = debt?.payment_type === 'monthly'
 
   return (
     <Modal open={open} onClose={onClose} title="Debt details" size="xl">
@@ -159,10 +360,24 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
           <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-gray-700 dark:bg-[#2f2f2f] sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-lg font-semibold text-slate-900 dark:text-gray-100">{debt.creditor}</p>
-                <p className="text-xs text-slate-500 dark:text-gray-400">{paymentTypeLabel(debt.payment_type)}</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-gray-100">
+                  {debt.creditor}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-gray-400">
+                  {paymentTypeLabel(debt.payment_type)}
+                </p>
               </div>
-              <Badge variant={statusVariant(debt.effective_status)}>{debt.effective_status}</Badge>
+              <div className="flex items-center gap-2">
+                {debt.receipt_path ? (
+                  <Button variant="secondary" size="sm" onClick={() => setViewReceipt(debt.receipt_path)}>
+                    <FileText size={15} aria-hidden="true" />
+                    View proof
+                  </Button>
+                ) : null}
+                <Badge variant={statusVariant(debt.effective_status)}>
+                  {debt.effective_status}
+                </Badge>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -185,8 +400,12 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500">Due date</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">{formatDate(debt.due_date)}</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500">
+                  {isMonthly ? 'First payment' : 'Due date'}
+                </p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">
+                  {formatDate(isMonthly ? debt.first_payment_date : debt.due_date)}
+                </p>
               </div>
             </div>
 
@@ -194,158 +413,67 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
               <ProgressBar percent={paidPercent} />
               <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
                 {Math.round(paidPercent)}% paid
-                {monthlyDefault
-                  ? ` \u00b7 ${formatCurrency(debt.monthly_amount)} due every month on day ${debt.payment_day}`
+                {isMonthly && debt.monthly_amount
+                  ? ` · ${formatCurrency(debt.monthly_amount)} / month for ${Math.max(1, Math.ceil(debt.total_amount / debt.monthly_amount))} months`
                   : ''}
               </p>
             </div>
           </div>
 
-          <div className="grid gap-5 lg:relative lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-stretch">
-            <aside className="lg:col-start-2 lg:row-start-1">
-              <Card>
-                <CardHeader>
-                  <span
-                    className={cn(
-                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-                      mode === 'reborrow'
-                        ? 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300'
-                        : 'bg-accent-50 text-accent-700 dark:bg-accent-900 dark:text-accent-300'
-                    )}
-                  >
-                    {mode === 'reborrow' ? (
-                      <RotateCcw size={18} aria-hidden="true" />
-                    ) : (
-                      <Banknote size={18} aria-hidden="true" />
-                    )}
-                  </span>
-                  <CardTitle>{mode === 'reborrow' ? 'Re-borrow' : 'Make a payment'}</CardTitle>
-                </CardHeader>
-                <CardBody className="space-y-4">
-                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 dark:bg-gray-800">
-                    <button
-                      type="button"
-                      onClick={() => setMode('payment')}
-                      className={segmentClass(mode === 'payment')}
-                    >
-                      Payment
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMode('reborrow')}
-                      className={segmentClass(mode === 'reborrow')}
-                    >
-                      Re-borrow
-                    </button>
-                  </div>
-                  <LedgerForm
-                    mode={mode}
-                    debtId={debt.id}
-                    defaultAmount={monthlyDefault}
-                    onDone={refresh}
-                  />
-                </CardBody>
-              </Card>
-            </aside>
-
-            <section className="lg:relative lg:col-start-1 lg:row-start-1">
-              <div className="lg:absolute lg:inset-0">
-                <Card className="flex h-full min-h-0 flex-col">
-                  <CardHeader className="shrink-0">
+          {isMonthly ? (
+            <DebtSchedule
+              debt={debt}
+              payments={payments}
+              onChanged={refresh}
+              onViewProof={setViewReceipt}
+            />
+          ) : (
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+              <section>
+                <Card>
+                  <CardHeader>
                     <CardIcon icon={History} />
                     <CardTitle>Transaction History</CardTitle>
                   </CardHeader>
-                  <CardBody className="flex min-h-0 flex-1 flex-col">
-                    {paymentsQuery.loading ? (
-                      <LoadingBlock />
-                    ) : payments.length === 0 ? (
-                      <EmptyState
-                        icon={History}
-                        title="No transactions yet"
-                        description="Payments and re-borrows for this debt will appear here."
-                      />
-                    ) : (
-                      <div className="min-h-0 flex-1 overflow-y-auto pr-2">
-                        <ol>
-                          {payments.map((payment, index) => {
-                            const isReborrow = payment.payment_type === 'reborrow'
-                            const Icon = isReborrow ? RotateCcw : Banknote
-                            const isLast = index === payments.length - 1
-                            return (
-                              <li
-                                key={payment.id}
-                                className="group relative flex gap-3 pb-5 last:pb-0"
-                              >
-                                {!isLast ? (
-                                  <span
-                                    className="absolute left-4 top-9 h-[calc(100%-1.75rem)] w-px -translate-x-1/2 bg-slate-200 dark:bg-gray-700"
-                                    aria-hidden="true"
-                                  />
-                                ) : null}
-                                <span
-                                  className={cn(
-                                    'relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-                                    isReborrow
-                                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-                                      : 'bg-accent-100 text-accent-700 dark:bg-accent-900 dark:text-accent-300'
-                                  )}
-                                >
-                                  <Icon size={15} aria-hidden="true" />
-                                </span>
-                                <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <p className="flex flex-wrap items-center gap-x-2 text-sm">
-                                      <span className="font-medium text-slate-900 dark:text-gray-100">
-                                        {isReborrow ? 'Re-borrow' : 'Payment'}
-                                      </span>
-                                      <span
-                                        className={cn(
-                                          'font-semibold',
-                                          isReborrow
-                                            ? 'text-amber-700 dark:text-amber-300'
-                                            : 'text-accent-700 dark:text-accent-400'
-                                        )}
-                                      >
-                                        {isReborrow ? '+' : '\u2212'}
-                                        {formatCurrency(payment.amount)}
-                                      </span>
-                                    </p>
-                                    <p className="mt-0.5 text-xs text-slate-500 dark:text-gray-400">
-                                      {formatDate(payment.date)}
-                                      {payment.notes ? ` \u00b7 ${payment.notes}` : ''}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label="Remove ledger entry"
-                                    onClick={() => setPendingPayment(payment)}
-                                  >
-                                    <Trash2 size={16} className="text-red-500" aria-hidden="true" />
-                                  </Button>
-                                </div>
-                              </li>
-                            )
-                          })}
-                        </ol>
-                      </div>
-                    )}
+                  <CardBody>
+                    <TransactionLedger
+                      payments={payments}
+                      onViewProof={setViewReceipt}
+                      onRemove={setPendingRemove}
+                    />
                   </CardBody>
                 </Card>
-              </div>
-            </section>
-          </div>
+              </section>
+              <aside>
+                <Card>
+                  <CardHeader>
+                    <CardIcon icon={Banknote} />
+                    <CardTitle>Make a payment</CardTitle>
+                  </CardHeader>
+                  <CardBody>
+                    <LedgerForm idPrefix="ledger" debtId={debt.id} onDone={refresh} />
+                  </CardBody>
+                </Card>
+              </aside>
+            </div>
+          )}
         </div>
       )}
 
       <ConfirmDialog
-        open={Boolean(pendingPayment)}
-        title="Remove ledger entry?"
-        message="Removing a payment or re-borrow recalculates the debt balance."
+        open={Boolean(pendingRemove)}
+        title="Remove payment?"
+        message="This removes the payment from the ledger and recalculates the debt balance."
         confirmLabel="Remove"
         loading={removing}
         onConfirm={confirmRemovePayment}
-        onCancel={() => setPendingPayment(null)}
+        onCancel={() => setPendingRemove(null)}
+      />
+
+      <ReceiptViewer
+        open={Boolean(viewReceipt)}
+        filename={viewReceipt}
+        onClose={() => setViewReceipt(null)}
       />
     </Modal>
   )

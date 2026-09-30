@@ -58,7 +58,6 @@ const api = {
     archived: () => call('debts:archived'),
     payments: (debtId) => call('debts:payments', { debtId }),
     addPayment: (debtId, data) => call('debts:addPayment', { debtId, ...data }),
-    reborrow: (debtId, data) => call('debts:reborrow', { debtId, ...data }),
     removePayment: (paymentId) => call('debts:removePayment', { paymentId })
   },
 

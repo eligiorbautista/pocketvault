@@ -154,26 +154,23 @@ await expectThrow('expense bad date rejected', () => api.expenses.create({ categ
 await expectThrow('expense zero amount rejected', () => api.expenses.create({ category: 'food', amount: 0, date: '2026-09-07' }), 'greater than zero')
 
 let debtId
-let paymentId
 await check('debt create (monthly)', async () => {
-  const row = await api.debts.create({ creditor: 'Home Credit', total_amount: 30000, due_date: '2026-12-15', payment_type: 'monthly', monthly_amount: 2500, payment_day: 15, notes: null })
+  const row = await api.debts.create({ creditor: 'Home Credit', total_amount: 30000, due_date: '2026-12-15', payment_type: 'monthly', monthly_amount: 2500, first_payment_date: '2026-09-15', notes: null })
   debtId = row.id
   return row.remaining_amount === 30000 && row.effective_status === 'unpaid'
 })
 await check('add payment recomputes balance', async () => {
-  const row = await api.debts.addPayment(debtId, { amount: 2500, date: '2026-09-15', notes: null })
-  paymentId = (await api.debts.payments(debtId))[0].id
+  const row = await api.debts.addPayment(debtId, { amount: 2500, date: '2026-09-15', notes: null, installment_due: '2026-09-15' })
   return row.paid_amount === 2500 && row.remaining_amount === 27500 && row.effective_status === 'partial'
 })
-await check('reborrow increases total', async () => {
-  const row = await api.debts.reborrow(debtId, { amount: 5000, date: '2026-09-16', notes: 'extra' })
-  return row.total_amount === 35000 && row.remaining_amount === 32500
+await check('add second payment', async () => {
+  const row = await api.debts.addPayment(debtId, { amount: 2500, date: '2026-09-16', notes: 'extra', installment_due: '2026-10-15' })
+  return row.paid_amount === 5000 && row.remaining_amount === 25000 && row.effective_status === 'partial'
 })
-await check('remove payment reverses reborrow', async () => {
+await check('remove payment recomputes balance', async () => {
   const payments = await api.debts.payments(debtId)
-  const reborrow = payments.find((p) => p.payment_type === 'reborrow')
-  const row = await api.debts.removePayment(reborrow.id)
-  return row.total_amount === 30000 && row.remaining_amount === 27500
+  const row = await api.debts.removePayment(payments[1].id)
+  return row.paid_amount === 2500 && row.remaining_amount === 27500
 })
 await check('debt list decorates status', async () => {
   const res = await api.debts.list({ status: 'partial' })

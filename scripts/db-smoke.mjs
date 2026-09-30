@@ -97,22 +97,13 @@ let updatedDebt = debtsRepo.getById(db, alice.id, debt.id)
 check('debt partial after payment', updatedDebt.paid_amount === 4000 && updatedDebt.remaining_amount === 6000)
 check('debt effective status partial', updatedDebt.effective_status === 'partial')
 
-debtsRepo.reborrow(db, alice.id, debt.id, { amount: 2000, date: '2026-03-06', notes: 'borrowed more' })
-updatedDebt = debtsRepo.getById(db, alice.id, debt.id)
-check('reborrow increases total', updatedDebt.total_amount === 12000, updatedDebt.total_amount)
-check('reborrow keeps remaining consistent', updatedDebt.remaining_amount === 8000, updatedDebt.remaining_amount)
-
 const payments = debtsRepo.listPayments(db, alice.id, debt.id)
-check('debt has 2 ledger entries', payments.length === 2)
-
-debtsRepo.removePayment(db, alice.id, payments.find((p) => p.payment_type === 'reborrow').id)
-updatedDebt = debtsRepo.getById(db, alice.id, debt.id)
-check('removing reborrow restores total', updatedDebt.total_amount === 10000, updatedDebt.total_amount)
+check('debt has 1 ledger entry', payments.length === 1)
 
 debtsRepo.addPayment(db, alice.id, debt.id, { amount: 6000, date: '2026-03-07', notes: null })
 updatedDebt = debtsRepo.getById(db, alice.id, debt.id)
 check('debt paid off', updatedDebt.remaining_amount === 0 && updatedDebt.effective_status === 'paid')
-check('overpayment is capped by ledger', updatedDebt.paid_amount === 10000, updatedDebt.paid_amount)
+check('payments advance paid amount', updatedDebt.paid_amount === 10000, updatedDebt.paid_amount)
 
 debtsRepo.addPayment(db, alice.id, debt.id, { amount: 500, date: '2026-03-08', notes: null })
 updatedDebt = debtsRepo.getById(db, alice.id, debt.id)

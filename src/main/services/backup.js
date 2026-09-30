@@ -44,7 +44,8 @@ export async function buildUserBackup(db, userId, receiptsDir) {
   const debts = db
     .prepare(
       `SELECT id, creditor, total_amount, paid_amount, remaining_amount, due_date,
-              payment_type, monthly_amount, payment_day, status, notes, is_archived, created_at, updated_at
+              payment_type, monthly_amount, payment_day, first_payment_date, receipt_path,
+              status, notes, is_archived, created_at, updated_at
        FROM debts WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
@@ -52,7 +53,7 @@ export async function buildUserBackup(db, userId, receiptsDir) {
   const debt_payments = debtIds.length
     ? db
         .prepare(
-          `SELECT debt_id, amount, date, notes, payment_type, created_at
+          `SELECT debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
            FROM debt_payments WHERE debt_id IN (${debtIds.map(() => '?').join(',')}) ORDER BY id`
         )
         .all(...debtIds)
@@ -130,8 +131,12 @@ export async function buildUserBackup(db, userId, receiptsDir) {
   if (existsSync(receiptsDir)) {
     const folder = zip.folder('receipts')
     const seen = new Set()
-    for (const row of income) {
-      const name = row.receipt_path
+    const receiptRefs = [
+      ...income.map((row) => row.receipt_path),
+      ...debts.map((row) => row.receipt_path),
+      ...debt_payments.map((row) => row.receipt_path)
+    ]
+    for (const name of receiptRefs) {
       if (!name || seen.has(name) || !RECEIPT_FILE_PATTERN.test(name)) continue
       const full = join(receiptsDir, name)
       if (!existsSync(full)) continue
@@ -227,10 +232,21 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
   const includedReceipts = new Set(receipts.map((receipt) => receipt.name))
   const now = new Date().toISOString()
 
-  const oldReceipts = db
-    .prepare("SELECT receipt_path FROM income WHERE user_id = ? AND receipt_path IS NOT NULL")
-    .all(userId)
-    .map((row) => row.receipt_path)
+  const oldReceipts = [
+    ...db
+      .prepare("SELECT receipt_path FROM income WHERE user_id = ? AND receipt_path IS NOT NULL")
+      .all(userId),
+    ...db
+      .prepare("SELECT receipt_path FROM debts WHERE user_id = ? AND receipt_path IS NOT NULL")
+      .all(userId),
+    ...db
+      .prepare(
+        `SELECT p.receipt_path FROM debt_payments p
+         JOIN debts d ON d.id = p.debt_id
+         WHERE d.user_id = ? AND p.receipt_path IS NOT NULL`
+      )
+      .all(userId)
+  ].map((row) => row.receipt_path)
 
   const run = db.transaction(() => {
     db.prepare(
@@ -286,11 +302,14 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
 
     const insertDebt = db.prepare(
       `INSERT INTO debts (user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
-                          payment_type, monthly_amount, payment_day, status, notes, is_archived, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                          payment_type, monthly_amount, payment_day, first_payment_date, receipt_path,
+                          status, notes, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const debtMap = new Map()
     for (const row of data.debts) {
+      const receipt =
+        row.receipt_path && includedReceipts.has(row.receipt_path) ? row.receipt_path : null
       const info = insertDebt.run(
         userId,
         row.creditor,
@@ -301,6 +320,8 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         row.payment_type ?? 'no-schedule',
         row.monthly_amount ?? null,
         row.payment_day ?? null,
+        row.first_payment_date ?? null,
+        receipt,
         row.status ?? 'unpaid',
         row.notes ?? null,
         row.is_archived ? 1 : 0,
@@ -311,18 +332,22 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     }
 
     const insertPayment = db.prepare(
-      `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
     for (const row of data.debt_payments) {
       const debtId = debtMap.get(row.debt_id)
       if (!debtId) continue
+      const receipt =
+        row.receipt_path && includedReceipts.has(row.receipt_path) ? row.receipt_path : null
       insertPayment.run(
         debtId,
         num(row.amount),
         row.date,
         row.notes ?? null,
         row.payment_type ?? 'payment',
+        row.installment_due ?? null,
+        receipt,
         row.created_at ?? now
       )
     }

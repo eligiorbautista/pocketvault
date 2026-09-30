@@ -44,7 +44,7 @@ export const DEBT_PAYMENT_TYPE_VALUES = DEBT_PAYMENT_TYPES.map((t) => t.value)
 
 export const DEBT_STATUSES = ['unpaid', 'partial', 'paid', 'overdue']
 
-export const DEBT_PAYMENT_KINDS = ['payment', 'reborrow']
+export const DEBT_PAYMENT_KINDS = ['payment']
 
 export const SESSION_STORAGE_KEY = 'pocketvault.session'
 

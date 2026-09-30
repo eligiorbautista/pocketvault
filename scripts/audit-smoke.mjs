@@ -188,7 +188,7 @@ check('expense distinct categories exclude archived', (() => {
   return cats.includes('transport') && !cats.includes('shopping')
 })())
 
-// ---------- debts CRUD + payments + reborrow ----------
+// ---------- debts CRUD + payments ----------
 const debt = debtsRepo.create(db, alice.id, {
   creditor: 'Bank',
   total_amount: 10000,
@@ -196,20 +196,15 @@ const debt = debtsRepo.create(db, alice.id, {
   payment_type: 'fixed-date',
   monthly_amount: null,
   payment_day: null,
+  first_payment_date: null,
   notes: null
 })
 check('debt starts unpaid/0 remaining delta', debt.paid_amount === 0 && debt.remaining_amount === 10000 && debt.effective_status === 'unpaid')
 debtsRepo.addPayment(db, alice.id, debt.id, { amount: 2500, date: '2026-05-05', notes: null })
 let d = debtsRepo.getById(db, alice.id, debt.id)
 check('debt partial after payment', d.paid_amount === 2500 && d.remaining_amount === 7500 && d.effective_status === 'partial')
-debtsRepo.reborrow(db, alice.id, debt.id, { amount: 1000, date: '2026-05-06', notes: null })
-d = debtsRepo.getById(db, alice.id, debt.id)
-check('reborrow raises total & remaining', d.total_amount === 11000 && d.remaining_amount === 8500, d.remaining_amount)
 const payments = debtsRepo.listPayments(db, alice.id, debt.id)
-check('payment ledger has 2 entries', payments.length === 2)
-debtsRepo.removePayment(db, alice.id, payments.find((p) => p.payment_type === 'reborrow').id)
-d = debtsRepo.getById(db, alice.id, debt.id)
-check('removing reborrow restores total', d.total_amount === 10000 && d.remaining_amount === 7500)
+check('payment ledger has 1 entry', payments.length === 1)
 debtsRepo.addPayment(db, alice.id, debt.id, { amount: 5000, date: '2026-05-07', notes: null })
 d = debtsRepo.getById(db, alice.id, debt.id)
 check('debt partial after 7500 paid', d.paid_amount === 7500 && d.remaining_amount === 2500 && d.effective_status === 'partial', { paid: d.paid_amount, rem: d.remaining_amount })

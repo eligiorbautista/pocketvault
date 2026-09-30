@@ -5,10 +5,21 @@ import { RECEIPT_FILE_PATTERN } from '../../shared/constants.js'
 // Permanently deletes all of a user's records and receipts, but keeps the
 // user account itself (login stays valid).
 export function deleteUserData(db, userId, receiptsDir) {
-  const receiptPaths = db
-    .prepare("SELECT receipt_path FROM income WHERE user_id = ? AND receipt_path IS NOT NULL")
-    .all(userId)
-    .map((row) => row.receipt_path)
+  const receiptPaths = [
+    ...db
+      .prepare("SELECT receipt_path FROM income WHERE user_id = ? AND receipt_path IS NOT NULL")
+      .all(userId),
+    ...db
+      .prepare("SELECT receipt_path FROM debts WHERE user_id = ? AND receipt_path IS NOT NULL")
+      .all(userId),
+    ...db
+      .prepare(
+        `SELECT p.receipt_path FROM debt_payments p
+         JOIN debts d ON d.id = p.debt_id
+         WHERE d.user_id = ? AND p.receipt_path IS NOT NULL`
+      )
+      .all(userId)
+  ].map((row) => row.receipt_path)
 
   const counts = {}
   const run = db.transaction(() => {

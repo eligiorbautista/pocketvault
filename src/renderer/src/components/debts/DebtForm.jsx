@@ -1,15 +1,17 @@
 import { api } from '@renderer/lib/api.js'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { DEBT_PAYMENT_TYPES } from '@shared/constants.js'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
 import { Field } from '@renderer/components/ui/Field.jsx'
 import { Input, Select, Textarea } from '@renderer/components/ui/Input.jsx'
+import { ReceiptField } from '@renderer/components/ui/ReceiptField.jsx'
 import { todayInput } from '@renderer/lib/format.js'
 import { toast } from '@renderer/store/uiStore.js'
 
 export function DebtForm({ open, initial, onClose, onSaved }) {
+  const [receiptPath, setReceiptPath] = useState(null)
   const {
     register,
     handleSubmit,
@@ -26,9 +28,10 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
         payment_type: initial?.payment_type ?? 'no-schedule',
         due_date: initial?.due_date ?? todayInput(),
         monthly_amount: initial?.monthly_amount ?? '',
-        payment_day: initial?.payment_day ?? 1,
+        first_payment_date: initial?.first_payment_date ?? todayInput(),
         notes: initial?.notes ?? ''
       })
+      setReceiptPath(initial?.receipt_path ?? null)
     }
   }, [open, initial, reset])
 
@@ -41,7 +44,8 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
       payment_type: values.payment_type,
       due_date: values.payment_type === 'fixed-date' ? values.due_date : null,
       monthly_amount: values.payment_type === 'monthly' ? Number(values.monthly_amount) : null,
-      payment_day: values.payment_type === 'monthly' ? Number(values.payment_day) : null,
+      first_payment_date: values.payment_type === 'monthly' ? values.first_payment_date : null,
+      receipt_path: receiptPath,
       notes: values.notes
     }
     try {
@@ -73,7 +77,7 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
       }
     >
       <form id="debt-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        <Field label="Creditor" htmlFor="creditor" error={errors.creditor?.message} required>
+        <Field label="Creditor" htmlFor="creditor" error={errors.creditor?.message}>
           <Input
             id="creditor"
             placeholder="e.g. Bank, friend, landlord"
@@ -83,7 +87,7 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Total amount" htmlFor="total_amount" error={errors.total_amount?.message} required>
+          <Field label="Total amount" htmlFor="total_amount" error={errors.total_amount?.message}>
             <Input
               id="total_amount"
               type="number"
@@ -110,7 +114,7 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
         </div>
 
         {paymentType === 'fixed-date' ? (
-          <Field label="Due date" htmlFor="due_date" error={errors.due_date?.message} required>
+          <Field label="Due date" htmlFor="due_date" error={errors.due_date?.message}>
             <Input
               id="due_date"
               type="date"
@@ -122,7 +126,11 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
 
         {paymentType === 'monthly' ? (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Monthly amount" htmlFor="monthly_amount" error={errors.monthly_amount?.message} required>
+            <Field
+              label="Monthly amount"
+              htmlFor="monthly_amount"
+              error={errors.monthly_amount?.message}
+            >
               <Input
                 id="monthly_amount"
                 type="number"
@@ -137,22 +145,26 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
                 })}
               />
             </Field>
-            <Field label="Payment day" htmlFor="payment_day" error={errors.payment_day?.message} required>
+            <Field
+              label="First payment date"
+              htmlFor="first_payment_date"
+              error={errors.first_payment_date?.message}
+            >
               <Input
-                id="payment_day"
-                type="number"
-                min="1"
-                max="31"
-                hasError={Boolean(errors.payment_day)}
-                {...register('payment_day', {
-                  required: 'Payment day is required',
-                  min: { value: 1, message: 'Between 1 and 31' },
-                  max: { value: 31, message: 'Between 1 and 31' }
+                id="first_payment_date"
+                type="date"
+                hasError={Boolean(errors.first_payment_date)}
+                {...register('first_payment_date', {
+                  required: 'First payment date is required'
                 })}
               />
             </Field>
           </div>
         ) : null}
+
+        <Field label="Proof" htmlFor="debt-receipt" hint="Optional. Attach a photo or PDF.">
+          <ReceiptField value={receiptPath} onChange={setReceiptPath} />
+        </Field>
 
         <Field label="Notes" htmlFor="notes">
           <Textarea id="notes" placeholder="Optional details" {...register('notes')} />

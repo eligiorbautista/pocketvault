@@ -39,7 +39,8 @@ const EXPENSE_COLUMNS =
 const GOAL_COLUMNS =
   'id, user_id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at'
 const DEBT_COLUMNS = `id, user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
-  payment_type, monthly_amount, payment_day, status, notes, is_archived, created_at, updated_at`
+  payment_type, monthly_amount, payment_day, first_payment_date, receipt_path, status, notes,
+  is_archived, created_at, updated_at`
 
 let session = null // { id, username } - in-memory, mirrors the main-process session
 
@@ -821,8 +822,8 @@ export function createCapacitorApi() {
       const info = await run(
         `INSERT INTO debts
           (user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
-           payment_type, monthly_amount, payment_day, status, notes, updated_at)
-         VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, 'unpaid', ?, CURRENT_TIMESTAMP)`,
+           payment_type, monthly_amount, payment_day, first_payment_date, receipt_path, status, notes, updated_at)
+         VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 'unpaid', ?, CURRENT_TIMESTAMP)`,
         [
           userId,
           validateText(data.creditor, 'creditor', { required: true, max: 120 }),
@@ -832,6 +833,10 @@ export function createCapacitorApi() {
           validatePaymentType(data.payment_type, DEBT_PAYMENT_TYPE_VALUES),
           data.monthly_amount ? validateAmount(data.monthly_amount, 'monthly_amount') : null,
           data.payment_day ? validateInt(data.payment_day, 'payment_day') : null,
+          data.first_payment_date
+            ? validateDate(data.first_payment_date, 'first_payment_date', { required: false })
+            : null,
+          data.receipt_path ?? null,
           validateText(data.notes, 'notes')
         ]
       )
@@ -850,8 +855,8 @@ export function createCapacitorApi() {
       const info = await run(
         `UPDATE debts
          SET creditor = ?, total_amount = ?, remaining_amount = ?, due_date = ?,
-             payment_type = ?, monthly_amount = ?, payment_day = ?, notes = ?,
-             updated_at = CURRENT_TIMESTAMP
+             payment_type = ?, monthly_amount = ?, payment_day = ?, first_payment_date = ?,
+             receipt_path = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ? AND user_id = ?`,
         [
           validateText(data.creditor, 'creditor', { required: true, max: 120 }),
@@ -861,6 +866,10 @@ export function createCapacitorApi() {
           validatePaymentType(data.payment_type, DEBT_PAYMENT_TYPE_VALUES),
           data.monthly_amount ? validateAmount(data.monthly_amount, 'monthly_amount') : null,
           data.payment_day ? validateInt(data.payment_day, 'payment_day') : null,
+          data.first_payment_date
+            ? validateDate(data.first_payment_date, 'first_payment_date', { required: false })
+            : null,
+          data.receipt_path ?? null,
           validateText(data.notes, 'notes'),
           id,
           userId
@@ -904,7 +913,7 @@ export function createCapacitorApi() {
       const debt = await getOne('SELECT id FROM debts WHERE id = ? AND user_id = ?', [id, userId])
       if (!debt) return null
       return query(
-        `SELECT id, debt_id, amount, date, notes, payment_type, created_at
+        `SELECT id, debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
          FROM debt_payments WHERE debt_id = ? ORDER BY date DESC, id DESC`,
         [id]
       )
@@ -918,30 +927,14 @@ export function createCapacitorApi() {
       const amount = validateAmount(data.amount)
       const date = validateDate(data.date)
       const notes = validateText(data.notes, 'notes')
+      const installmentDue = data.installment_due
+        ? validateDate(data.installment_due, 'installment_due')
+        : null
       await run(
-        `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type)
-         VALUES (?, ?, ?, ?, 'payment')`,
-        [id, amount, date, notes]
+        `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type, installment_due, receipt_path)
+         VALUES (?, ?, ?, ?, 'payment', ?, ?)`,
+        [id, amount, date, notes, installmentDue, data.receipt_path ?? null]
       )
-      await syncDebtStatus(id, userId)
-      return getDebtById(userId, id)
-    },
-
-    reborrow: async (debtId, data) => {
-      const userId = requireUserId()
-      const id = validateId(debtId, 'debtId')
-      const debt = await getOne('SELECT * FROM debts WHERE id = ? AND user_id = ?', [id, userId])
-      if (!debt) return null
-      const amount = validateAmount(data.amount)
-      const date = validateDate(data.date)
-      const notes = validateText(data.notes, 'notes')
-      const newTotal = fromCents(toCents(debt.total_amount) + toCents(amount))
-      await run(
-        `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type)
-         VALUES (?, ?, ?, ?, 'reborrow')`,
-        [id, amount, date, notes]
-      )
-      await run('UPDATE debts SET total_amount = ? WHERE id = ?', [newTotal, id])
       await syncDebtStatus(id, userId)
       return getDebtById(userId, id)
     },
@@ -957,11 +950,6 @@ export function createCapacitorApi() {
       )
       if (!payment) return null
       await run('DELETE FROM debt_payments WHERE id = ?', [id])
-      if (payment.payment_type === 'reborrow') {
-        const debt = await getOne('SELECT * FROM debts WHERE id = ?', [payment.debt_id])
-        const newTotal = fromCents(Math.max(0, toCents(debt.total_amount) - toCents(payment.amount)))
-        await run('UPDATE debts SET total_amount = ? WHERE id = ?', [newTotal, payment.debt_id])
-      }
       await syncDebtStatus(payment.debt_id, userId)
       return getDebtById(userId, payment.debt_id)
     }

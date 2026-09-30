@@ -115,7 +115,7 @@ export default function Debts() {
     <div className="space-y-6">
       <PageHeader
         title="Debts"
-        description="Track balances, flexible payments and re-borrows."
+        description="Track balances, installment schedules and payments."
         actions={
           <Button
             onClick={() => {

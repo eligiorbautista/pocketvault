@@ -142,5 +142,14 @@ ALTER TABLE budgets ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE savings_goals ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0;
 `
 
-export const MIGRATIONS = [V1, V2, V3]
+// v4: debt enhancements - explicit first installment date for monthly debts,
+// optional proof/receipt at the debt level AND per payment.
+const V4 = `
+ALTER TABLE debts ADD COLUMN first_payment_date TEXT;
+ALTER TABLE debts ADD COLUMN receipt_path TEXT;
+ALTER TABLE debt_payments ADD COLUMN installment_due TEXT;
+ALTER TABLE debt_payments ADD COLUMN receipt_path TEXT;
+`
+
+export const MIGRATIONS = [V1, V2, V3, V4]
 export const SCHEMA_VERSION = MIGRATIONS.length
