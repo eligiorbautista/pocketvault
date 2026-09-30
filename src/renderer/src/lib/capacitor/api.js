@@ -4,6 +4,7 @@ import { Directory, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import {
   DEBT_PAYMENT_TYPE_VALUES,
+  MAX_BACKUP_RECEIPTS_BYTES,
   MAX_RECEIPT_BYTES,
   PAGE_SIZE,
   RECEIPT_EXTENSIONS,
@@ -131,10 +132,30 @@ function pickFile(accept) {
     input.type = 'file'
     input.accept = accept
     input.style.display = 'none'
-    input.onchange = () => {
-      const file = input.files && input.files[0] ? input.files[0] : null
+
+    let settled = false
+    const finish = (file) => {
+      if (settled) return
+      settled = true
+      if (typeof window !== 'undefined' && window.removeEventListener) {
+        window.removeEventListener('focus', onFocus)
+      }
       input.remove()
       resolve(file)
+    }
+    // When the picker closes without a selection, `change` does not fire. The
+    // `cancel` event covers modern WebViews; the window-focus fallback covers
+    // the rest so the promise never hangs.
+    function onFocus() {
+      setTimeout(() => finish(null), 400)
+    }
+    const supportsCancel = 'oncancel' in input
+    input.onchange = () => finish(input.files && input.files[0] ? input.files[0] : null)
+    input.oncancel = () => finish(null)
+    // Old WebViews may not support the `cancel` event; fall back to window
+    // focus so a dismissed picker still resolves instead of hanging.
+    if (!supportsCancel && typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('focus', onFocus)
     }
     document.body.appendChild(input)
     input.click()
@@ -1541,11 +1562,21 @@ export function createCapacitorApi() {
       }
 
       const receipts = []
+      let totalReceiptBytes = 0
       for (const path of Object.keys(zip.files)) {
         if (!path.startsWith(BACKUP_RECEIPTS_PREFIX) || zip.files[path].dir) continue
         const name = path.slice(BACKUP_RECEIPTS_PREFIX.length)
         if (name.includes('/') || !RECEIPT_FILE_PATTERN.test(name)) continue
-        receipts.push({ name, base64: await zip.files[path].async('base64') })
+        const base64 = await zip.files[path].async('base64')
+        const approxBytes = Math.floor((base64.length * 3) / 4)
+        if (approxBytes > MAX_RECEIPT_BYTES) {
+          throw new Error('Invalid backup: a receipt exceeds the size limit')
+        }
+        totalReceiptBytes += approxBytes
+        if (totalReceiptBytes > MAX_BACKUP_RECEIPTS_BYTES) {
+          throw new Error('Invalid backup: too much receipt data')
+        }
+        receipts.push({ name, base64 })
       }
       const included = new Set(receipts.map((receipt) => receipt.name))
 

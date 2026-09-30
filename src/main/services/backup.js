@@ -1,9 +1,11 @@
 import JSZip from 'jszip'
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
-import { MAX_RECEIPT_BYTES, RECEIPT_FILE_PATTERN } from '../../shared/constants.js'
-
-const MAX_BACKUP_RECEIPTS_BYTES = 100 * 1024 * 1024
+import {
+  MAX_BACKUP_RECEIPTS_BYTES,
+  MAX_RECEIPT_BYTES,
+  RECEIPT_FILE_PATTERN
+} from '../../shared/constants.js'
 
 const FORMAT = 2
 const RECEIPTS_PREFIX = 'receipts/'
@@ -94,20 +96,6 @@ export async function buildUserBackup(db, userId, receiptsDir) {
   }
 
   zip.file(
-    'manifest.json',
-    JSON.stringify(
-      {
-        app: 'PocketVault',
-        format: FORMAT,
-        username: user.username,
-        createdAt: new Date().toISOString(),
-        counts
-      },
-      null,
-      2
-    )
-  )
-  zip.file(
     'account.json',
     JSON.stringify({ username: user.username, created_at: user.created_at }, null, 2)
   )
@@ -145,6 +133,22 @@ export async function buildUserBackup(db, userId, receiptsDir) {
       counts.receipts += 1
     }
   }
+
+  // Written last so the manifest reports the final receipt count.
+  zip.file(
+    'manifest.json',
+    JSON.stringify(
+      {
+        app: 'PocketVault',
+        format: FORMAT,
+        username: user.username,
+        createdAt: new Date().toISOString(),
+        counts
+      },
+      null,
+      2
+    )
+  )
 
   const buffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })
   return { buffer, username: user.username, counts }

@@ -118,6 +118,7 @@ check(
   !JSON.stringify(parsed.data).includes('BobBiz') && !JSON.stringify(parsed.data).includes('bob')
 )
 check('parsed receipts included', parsed.receipts.length === 1 && parsed.receipts[0].name === receiptName)
+check('manifest reports the receipt count', parsed.manifest.counts.receipts === 1, parsed.manifest.counts.receipts)
 
 // --- Target database: alice with different data + bob ---
 const destReceipts = join(dir, 'receipts-dest')

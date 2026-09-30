@@ -57,3 +57,6 @@ export const RECEIPT_FILE_PATTERN = /^[A-Za-z0-9-]+\.(png|jpe?g|webp|gif|pdf)$/i
 export const RECEIPT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.pdf']
 
 export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024
+
+// Upper bound on the total receipt payload inside a backup ZIP (both platforms).
+export const MAX_BACKUP_RECEIPTS_BYTES = 100 * 1024 * 1024
