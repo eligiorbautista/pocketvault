@@ -761,6 +761,15 @@ export function createCapacitorApi() {
         `SELECT ${EXPENSE_COLUMNS} FROM expenses WHERE user_id = ? AND is_archived = 1 ORDER BY date DESC, id DESC`,
         [userId]
       )
+    },
+
+    categories: async () => {
+      const userId = requireUserId()
+      const rows = await query(
+        'SELECT DISTINCT category FROM expenses WHERE user_id = ? AND is_archived = 0 ORDER BY category ASC',
+        [userId]
+      )
+      return rows.map((row) => row.category)
     }
   }
 

@@ -66,4 +66,6 @@ export function registerExpensesHandlers() {
   })
 
   handle('expenses:archived', ({ userId }) => expensesRepo.listArchived(getDatabase(), userId))
+
+  handle('expenses:categories', ({ userId }) => expensesRepo.distinctCategories(getDatabase(), userId))
 }

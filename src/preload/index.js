@@ -44,7 +44,8 @@ const api = {
     update: (id, data) => call('expenses:update', { id, ...data }),
     remove: (id) => call('expenses:remove', { id }),
     restore: (id) => call('expenses:restore', { id }),
-    archived: () => call('expenses:archived')
+    archived: () => call('expenses:archived'),
+    categories: () => call('expenses:categories')
   },
 
   debts: {

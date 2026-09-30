@@ -183,6 +183,10 @@ check('expense update persists', expUpd.category === 'shopping' && expUpd.amount
 check('expense cross-user update blocked', expensesRepo.update(db, bob.id, exp.id, { category: 'food', amount: 1, date: '2026-05-12', notes: null }) === null)
 check('expense remove works', expensesRepo.remove(db, alice.id, exp.id) === true)
 check('expense remove missing false', expensesRepo.remove(db, alice.id, 999999) === false)
+check('expense distinct categories exclude archived', (() => {
+  const cats = expensesRepo.distinctCategories(db, alice.id)
+  return cats.includes('transport') && !cats.includes('shopping')
+})())
 
 // ---------- debts CRUD + payments + reborrow ----------
 const debt = debtsRepo.create(db, alice.id, {

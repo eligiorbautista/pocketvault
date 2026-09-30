@@ -119,3 +119,14 @@ export function spentByCategory(db, userId, { from, to }) {
     )
     .all(userId, from, to)
 }
+
+// Distinct active categories for this user (used to populate filter dropdowns
+// so custom categories are selectable).
+export function distinctCategories(db, userId) {
+  return db
+    .prepare(
+      'SELECT DISTINCT category FROM expenses WHERE user_id = ? AND is_archived = 0 ORDER BY category ASC'
+    )
+    .all(userId)
+    .map((row) => row.category)
+}

@@ -155,8 +155,18 @@ export default function Expenses() {
     () => api.expenses.list({ page, ...filters }),
     [page, filters]
   )
+  const categoriesQuery = useApiData(() => api.expenses.categories(), [])
 
   const rows = data?.rows ?? []
+
+  // Built-in categories plus any custom categories already in use, so the
+  // filter dropdown can select them too.
+  const filterCategories = [
+    ...EXPENSE_CATEGORIES,
+    ...(categoriesQuery.data ?? [])
+      .filter((value) => !EXPENSE_CATEGORIES.some((option) => option.value === value))
+      .map((value) => ({ value, label: value }))
+  ]
 
   const applyFilters = (event) => {
     event.preventDefault()
@@ -179,6 +189,7 @@ export default function Expenses() {
       setPendingDelete(null)
       if (rows.length === 1 && page > 1) setPage(page - 1)
       else reload()
+      categoriesQuery.reload()
     } catch (err) {
       toast(err.message, 'error')
     } finally {
@@ -255,7 +266,7 @@ export default function Expenses() {
               onChange={(event) => setDraft((prev) => ({ ...prev, category: event.target.value }))}
             >
               <option value="">All categories</option>
-              {EXPENSE_CATEGORIES.map((category) => (
+              {filterCategories.map((category) => (
                 <option key={category.value} value={category.value}>
                   {category.label}
                 </option>
@@ -350,7 +361,10 @@ export default function Expenses() {
         open={formOpen}
         initial={editing}
         onClose={() => setFormOpen(false)}
-        onSaved={reload}
+        onSaved={() => {
+          reload()
+          categoriesQuery.reload()
+        }}
       />
 
       <ConfirmDialog
