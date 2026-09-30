@@ -1,7 +1,7 @@
 import { api } from '@renderer/lib/api.js'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Pencil, Plus, Trash2, TrendingDown } from 'lucide-react'
+import { Plus, TrendingDown } from 'lucide-react'
 import { EXPENSE_CATEGORIES } from '@shared/constants.js'
 import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
 import { Card } from '@renderer/components/ui/Card.jsx'
@@ -205,35 +205,19 @@ export default function Expenses() {
       mobile: false,
       className: 'max-w-xs',
       render: (row) => <span className="line-clamp-1 text-slate-500 dark:text-gray-400">{row.notes || '\u2014'}</span>
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      align: 'right',
-      render: (row) => (
-        <div className="flex justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Edit expense ${row.id}`}
-            onClick={() => {
-              setEditing(row)
-              setFormOpen(true)
-            }}
-          >
-            <Pencil size={16} aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Delete expense ${row.id}`}
-            onClick={() => setPendingDelete(row)}
-          >
-            <Trash2 size={16} className="text-red-500" aria-hidden="true" />
-          </Button>
-        </div>
-      )
     }
+  ]
+
+  const rowActions = (row) => [
+    {
+      key: 'edit',
+      label: 'Edit',
+      onSelect: () => {
+        setEditing(row)
+        setFormOpen(true)
+      }
+    },
+    { key: 'delete', label: 'Delete', tone: 'danger', onSelect: () => setPendingDelete(row) }
   ]
 
   return (
@@ -325,6 +309,12 @@ export default function Expenses() {
           rows={rows}
           getRowKey={(row) => row.id}
           loading={loading}
+          actions={rowActions}
+          onRowClick={(row) => {
+            setEditing(row)
+            setFormOpen(true)
+          }}
+          onRowClickLabel="Edit expense"
           emptyState={
             <EmptyState
               icon={TrendingDown}

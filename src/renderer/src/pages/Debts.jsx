@@ -1,6 +1,6 @@
 import { api } from '@renderer/lib/api.js'
 import { useState } from 'react'
-import { Eye, HandCoins, Pencil, Plus, Trash2 } from 'lucide-react'
+import { HandCoins, Plus } from 'lucide-react'
 import { DEBT_STATUSES } from '@shared/constants.js'
 import { PageHeader, StatCard } from '@renderer/components/ui/PageHeader.jsx'
 import { Card } from '@renderer/components/ui/Card.jsx'
@@ -81,7 +81,7 @@ export default function Debts() {
       header: 'Paid',
       align: 'right',
       render: (row) => (
-        <span className="font-medium text-accent-700 dark:text-accent-400">{formatCurrency(row.paid_amount)}</span>
+        <span className="font-medium text-accent-700 dark:text-green-400">{formatCurrency(row.paid_amount)}</span>
       )
     },
     {
@@ -95,43 +95,20 @@ export default function Debts() {
       key: 'status',
       header: 'Status',
       render: (row) => <Badge variant={statusVariant(row.effective_status)}>{row.effective_status}</Badge>
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      align: 'right',
-      render: (row) => (
-        <div className="flex justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`View debt ${row.id}`}
-            onClick={() => setDetailId(row.id)}
-          >
-            <Eye size={16} aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Edit debt ${row.id}`}
-            onClick={() => {
-              setEditing(row)
-              setFormOpen(true)
-            }}
-          >
-            <Pencil size={16} aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Delete debt ${row.id}`}
-            onClick={() => setPendingDelete(row)}
-          >
-            <Trash2 size={16} className="text-red-500" aria-hidden="true" />
-          </Button>
-        </div>
-      )
     }
+  ]
+
+  const rowActions = (row) => [
+    { key: 'view', label: 'View', mobile: false, onSelect: () => setDetailId(row.id) },
+    {
+      key: 'edit',
+      label: 'Edit',
+      onSelect: () => {
+        setEditing(row)
+        setFormOpen(true)
+      }
+    },
+    { key: 'delete', label: 'Delete', tone: 'danger', onSelect: () => setPendingDelete(row) }
   ]
 
   return (
@@ -228,6 +205,9 @@ export default function Debts() {
           rows={rows}
           getRowKey={(row) => row.id}
           loading={loading}
+          actions={rowActions}
+          onRowClick={(row) => setDetailId(row.id)}
+          onRowClickLabel="View debt"
           emptyState={
             <EmptyState
               icon={HandCoins}

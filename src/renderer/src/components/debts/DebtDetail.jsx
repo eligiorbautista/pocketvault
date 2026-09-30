@@ -174,7 +174,7 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500">Paid</p>
-                <p className="text-sm font-semibold text-accent-700 dark:text-accent-400">
+                <p className="text-sm font-semibold text-accent-700 dark:text-green-400">
                   {formatCurrency(debt.paid_amount)}
                 </p>
               </div>

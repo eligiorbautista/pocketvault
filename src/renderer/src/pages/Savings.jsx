@@ -1,6 +1,6 @@
 import { api } from '@renderer/lib/api.js'
 import { useState } from 'react'
-import { CalendarClock, Pencil, Plus, Target, Trash2 } from 'lucide-react'
+import { CalendarClock, Plus, Target } from 'lucide-react'
 import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
 import { Card } from '@renderer/components/ui/Card.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
@@ -118,22 +118,21 @@ export default function Savings() {
                 </Button>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  aria-label={`Edit goal ${goal.id}`}
+                  size="sm"
                   onClick={() => {
                     setEditing(goal)
                     setFormOpen(true)
                   }}
                 >
-                  <Pencil size={16} aria-hidden="true" />
+                  Edit
                 </Button>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  aria-label={`Delete goal ${goal.id}`}
+                  size="sm"
+                  className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
                   onClick={() => setPendingDelete(goal)}
                 >
-                  <Trash2 size={16} className="text-red-500" aria-hidden="true" />
+                  Delete
                 </Button>
               </div>
             </Card>

@@ -1,7 +1,7 @@
 import { api } from '@renderer/lib/api.js'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Pencil, Plus, Receipt, Trash2, TrendingUp } from 'lucide-react'
+import { Plus, Receipt, TrendingUp } from 'lucide-react'
 import { INCOME_SOURCES } from '@shared/constants.js'
 import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
 import { Card } from '@renderer/components/ui/Card.jsx'
@@ -235,53 +235,31 @@ export default function Income() {
       render: (row) => <span className="font-medium text-accent-700 dark:text-accent-400">{formatCurrency(row.amount)}</span>
     },
     {
-      key: 'receipt',
-      header: 'Receipt',
-      action: true,
-      render: (row) =>
-        row.receipt_path ? (
-          <Button variant="ghost" size="sm" onClick={() => setViewingReceipt(row.receipt_path)}>
-            View
-          </Button>
-        ) : (
-          <span className="text-slate-400 dark:text-gray-500">{'\u2014'}</span>
-        )
-    },
-    {
       key: 'notes',
       header: 'Notes',
       mobile: false,
       className: 'max-w-xs',
       render: (row) => <span className="line-clamp-1 text-slate-500 dark:text-gray-400">{row.notes || '\u2014'}</span>
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      align: 'right',
-      render: (row) => (
-        <div className="flex justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Edit income ${row.id}`}
-            onClick={() => {
-              setEditing(row)
-              setFormOpen(true)
-            }}
-          >
-            <Pencil size={16} aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Delete income ${row.id}`}
-            onClick={() => setPendingDelete(row)}
-          >
-            <Trash2 size={16} className="text-red-500" aria-hidden="true" />
-          </Button>
-        </div>
-      )
     }
+  ]
+
+  const rowActions = (row) => [
+    row.receipt_path
+      ? {
+          key: 'receipt',
+          label: 'View receipt',
+          onSelect: () => setViewingReceipt(row.receipt_path)
+        }
+      : null,
+    {
+      key: 'edit',
+      label: 'Edit',
+      onSelect: () => {
+        setEditing(row)
+        setFormOpen(true)
+      }
+    },
+    { key: 'delete', label: 'Delete', tone: 'danger', onSelect: () => setPendingDelete(row) }
   ]
 
   return (
@@ -359,6 +337,12 @@ export default function Income() {
           rows={rows}
           getRowKey={(row) => row.id}
           loading={loading}
+          actions={rowActions}
+          onRowClick={(row) => {
+            setEditing(row)
+            setFormOpen(true)
+          }}
+          onRowClickLabel="Edit income"
           emptyState={
             <EmptyState
               icon={TrendingUp}

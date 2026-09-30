@@ -1,7 +1,7 @@
 import { api } from '@renderer/lib/api.js'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { AlertTriangle, Pencil, Plus, Trash2, Wallet } from 'lucide-react'
+import { AlertTriangle, Plus, Wallet } from 'lucide-react'
 import { EXPENSE_CATEGORIES } from '@shared/constants.js'
 import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
 import { Card } from '@renderer/components/ui/Card.jsx'
@@ -246,25 +246,24 @@ export default function Budgets() {
                     ? `${formatCurrency(Math.abs(budget.remaining))} over`
                     : `${formatCurrency(budget.remaining)} left`}
                 </span>
-                <div className="flex gap-1">
+                <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
-                    size="icon"
-                    aria-label={`Edit budget ${budget.id}`}
+                    size="sm"
                     onClick={() => {
                       setEditing(budget)
                       setFormOpen(true)
                     }}
                   >
-                    <Pencil size={16} aria-hidden="true" />
+                    Edit
                   </Button>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    aria-label={`Delete budget ${budget.id}`}
+                    size="sm"
+                    className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
                     onClick={() => setPendingDelete(budget)}
                   >
-                    <Trash2 size={16} className="text-red-500" aria-hidden="true" />
+                    Delete
                   </Button>
                 </div>
               </div>
