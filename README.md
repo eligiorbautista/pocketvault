@@ -16,6 +16,9 @@ are required.
   plus **Pay** and **Undo**); the last installment absorbs any rounding remainder. Other
   debts keep a free-form payment ledger. The list shows paid progress at a glance.
 - **Budgets** — monthly limit per category with progress bars and over-budget alerts.
+- **Reminders** — optional debt payment reminders: a heads-up before each due date
+  (configurable lead time) and one when a payment is overdue. Android fires them even
+  when the app is closed; desktop fires them while PocketVault is running.
 - **Savings** — goals, contributions (linkable to an income record), progress.
 - **Reports** — monthly/yearly summaries with charts, PDF and CSV export.
 - **Dashboard** — totals and recent activity, filterable by **month, custom date range,
@@ -46,7 +49,8 @@ Capacitor SQLite/Filesystem adapter. Both use the **same schema** (`src/shared/s
 ## Tech stack
 
 Electron · electron-vite (Vite 7) · React 19 · React Router · Zustand · Tailwind CSS v4 ·
-better-sqlite3 · Capacitor 8 (`@capacitor-community/sqlite`, `@capacitor/filesystem`) ·
+better-sqlite3 · Capacitor 8 (`@capacitor-community/sqlite`, `@capacitor/filesystem`,
+`@capacitor/local-notifications`) ·
 bcryptjs · react-hook-form · Recharts · date-fns · jsPDF · JSZip · sonner · lucide-react.
 
 ## Requirements
@@ -159,6 +163,9 @@ capacitor.config.json
   backup from file is not implemented yet.
 - Opening a receipt in the system viewer is not supported on Android (in-app preview works).
 - Receipt upload uses the system file picker.
+- Debt reminders need notification permission (requested the first time you enable them). The
+  Android build fires them even when the app is closed; the desktop build only fires while the
+  app is running.
 
 ## Manual test checklist
 
@@ -175,3 +182,5 @@ capacitor.config.json
 10. Switch the dashboard period between By month, Custom range, and All records.
 11. Resize the window from 320px to 1920px and confirm the layout stays usable.
 12. Run `sh build-capacitor.sh`, install `installers/android/PocketVault.apk` on a device/emulator, register, add records, and confirm data survives an app restart.
+13. In Settings → Reminders, enable reminders and set the lead time; confirm a debt with an
+    upcoming due date schedules a notification (desktop: while running; Android: also when closed).

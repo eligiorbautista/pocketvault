@@ -1,6 +1,7 @@
 import { api } from '@renderer/lib/api.js'
 import { create } from 'zustand'
 import { SESSION_STORAGE_KEY } from '@shared/constants.js'
+import { clearDebtReminders } from '@renderer/lib/notifications.js'
 
 function persistSession(user) {
   localStorage.setItem(
@@ -66,6 +67,11 @@ export const useAuthStore = create((set) => ({
   },
 
   async logout() {
+    try {
+      await clearDebtReminders()
+    } catch {
+      // ignore — clearing reminders must never block sign-out
+    }
     try {
       await api.auth.logout()
     } finally {

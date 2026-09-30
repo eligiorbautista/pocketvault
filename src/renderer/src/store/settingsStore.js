@@ -1,10 +1,17 @@
 import { api } from '@renderer/lib/api.js'
 import { create } from 'zustand'
 import { DEFAULT_CURRENCY } from '@shared/currency.js'
+import { DEFAULT_LEAD_DAYS } from '@shared/reminders.js'
 
-export const useSettingsStore = create((set) => ({
+const DEFAULTS = {
   currency: DEFAULT_CURRENCY,
   requirePasswordOnStart: false,
+  remindersEnabled: false,
+  reminderLeadDays: DEFAULT_LEAD_DAYS
+}
+
+export const useSettingsStore = create((set) => ({
+  ...DEFAULTS,
   loaded: false,
 
   async load() {
@@ -12,6 +19,8 @@ export const useSettingsStore = create((set) => ({
     set({
       currency: settings.currency,
       requirePasswordOnStart: settings.requirePasswordOnStart,
+      remindersEnabled: settings.remindersEnabled,
+      reminderLeadDays: settings.reminderLeadDays,
       loaded: true
     })
     return settings
@@ -21,12 +30,14 @@ export const useSettingsStore = create((set) => ({
     const settings = await api.settings.update(patch)
     set({
       currency: settings.currency,
-      requirePasswordOnStart: settings.requirePasswordOnStart
+      requirePasswordOnStart: settings.requirePasswordOnStart,
+      remindersEnabled: settings.remindersEnabled,
+      reminderLeadDays: settings.reminderLeadDays
     })
     return settings
   },
 
   reset() {
-    set({ currency: DEFAULT_CURRENCY, requirePasswordOnStart: false, loaded: false })
+    set({ ...DEFAULTS, loaded: false })
   }
 }))

@@ -122,12 +122,26 @@ await check('current returns session', async () => (await api.auth.current()).us
 
 await check('settings default', async () => {
   const s = await api.settings.get()
-  return s.currency === 'PHP' && s.requirePasswordOnStart === false
+  return (
+    s.currency === 'PHP' &&
+    s.requirePasswordOnStart === false &&
+    s.remindersEnabled === false &&
+    s.reminderLeadDays === 3
+  )
 })
 await check('settings update', async () => {
   const s = await api.settings.update({ currency: 'USD', requirePasswordOnStart: true })
   return s.currency === 'USD' && s.requirePasswordOnStart === true
 })
+await check('settings reminders persist + validate', async () => {
+  const s = await api.settings.update({ remindersEnabled: true, reminderLeadDays: 5 })
+  return s.remindersEnabled === true && s.reminderLeadDays === 5
+})
+await expectThrow(
+  'settings out-of-range lead days rejected',
+  () => api.settings.update({ reminderLeadDays: 99 }),
+  'reminderLeadDays'
+)
 
 let incomeId
 await check('income create', async () => {

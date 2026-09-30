@@ -16,6 +16,7 @@ import { DebtForm } from '@renderer/components/debts/DebtForm.jsx'
 import { DebtDetail } from '@renderer/components/debts/DebtDetail.jsx'
 import { formatCurrency, formatDate } from '@renderer/lib/format.js'
 import { useApiData } from '@renderer/hooks/useApiData.js'
+import { syncDebtReminders } from '@renderer/lib/notifications.js'
 import { toast } from '@renderer/store/uiStore.js'
 
 const EMPTY_FILTERS = { search: '', status: '', order: 'recent' }
@@ -60,6 +61,7 @@ export default function Debts() {
       if (rows.length === 1 && page > 1) setPage(page - 1)
       else reload()
       summary.reload()
+      syncDebtReminders()
     } catch (err) {
       toast(err.message, 'error')
     } finally {
@@ -246,6 +248,7 @@ export default function Debts() {
         onSaved={() => {
           reload()
           summary.reload()
+          syncDebtReminders()
         }}
       />
 
@@ -256,6 +259,7 @@ export default function Debts() {
         onChanged={() => {
           reload()
           summary.reload()
+          syncDebtReminders()
         }}
       />
 

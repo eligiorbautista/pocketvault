@@ -5,8 +5,12 @@ import { clearSession } from './db/session.js'
 import { registerIpcHandlers } from './ipc/index.js'
 import { receiptsDir } from './services/receipts.js'
 import { reconcileReceipts } from './services/receiptCleanup.js'
+import { clearReminders } from './services/reminders.js'
 
 const isDev = !app.isPackaged
+
+// Required for Windows to show notifications under the right app identity.
+app.setAppUserModelId('com.pocketvault.app')
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -77,5 +81,6 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  clearReminders()
   closeDatabase()
 })

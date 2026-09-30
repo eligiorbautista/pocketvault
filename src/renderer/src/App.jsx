@@ -4,6 +4,7 @@ import { Toaster } from 'sonner'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { useSettingsStore } from '@renderer/store/settingsStore.js'
 import { useTheme } from '@renderer/hooks/useTheme.js'
+import { syncDebtReminders } from '@renderer/lib/notifications.js'
 import { ProtectedRoute, PublicOnlyRoute } from '@renderer/components/ProtectedRoute.jsx'
 import { AppShell } from '@renderer/components/layout/AppShell.jsx'
 import { SplashScreen } from '@renderer/components/layout/SplashScreen.jsx'
@@ -48,7 +49,10 @@ export default function App() {
         if (!active) return
         if (settings.requirePasswordOnStart && useAuthStore.getState().viaRestore) {
           useAuthStore.getState().logout()
+          return
         }
+        // (Re)register debt payment reminders for this account.
+        syncDebtReminders()
       })
       .catch((error) => {
         console.error('Failed to load settings', error)

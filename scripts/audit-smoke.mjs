@@ -37,6 +37,13 @@ import {
   validateUsername
 } from '../src/main/db/validate.js'
 import { fromCents, round2, sumPesos, toCents } from '../src/shared/money.js'
+import {
+  buildInstallments,
+  buildReminderPlan,
+  effectiveDueDate,
+  installmentStatus,
+  nextUnpaidInstallment
+} from '../src/shared/reminders.js'
 
 let passed = 0
 const failures = []
@@ -310,6 +317,57 @@ check('settings persist require-password', settingsRepo.getSettings(db, alice.id
 settingsRepo.upsertSettings(db, alice.id, { currency: 'EUR' })
 const patched = settingsRepo.getSettings(db, alice.id)
 check('settings partial update keeps other field', patched.currency === 'EUR' && patched.requirePasswordOnStart === true)
+
+// ---------- reminder settings ----------
+const defaultSettings = settingsRepo.getSettings(db, alice.id)
+check('settings default reminders off', defaultSettings.remindersEnabled === false)
+check('settings default lead days 3', defaultSettings.reminderLeadDays === 3)
+settingsRepo.upsertSettings(db, alice.id, { remindersEnabled: true, reminderLeadDays: 5 })
+const remSettings = settingsRepo.getSettings(db, alice.id)
+check('settings persist reminders', remSettings.remindersEnabled === true && remSettings.reminderLeadDays === 5)
+settingsRepo.upsertSettings(db, alice.id, { currency: 'USD' })
+check('settings partial keeps reminders', settingsRepo.getSettings(db, alice.id).reminderLeadDays === 5)
+
+// ---------- reminder plan (pure) ----------
+const now = new Date('2026-06-10T08:00:00')
+const fixedDebt = {
+  id: 1,
+  creditor: 'Bank',
+  payment_type: 'fixed-date',
+  due_date: '2026-06-20',
+  remaining_amount: 500,
+  is_archived: 0
+}
+const fixedPlan = buildReminderPlan([fixedDebt], {}, { leadDays: 3, now })
+check('reminder plan has upcoming + due', fixedPlan.length === 2, fixedPlan.length)
+check('reminder upcoming precedes due', fixedPlan[0].kind === 'upcoming' && fixedPlan[0].dueDate === '2026-06-20')
+check('reminder fires at 9am local', fixedPlan[0].at.getHours() === 9)
+const overduePlan = buildReminderPlan([{ ...fixedDebt, due_date: '2026-06-01' }], {}, { leadDays: 3, now })
+check('overdue debt yields one overdue reminder', overduePlan.length === 1 && overduePlan[0].kind === 'overdue')
+check('paid debt yields no reminders', buildReminderPlan([{ ...fixedDebt, remaining_amount: 0 }], {}, { now }).length === 0)
+const planMonthlyDebt = {
+  id: 2,
+  creditor: 'Home Credit',
+  payment_type: 'monthly',
+  total_amount: 3000,
+  monthly_amount: 1000,
+  first_payment_date: '2026-06-15',
+  remaining_amount: 3000,
+  is_archived: 0,
+  created_at: '2026-06-01 00:00:00'
+}
+const installments = buildInstallments(planMonthlyDebt)
+check('installments count with remainder', installments.length === 3 && installments[2].amount === 1000, installments.length)
+check('installments step by one month', installments[1].due_date === '2026-07-15')
+check('next unpaid is first installment', nextUnpaidInstallment(planMonthlyDebt, []).due_date === '2026-06-15')
+check(
+  'next unpaid advances after a payment',
+  nextUnpaidInstallment(planMonthlyDebt, [{ installment_due: '2026-06-15', amount: 1000 }]).due_date === '2026-07-15'
+)
+check('effectiveDueDate uses due_date for fixed', effectiveDueDate(fixedDebt, []) === '2026-06-20')
+check('monthly plan schedules later installments', buildReminderPlan([planMonthlyDebt], { 2: [] }, { leadDays: 2, now }).length >= 3)
+check('installmentStatus paid', installmentStatus(1000, 1000, '2026-06-15', '2026-06-20') === 'paid')
+check('installmentStatus overdue', installmentStatus(0, 1000, '2026-06-15', '2026-06-20') === 'overdue')
 
 // ---------- receipt reconciliation ----------
 const recDir = join(dir, 'reconcile-receipts')

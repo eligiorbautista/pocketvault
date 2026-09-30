@@ -113,6 +113,11 @@ const api = {
   settings: {
     get: () => call('settings:get'),
     update: (patch) => call('settings:update', patch)
+  },
+
+  notifications: {
+    schedule: (plan) => call('notifications:schedule', { plan }),
+    clear: () => call('notifications:clear')
   }
 }
 

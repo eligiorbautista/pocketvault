@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
   BarChart3,
+  Bell,
   Coins,
   Database,
   Download,
@@ -24,14 +25,16 @@ import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
 import { Card, CardBody, CardHeader, CardIcon, CardTitle } from '@renderer/components/ui/Card.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
 import { Field, SettingRow } from '@renderer/components/ui/Field.jsx'
-import { Select, Switch } from '@renderer/components/ui/Input.jsx'
+import { Input, Select, Switch } from '@renderer/components/ui/Input.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
 import { ChangePasswordForm } from '@renderer/components/settings/ChangePasswordForm.jsx'
 import { DeleteDataForm } from '@renderer/components/settings/DeleteDataForm.jsx'
 import { ThemeSelect } from '@renderer/components/settings/ThemeSelect.jsx'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { useSettingsStore } from '@renderer/store/settingsStore.js'
+import { syncDebtReminders } from '@renderer/lib/notifications.js'
 import { currencyCodes, currencyName, currencySymbol } from '@shared/currency.js'
+import { MAX_LEAD_DAYS } from '@shared/reminders.js'
 import { formatCurrency } from '@renderer/lib/format.js'
 import { toast } from '@renderer/store/uiStore.js'
 
@@ -57,6 +60,8 @@ export default function Settings() {
   const [deleteDataOpen, setDeleteDataOpen] = useState(false)
   const currency = useSettingsStore((state) => state.currency)
   const requirePasswordOnStart = useSettingsStore((state) => state.requirePasswordOnStart)
+  const remindersEnabled = useSettingsStore((state) => state.remindersEnabled)
+  const reminderLeadDays = useSettingsStore((state) => state.reminderLeadDays)
 
   const changeCurrency = async (event) => {
     const next = event.target.value
@@ -75,6 +80,27 @@ export default function Settings() {
         next ? 'Password will be required on startup' : 'Password no longer required on startup',
         'success'
       )
+    } catch (error) {
+      toast(error.message, 'error')
+    }
+  }
+
+  const toggleReminders = async (next) => {
+    try {
+      await useSettingsStore.getState().update({ remindersEnabled: next })
+      syncDebtReminders()
+      toast(next ? 'Payment reminders on' : 'Payment reminders off', 'success')
+    } catch (error) {
+      toast(error.message, 'error')
+    }
+  }
+
+  const changeLeadDays = async (event) => {
+    const value = Number(event.target.value)
+    try {
+      await useSettingsStore.getState().update({ reminderLeadDays: value })
+      syncDebtReminders()
+      toast('Reminder timing updated', 'success')
     } catch (error) {
       toast(error.message, 'error')
     }
@@ -187,6 +213,45 @@ export default function Settings() {
                 </option>
               ))}
             </Select>
+          </SettingRow>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardIcon icon={Bell} />
+          <CardTitle>Reminders</CardTitle>
+        </CardHeader>
+        <CardBody className="py-2">
+          <SettingRow
+            title="Debt payment reminders"
+            description="Notify you before a debt is due and again once it is overdue."
+          >
+            <Switch
+              checked={remindersEnabled}
+              onChange={toggleReminders}
+              aria-label="Debt payment reminders"
+            />
+          </SettingRow>
+
+          <SettingRow
+            title="Remind me before due"
+            description={`Upcoming reminders are sent ${reminderLeadDays} day(s) before the due date, at 9:00 AM.`}
+            htmlFor="settings-lead-days"
+            last
+          >
+            <Input
+              id="settings-lead-days"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              max={MAX_LEAD_DAYS}
+              step="1"
+              value={reminderLeadDays}
+              onChange={changeLeadDays}
+              disabled={!remindersEnabled}
+              className="sm:w-28"
+            />
           </SettingRow>
         </CardBody>
       </Card>

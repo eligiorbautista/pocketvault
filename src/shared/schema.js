@@ -151,5 +151,11 @@ ALTER TABLE debt_payments ADD COLUMN installment_due TEXT;
 ALTER TABLE debt_payments ADD COLUMN receipt_path TEXT;
 `
 
-export const MIGRATIONS = [V1, V2, V3, V4]
+// v5: debt payment reminders (per-user preference + lead time in days).
+const V5 = `
+ALTER TABLE user_settings ADD COLUMN reminders_enabled INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE user_settings ADD COLUMN reminder_lead_days INTEGER NOT NULL DEFAULT 3;
+`
+
+export const MIGRATIONS = [V1, V2, V3, V4, V5]
 export const SCHEMA_VERSION = MIGRATIONS.length

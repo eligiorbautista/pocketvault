@@ -8,6 +8,7 @@ import {
   RECEIPT_FILE_PATTERN
 } from '@shared/constants.js'
 import { DEFAULT_CURRENCY } from '@shared/currency.js'
+import { DEFAULT_LEAD_DAYS, MAX_LEAD_DAYS } from '@shared/reminders.js'
 import { currentMonth, monthRange, todayISO } from '@shared/dates.js'
 import { fromCents, toCents } from '@shared/money.js'
 import {
@@ -552,13 +553,22 @@ export function createCapacitorApi() {
     get: async () => {
       const userId = requireUserId()
       const row = await getOne(
-        'SELECT user_id, currency, require_password_on_start, updated_at FROM user_settings WHERE user_id = ?',
+        'SELECT user_id, currency, require_password_on_start, reminders_enabled, reminder_lead_days, updated_at FROM user_settings WHERE user_id = ?',
         [userId]
       )
-      if (!row) return { currency: DEFAULT_CURRENCY, requirePasswordOnStart: false }
+      if (!row) {
+        return {
+          currency: DEFAULT_CURRENCY,
+          requirePasswordOnStart: false,
+          remindersEnabled: false,
+          reminderLeadDays: DEFAULT_LEAD_DAYS
+        }
+      }
       return {
         currency: row.currency || DEFAULT_CURRENCY,
-        requirePasswordOnStart: Boolean(row.require_password_on_start)
+        requirePasswordOnStart: Boolean(row.require_password_on_start),
+        remindersEnabled: Boolean(row.reminders_enabled),
+        reminderLeadDays: Number(row.reminder_lead_days) || DEFAULT_LEAD_DAYS
       }
     },
     update: async (patch = {}) => {
@@ -569,14 +579,23 @@ export function createCapacitorApi() {
         patch.requirePasswordOnStart === undefined
           ? current.requirePasswordOnStart
           : patch.requirePasswordOnStart
+      const nextReminders =
+        patch.remindersEnabled === undefined ? current.remindersEnabled : patch.remindersEnabled
+      const nextLead =
+        patch.reminderLeadDays === undefined
+          ? current.reminderLeadDays
+          : validateInt(patch.reminderLeadDays, 'reminderLeadDays', { min: 0, max: MAX_LEAD_DAYS })
       await run(
-        `INSERT INTO user_settings (user_id, currency, require_password_on_start, updated_at)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        `INSERT INTO user_settings
+           (user_id, currency, require_password_on_start, reminders_enabled, reminder_lead_days, updated_at)
+         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
          ON CONFLICT (user_id)
          DO UPDATE SET currency = excluded.currency,
                        require_password_on_start = excluded.require_password_on_start,
+                       reminders_enabled = excluded.reminders_enabled,
+                       reminder_lead_days = excluded.reminder_lead_days,
                        updated_at = CURRENT_TIMESTAMP`,
-        [userId, nextCurrency, nextRequire ? 1 : 0]
+        [userId, nextCurrency, nextRequire ? 1 : 0, nextReminders ? 1 : 0, nextLead]
       )
       return settings.get()
     }

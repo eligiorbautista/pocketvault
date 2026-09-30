@@ -8,6 +8,7 @@ import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
 import { cn } from '@renderer/lib/cn.js'
 import { categoryLabel, formatCurrency, formatDate } from '@renderer/lib/format.js'
+import { syncDebtReminders } from '@renderer/lib/notifications.js'
 import { toast } from '@renderer/store/uiStore.js'
 
 // Each section defines how to load/restore and how to render a row.
@@ -100,6 +101,7 @@ export default function Archive() {
         [section.key]: prev[section.key].filter((item) => item.id !== row.id)
       }))
       toast('Restored to active', 'success')
+      if (section.key === 'debts') syncDebtReminders()
     } catch {
       // The row may have been reactivated elsewhere (e.g. re-adding a budget
       // un-archives it). Re-sync instead of surfacing a raw error.
