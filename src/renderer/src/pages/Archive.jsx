@@ -100,8 +100,11 @@ export default function Archive() {
         [section.key]: prev[section.key].filter((item) => item.id !== row.id)
       }))
       toast('Restored to active', 'success')
-    } catch (error) {
-      toast(error.message, 'error')
+    } catch {
+      // The row may have been reactivated elsewhere (e.g. re-adding a budget
+      // un-archives it). Re-sync instead of surfacing a raw error.
+      toast('That item was already restored', 'info')
+      loadAll()
     } finally {
       setBusyId(null)
     }

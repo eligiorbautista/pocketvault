@@ -133,7 +133,7 @@ export default function Budgets() {
     [month]
   )
 
-  const budgets = data ?? []
+  const budgets = Array.isArray(data) ? data : []
   const overBudgets = budgets.filter((budget) => budget.over)
 
   const confirmDelete = async () => {

@@ -34,6 +34,7 @@ export default function Reports() {
   const [year, setYear] = useState(String(new Date().getFullYear()))
   const [exporting, setExporting] = useState(null)
   const dark = useThemeStore((state) => state.resolved === 'dark')
+  const validYear = /^\d{4}$/.test(year)
   const range = { from: `${year}-01-01`, to: `${year}-12-31` }
 
   const gridStroke = dark ? '#3f3f46' : '#e2e8f0'
@@ -46,12 +47,18 @@ export default function Reports() {
   }
   const legendStyle = { color: dark ? '#e5e7eb' : '#334155' }
 
-  const monthlyQuery = useApiData(() => api.reports.monthlyTotals(year), [year])
-  const categoriesQuery = useApiData(
-    () => api.reports.categoryBreakdown(range),
-    [year]
+  const monthlyQuery = useApiData(
+    () => (validYear ? api.reports.monthlyTotals(year) : Promise.resolve([])),
+    [year, validYear]
   )
-  const sourcesQuery = useApiData(() => api.reports.incomeBySource(range), [year])
+  const categoriesQuery = useApiData(
+    () => (validYear ? api.reports.categoryBreakdown(range) : Promise.resolve([])),
+    [year, validYear]
+  )
+  const sourcesQuery = useApiData(
+    () => (validYear ? api.reports.incomeBySource(range) : Promise.resolve([])),
+    [year, validYear]
+  )
 
   const months = monthlyQuery.data ?? []
   const categories = categoriesQuery.data ?? []
@@ -165,7 +172,7 @@ export default function Reports() {
             min="1970"
             max="2999"
             value={year}
-            onChange={(event) => setYear(event.target.value || String(new Date().getFullYear()))}
+            onChange={(event) => setYear(event.target.value.replace(/\D/g, '').slice(0, 4))}
           />
         </Field>
       </Card>

@@ -50,7 +50,9 @@ export default function App() {
           useAuthStore.getState().logout()
         }
       })
-      .catch(() => {})
+      .catch((error) => {
+        console.error('Failed to load settings', error)
+      })
     return () => {
       active = false
     }

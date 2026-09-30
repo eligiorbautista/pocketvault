@@ -23,7 +23,7 @@ export default function Savings() {
   const [deleting, setDeleting] = useState(false)
 
   const { data, loading, error, reload } = useApiData(() => api.savings.list(), [])
-  const goals = data ?? []
+  const goals = Array.isArray(data) ? data : []
 
   const confirmDelete = async () => {
     if (!pendingDelete) return

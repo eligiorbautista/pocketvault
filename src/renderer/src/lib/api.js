@@ -8,9 +8,15 @@ let implementationPromise = null
 
 export function resolveApi() {
   if (!implementationPromise) {
-    implementationPromise = isElectron
-      ? Promise.resolve(window.api)
-      : import('./capacitor/api.js').then((module) => module.createCapacitorApi())
+    implementationPromise = (
+      isElectron
+        ? Promise.resolve(window.api)
+        : import('./capacitor/api.js').then((module) => module.createCapacitorApi())
+    ).catch((error) => {
+      // Reset so a later call can retry instead of caching the rejection.
+      implementationPromise = null
+      throw error
+    })
   }
   return implementationPromise
 }

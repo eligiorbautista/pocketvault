@@ -6,19 +6,21 @@ export function useApiData(loader, deps = [], { immediate = true } = {}) {
   const [error, setError] = useState(null)
   const loaderRef = useRef(loader)
   loaderRef.current = loader
+  const requestIdRef = useRef(0)
 
   const reload = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     setError(null)
     try {
       const result = await loaderRef.current()
-      setData(result)
+      if (requestId === requestIdRef.current) setData(result)
       return result
     } catch (err) {
-      setError(err?.message || 'Something went wrong')
+      if (requestId === requestIdRef.current) setError(err?.message || 'Something went wrong')
       return null
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) setLoading(false)
     }
   }, [])
 

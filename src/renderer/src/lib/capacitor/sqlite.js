@@ -58,7 +58,14 @@ async function openDatabase() {
 }
 
 export function getDatabase() {
-  if (!databasePromise) databasePromise = openDatabase()
+  if (!databasePromise) {
+    // Don't cache a rejected promise: a transient failure (plugin not ready,
+    // consistency check) should be retryable on the next call.
+    databasePromise = openDatabase().catch((error) => {
+      databasePromise = null
+      throw error
+    })
+  }
   return databasePromise
 }
 
