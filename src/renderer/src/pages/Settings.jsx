@@ -8,6 +8,7 @@ import {
   Coins,
   Database,
   Download,
+  ExternalLink,
   HandCoins,
   Info,
   KeyRound,
@@ -340,6 +341,33 @@ export default function Settings() {
               </li>
             ))}
           </ul>
+          <div className="border-t border-slate-100 pt-4 dark:border-gray-700">
+            <p className="text-sm text-slate-600 dark:text-gray-300">
+              Designed &amp; built by{' '}
+              <span className="font-medium text-slate-900 dark:text-gray-100">Eli Dev</span> (Eligio
+              Bautista).
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a
+                href="https://www.facebook.com/elirbautista"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-gray-600 dark:bg-[#3a3a3a] dark:text-gray-200 dark:hover:bg-[#454545] dark:focus-visible:outline-accent-400"
+              >
+                <ExternalLink size={15} aria-hidden="true" />
+                Facebook
+              </a>
+              <a
+                href="https://github.com/eligiorbautista"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-gray-600 dark:bg-[#3a3a3a] dark:text-gray-200 dark:hover:bg-[#454545] dark:focus-visible:outline-accent-400"
+              >
+                <ExternalLink size={15} aria-hidden="true" />
+                GitHub
+              </a>
+            </div>
+          </div>
           <p className="border-t border-slate-100 pt-4 text-xs text-slate-400 dark:border-gray-700 dark:text-gray-500">
             PocketVault v{VERSION}
           </p>

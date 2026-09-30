@@ -36,7 +36,14 @@ export function MobileDrawer() {
         <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <BrandMark size={30} />
-            <span className="text-lg font-semibold tracking-tight text-slate-900 dark:text-gray-100">PocketVault</span>
+            <div className="flex min-w-0 flex-col leading-tight">
+              <span className="text-lg font-semibold tracking-tight text-slate-900 dark:text-gray-100">
+                PocketVault
+              </span>
+              <span className="truncate text-[11px] font-medium text-slate-400 dark:text-gray-500">
+                by Eli Dev
+              </span>
+            </div>
           </div>
           <button
             type="button"
