@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { useUIStore } from '@renderer/store/uiStore.js'
 import { NavList } from './NavList.jsx'
-import { BrandMark } from '@renderer/components/ui/BrandMark.jsx'
+import { BrandLockup } from '@renderer/components/ui/BrandLockup.jsx'
 import { UserSummary } from './UserSummary.jsx'
 
 export function MobileDrawer() {
@@ -34,17 +34,7 @@ export function MobileDrawer() {
         className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white shadow-xl dark:bg-[#333333]"
       >
         <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4 dark:border-gray-700">
-          <div className="flex items-center gap-2">
-            <BrandMark size={30} />
-            <div className="flex min-w-0 flex-col leading-tight">
-              <span className="text-lg font-semibold tracking-tight text-slate-900 dark:text-gray-100">
-                PocketVault
-              </span>
-              <span className="truncate text-[11px] font-medium text-slate-400 dark:text-gray-500">
-                by Eli Dev
-              </span>
-            </div>
-          </div>
+          <BrandLockup size={30} />
           <button
             type="button"
             onClick={closeDrawer}

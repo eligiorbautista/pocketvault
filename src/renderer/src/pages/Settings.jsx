@@ -344,8 +344,7 @@ export default function Settings() {
           <div className="border-t border-slate-100 pt-4 dark:border-gray-700">
             <p className="text-sm text-slate-600 dark:text-gray-300">
               Designed &amp; built by{' '}
-              <span className="font-medium text-slate-900 dark:text-gray-100">Eli Dev</span> (Eligio
-              Bautista).
+              <span className="font-medium text-slate-900 dark:text-gray-100">Eli Dev</span>.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <a
