@@ -5,7 +5,7 @@ import { Button } from './Button.jsx'
 import { toast } from '@renderer/store/uiStore.js'
 
 // Optional file (receipt/proof) attach control. `value` is a stored filename.
-export function ReceiptField({ value, onChange }) {
+export function ReceiptField({ id, value, onChange }) {
   const [busy, setBusy] = useState(false)
 
   const attach = async () => {
@@ -22,7 +22,7 @@ export function ReceiptField({ value, onChange }) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button type="button" variant="secondary" size="sm" onClick={attach} loading={busy}>
+      <Button id={id} type="button" variant="secondary" size="sm" onClick={attach} loading={busy}>
         <Paperclip size={15} aria-hidden="true" />
         {value ? 'Replace proof' : 'Attach proof'}
       </Button>

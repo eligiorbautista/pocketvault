@@ -176,6 +176,25 @@ await check('debt list decorates status', async () => {
   const res = await api.debts.list({ status: 'partial' })
   return res.total === 1 && res.rows[0].effective_status === 'partial'
 })
+await check('monthly debt stores derived payment_day', async () => {
+  const row = await api.debts.get(debtId)
+  return row.first_payment_date === '2026-09-15' && row.payment_day === 15
+})
+await expectThrow(
+  'monthly debt without first payment date rejected',
+  () => api.debts.create({ creditor: 'X', total_amount: 1000, payment_type: 'monthly', monthly_amount: 100 }),
+  'first payment date'
+)
+await expectThrow(
+  'fixed-date debt without due date rejected',
+  () => api.debts.create({ creditor: 'X', total_amount: 1000, payment_type: 'fixed-date' }),
+  'due date'
+)
+await expectThrow(
+  'debt with bad receipt reference rejected',
+  () => api.debts.create({ creditor: 'X', total_amount: 1000, payment_type: 'no-schedule', receipt_path: '../evil.png' }),
+  'Invalid receipt'
+)
 
 await check('budget upsert + monthly spend', async () => {
   await api.budgets.upsert({ category: 'food', monthly_limit: 1000 })

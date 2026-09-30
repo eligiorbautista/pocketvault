@@ -84,7 +84,7 @@ function LedgerForm({ idPrefix, debtId, installment, defaultAmount, onDone }) {
         />
       </Field>
       <Field label="Proof" htmlFor={`${idPrefix}-receipt`}>
-        <ReceiptField value={receiptPath} onChange={setReceiptPath} />
+        <ReceiptField id={`${idPrefix}-receipt`} value={receiptPath} onChange={setReceiptPath} />
       </Field>
       <Field label="Notes" htmlFor={`${idPrefix}-notes`}>
         <Input id={`${idPrefix}-notes`} placeholder="Optional" {...register('notes')} />

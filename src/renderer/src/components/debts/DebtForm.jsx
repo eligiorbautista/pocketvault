@@ -49,8 +49,18 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
       notes: values.notes
     }
     try {
-      if (initial) await api.debts.update(initial.id, payload)
-      else await api.debts.create(payload)
+      const saved = initial
+        ? await api.debts.update(initial.id, payload)
+        : await api.debts.create(payload)
+
+      if (
+        initial?.receipt_path &&
+        initial.receipt_path !== saved.receipt_path &&
+        initial.receipt_path !== receiptPath
+      ) {
+        api.files.deleteReceipt(initial.receipt_path).catch(() => {})
+      }
+
       toast(initial ? 'Debt updated' : 'Debt added', 'success')
       onSaved()
       onClose()
@@ -163,7 +173,7 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
         ) : null}
 
         <Field label="Proof" htmlFor="debt-receipt" hint="Optional. Attach a photo or PDF.">
-          <ReceiptField value={receiptPath} onChange={setReceiptPath} />
+          <ReceiptField id="debt-receipt" value={receiptPath} onChange={setReceiptPath} />
         </Field>
 
         <Field label="Notes" htmlFor="notes">

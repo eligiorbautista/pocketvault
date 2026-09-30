@@ -4,7 +4,8 @@ import {
   DEBT_PAYMENT_TYPE_VALUES,
   MAX_RECEIPT_BYTES,
   PAGE_SIZE,
-  RECEIPT_EXTENSIONS
+  RECEIPT_EXTENSIONS,
+  RECEIPT_FILE_PATTERN
 } from '@shared/constants.js'
 import { DEFAULT_CURRENCY } from '@shared/currency.js'
 import { currentMonth, monthRange, todayISO } from '@shared/dates.js'
@@ -423,6 +424,53 @@ async function getDebtById(userId, id) {
   )
 }
 
+function normalizeReceipt(value) {
+  if (value === undefined || value === null || value === '') return null
+  if (typeof value !== 'string' || !RECEIPT_FILE_PATTERN.test(value)) {
+    throw new Error('Invalid receipt reference')
+  }
+  return value
+}
+
+// Mirrors the desktop `normalize` in src/main/ipc/debts.ipc.js so both platforms
+// validate a debt the same way (first payment date required for monthly, etc.).
+function normalizeDebtWrite(data) {
+  const paymentType = validatePaymentType(data.payment_type, DEBT_PAYMENT_TYPE_VALUES)
+  let dueDate = validateDate(data.due_date, 'due_date', { required: false })
+  let monthlyAmount = null
+  let paymentDay = null
+  let firstPaymentDate = null
+
+  if (paymentType === 'fixed-date' && !dueDate) {
+    throw new Error('A due date is required for fixed-date debts')
+  }
+  if (paymentType === 'monthly') {
+    monthlyAmount = validateAmount(data.monthly_amount, 'monthly_amount')
+    firstPaymentDate = validateDate(data.first_payment_date, 'first_payment_date', { required: false })
+    paymentDay = data.payment_day
+      ? validateInt(data.payment_day, 'payment_day', { min: 1, max: 31 })
+      : firstPaymentDate
+        ? Number(firstPaymentDate.slice(8, 10))
+        : null
+    if (!firstPaymentDate && !paymentDay) {
+      throw new Error('A first payment date is required for monthly debts')
+    }
+    dueDate = null
+  }
+
+  return {
+    creditor: validateText(data.creditor, 'creditor', { required: true, max: 120 }),
+    total_amount: validateAmount(data.total_amount, 'total_amount'),
+    due_date: dueDate,
+    payment_type: paymentType,
+    monthly_amount: monthlyAmount,
+    payment_day: paymentDay,
+    first_payment_date: firstPaymentDate,
+    receipt_path: normalizeReceipt(data.receipt_path),
+    notes: validateText(data.notes, 'notes', { max: 500 })
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Public adapter
 // ---------------------------------------------------------------------------
@@ -818,7 +866,8 @@ export function createCapacitorApi() {
 
     create: async (data) => {
       const userId = requireUserId()
-      const remaining = fromCents(toCents(validateAmount(data.total_amount, 'total_amount')))
+      const row = normalizeDebtWrite(data)
+      const remaining = fromCents(toCents(row.total_amount))
       const info = await run(
         `INSERT INTO debts
           (user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
@@ -826,18 +875,16 @@ export function createCapacitorApi() {
          VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 'unpaid', ?, CURRENT_TIMESTAMP)`,
         [
           userId,
-          validateText(data.creditor, 'creditor', { required: true, max: 120 }),
-          data.total_amount,
+          row.creditor,
+          row.total_amount,
           remaining,
-          validateDate(data.due_date, 'due_date', { required: false }),
-          validatePaymentType(data.payment_type, DEBT_PAYMENT_TYPE_VALUES),
-          data.monthly_amount ? validateAmount(data.monthly_amount, 'monthly_amount') : null,
-          data.payment_day ? validateInt(data.payment_day, 'payment_day') : null,
-          data.first_payment_date
-            ? validateDate(data.first_payment_date, 'first_payment_date', { required: false })
-            : null,
-          data.receipt_path ?? null,
-          validateText(data.notes, 'notes')
+          row.due_date,
+          row.payment_type,
+          row.monthly_amount,
+          row.payment_day,
+          row.first_payment_date,
+          row.receipt_path,
+          row.notes
         ]
       )
       return getDebtById(userId, info.lastId)
@@ -850,8 +897,9 @@ export function createCapacitorApi() {
         userId
       ])
       if (!current) return null
+      const row = normalizeDebtWrite(data)
       const paid = toCents(current.paid_amount)
-      const remaining = fromCents(Math.max(0, toCents(validateAmount(data.total_amount, 'total_amount')) - paid))
+      const remaining = fromCents(Math.max(0, toCents(row.total_amount) - paid))
       const info = await run(
         `UPDATE debts
          SET creditor = ?, total_amount = ?, remaining_amount = ?, due_date = ?,
@@ -859,18 +907,16 @@ export function createCapacitorApi() {
              receipt_path = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ? AND user_id = ?`,
         [
-          validateText(data.creditor, 'creditor', { required: true, max: 120 }),
-          data.total_amount,
+          row.creditor,
+          row.total_amount,
           remaining,
-          validateDate(data.due_date, 'due_date', { required: false }),
-          validatePaymentType(data.payment_type, DEBT_PAYMENT_TYPE_VALUES),
-          data.monthly_amount ? validateAmount(data.monthly_amount, 'monthly_amount') : null,
-          data.payment_day ? validateInt(data.payment_day, 'payment_day') : null,
-          data.first_payment_date
-            ? validateDate(data.first_payment_date, 'first_payment_date', { required: false })
-            : null,
-          data.receipt_path ?? null,
-          validateText(data.notes, 'notes'),
+          row.due_date,
+          row.payment_type,
+          row.monthly_amount,
+          row.payment_day,
+          row.first_payment_date,
+          row.receipt_path,
+          row.notes,
           id,
           userId
         ]
@@ -933,7 +979,7 @@ export function createCapacitorApi() {
       await run(
         `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type, installment_due, receipt_path)
          VALUES (?, ?, ?, ?, 'payment', ?, ?)`,
-        [id, amount, date, notes, installmentDue, data.receipt_path ?? null]
+        [id, amount, date, notes, installmentDue, normalizeReceipt(data.receipt_path)]
       )
       await syncDebtStatus(id, userId)
       return getDebtById(userId, id)
@@ -1319,8 +1365,14 @@ export function createCapacitorApi() {
         throw new Error('Password is incorrect')
       }
       const receiptRows = await query(
-        'SELECT receipt_path FROM income WHERE user_id = ? AND receipt_path IS NOT NULL',
-        [userId]
+        `SELECT receipt_path FROM income WHERE user_id = ? AND receipt_path IS NOT NULL
+         UNION
+         SELECT receipt_path FROM debts WHERE user_id = ? AND receipt_path IS NOT NULL
+         UNION
+         SELECT p.receipt_path FROM debt_payments p
+           JOIN debts d ON d.id = p.debt_id
+           WHERE d.user_id = ? AND p.receipt_path IS NOT NULL`,
+        [userId, userId, userId]
       )
       await executeSet([
         {

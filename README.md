@@ -10,9 +10,11 @@ are required.
 - **Multi-user, local** — register/login per device; passwords hashed with bcrypt.
 - **Income** — manual entry, optional receipt (image/PDF) attach, view, edit, delete.
 - **Expenses** — categorised, editable, filter by category/date/keyword.
-- **Debts** — no-schedule / fixed-date / monthly plans, flexible payments, re-borrow.
-  The list shows paid progress at a glance; the detail view has a transaction-history
-  timeline (payments vs re-borrows) and prefills the amount for monthly installments.
+- **Debts** — no-schedule / fixed-date / **monthly installment** plans, with an optional
+  proof at the debt level and on every payment. Monthly debts show a generated
+  **payment schedule** (each row: due date, amount, Paid/Partial/Overdue/Upcoming status,
+  plus **Pay** and **Undo**); the last installment absorbs any rounding remainder. Other
+  debts keep a free-form payment ledger. The list shows paid progress at a glance.
 - **Budgets** — monthly limit per category with progress bars and over-budget alerts.
 - **Savings** — goals, contributions (linkable to an income record), progress.
 - **Reports** — monthly/yearly summaries with charts, PDF and CSV export.
@@ -163,7 +165,8 @@ capacitor.config.json
 1. Register a user, sign out, sign back in; confirm the session persists across restart.
 2. Add income with a receipt, view the receipt, edit and delete the record.
 3. Add expenses in several categories; filter by category/date/keyword.
-4. Create a debt (each payment type), record payments, re-borrow, remove a ledger entry.
+4. Create a debt (each payment type), pay installments from the schedule (partial and full),
+   attach a debt proof and a per-payment proof, undo a payment, and remove a ledger entry.
 5. Set budgets and confirm the over-budget alert and progress bars.
 6. Create a savings goal and add a contribution linked to an income record.
 7. Open Reports, change the year, export both CSV and PDF.
