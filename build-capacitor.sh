@@ -56,11 +56,14 @@ fi
 # ---------------------------------------------------------------------------
 # Android SDK
 if [ -z "${ANDROID_HOME:-}" ] || [ ! -d "${ANDROID_HOME:-}" ]; then
-  ANDROID_HOME="$LOCALAPPDATA/Android/Sdk"
-  if [ ! -d "$ANDROID_HOME" ]; then
-    ANDROID_HOME="$USERPROFILE/AppData/Local/Android/Sdk"
-  fi
+  for candidate in "$LOCALAPPDATA/Android/Sdk" "$USERPROFILE/AppData/Local/Android/Sdk"; do
+    candidate="${candidate//\\//}"
+    if [ -d "$candidate" ]; then ANDROID_HOME="$candidate"; break; fi
+  done
 fi
+# Git Bash exposes Windows paths with backslashes; normalize so the checks and
+# apksigner lookup below always see forward slashes.
+ANDROID_HOME="${ANDROID_HOME//\\//}"
 export ANDROID_HOME
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
 export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/tools:$PATH"
@@ -79,8 +82,11 @@ jdk_major() {
 
 find_java_home() {
   local candidate major
+  local localappdata="${LOCALAPPDATA:-$WINDOWS_USER_HOME/AppData/Local}"
+  localappdata="${localappdata//\\//}"
   for candidate in \
     "${JAVA_HOME:-}" \
+    "$localappdata/Android/jdk-21" \
     "$WINDOWS_USER_HOME"/.gradle/jdks/* \
     "C:/Program Files/Java"/jdk-21* \
     "C:/Program Files/Eclipse Adoptium"/jdk-21* \
@@ -90,6 +96,7 @@ find_java_home() {
   done
   for candidate in \
     "${JAVA_HOME:-}" \
+    "$localappdata/Android/jdk-21" \
     "$WINDOWS_USER_HOME"/.gradle/jdks/* \
     "C:/Program Files/Android/Android Studio/jbr" \
     "C:/Program Files/Java"/jdk-2[0-9]*; do
