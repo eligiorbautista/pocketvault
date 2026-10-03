@@ -117,6 +117,7 @@ const api = {
 
   notifications: {
     schedule: (plan) => call('notifications:schedule', { plan }),
+    show: (title, body) => call('notifications:show', { title, body }),
     clear: () => call('notifications:clear')
   }
 }

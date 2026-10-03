@@ -8,6 +8,8 @@
 //   assets/icon.png, assets/icon-only.png, assets/icon-background.png,
 //   assets/icon-foreground.png, assets/splash.png, assets/splash-dark.png
 //     -> consumed by @capacitor/assets (npm run assets) to build Android icons/splash
+//   android/app/src/main/res/drawable/ic_notification.png (white status-bar icon)
+//   android/app/src/main/res/drawable/ic_notification_large.png (colored big icon)
 //
 // Run with: node scripts/generate-icon.mjs
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -69,6 +71,7 @@ function encodeIco(pngBuffer, size) {
 mkdirSync('build', { recursive: true })
 mkdirSync('src/renderer/public', { recursive: true })
 mkdirSync('assets', { recursive: true })
+mkdirSync('android/app/src/main/res/drawable', { recursive: true })
 
 const tile1024 = await toPng(roundedTile(1024), 1024)
 writeFileSync('build/icon.png', tile1024)
@@ -84,6 +87,19 @@ writeFileSync('assets/icon-foreground.png', await toPng(markOnly(1024, 0.6, WHIT
 writeFileSync('assets/splash.png', await toPng(markOnly(2732, 0.26, WHITE, EMERALD), 2732))
 writeFileSync('assets/splash-dark.png', await toPng(markOnly(2732, 0.26, WHITE, DARK_BG), 2732))
 
+// Android notification icons (consumed by @capacitor/local-notifications via
+// capacitor.config.json `smallIcon` and the per-notification `largeIcon`).
+// The status-bar icon must be a white silhouette on transparency; the large
+// icon is the colored brand tile shown in the expanded notification.
+writeFileSync(
+  'android/app/src/main/res/drawable/ic_notification.png',
+  await toPng(markOnly(96, 0.72, WHITE), 96)
+)
+writeFileSync(
+  'android/app/src/main/res/drawable/ic_notification_large.png',
+  await toPng(roundedTile(192), 192)
+)
+
 console.log('build/icon.png              1024')
 console.log('build/icon.ico               256')
 console.log('src/renderer/public/icon.png 256')
@@ -93,3 +109,5 @@ console.log('assets/icon-background.png   1024')
 console.log('assets/icon-foreground.png   1024')
 console.log('assets/splash.png            2732')
 console.log('assets/splash-dark.png       2732')
+console.log('android/.../ic_notification.png        96')
+console.log('android/.../ic_notification_large.png 192')

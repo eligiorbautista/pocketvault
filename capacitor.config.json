@@ -1,5 +1,11 @@
 {
   "appId": "com.pocketvault.app",
   "appName": "PocketVault",
-  "webDir": "out/renderer"
+  "webDir": "out/renderer",
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_notification",
+      "iconColor": "#059669"
+    }
+  }
 }

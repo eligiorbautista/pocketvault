@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   BarChart3,
   Bell,
+  BellRing,
   Coins,
   Database,
   Download,
@@ -33,7 +34,7 @@ import { DeleteDataForm } from '@renderer/components/settings/DeleteDataForm.jsx
 import { ThemeSelect } from '@renderer/components/settings/ThemeSelect.jsx'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { useSettingsStore } from '@renderer/store/settingsStore.js'
-import { syncDebtReminders } from '@renderer/lib/notifications.js'
+import { sendSampleNotification, syncDebtReminders } from '@renderer/lib/notifications.js'
 import { currencyCodes, currencyName, currencySymbol } from '@shared/currency.js'
 import { MAX_LEAD_DAYS } from '@shared/reminders.js'
 import { formatCurrency } from '@renderer/lib/format.js'
@@ -104,6 +105,28 @@ export default function Settings() {
       toast('Reminder timing updated', 'success')
     } catch (error) {
       toast(error.message, 'error')
+    }
+  }
+
+  const sendSample = async () => {
+    setBusy('sample')
+    try {
+      const result = await sendSampleNotification()
+      if (result?.denied) {
+        toast('Notifications are blocked', 'error', {
+          description: 'Allow notifications for PocketVault in your system settings.'
+        })
+      } else if (result?.supported === false || result?.skipped) {
+        toast('Notifications are not available on this device', 'error')
+      } else {
+        toast('Sample notification sent', 'success', {
+          description: 'Check your system notifications.'
+        })
+      }
+    } catch (error) {
+      toast(error.message, 'error')
+    } finally {
+      setBusy(null)
     }
   }
 
@@ -244,7 +267,6 @@ export default function Settings() {
                 : 'Upcoming reminders are off — you will still be notified on the due date and once a payment is overdue.'
             }
             htmlFor="settings-lead-days"
-            last
           >
             <Input
               id="settings-lead-days"
@@ -258,6 +280,17 @@ export default function Settings() {
               disabled={!remindersEnabled}
               className="sm:w-28"
             />
+          </SettingRow>
+
+          <SettingRow
+            title="Test notification"
+            description="Send a sample now to check that notifications appear on your device."
+            last
+          >
+            <Button variant="secondary" size="sm" onClick={sendSample} loading={busy === 'sample'}>
+              <BellRing size={16} aria-hidden="true" />
+              Send test notification
+            </Button>
           </SettingRow>
         </CardBody>
       </Card>

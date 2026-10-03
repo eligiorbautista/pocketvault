@@ -372,7 +372,7 @@ check(
   'monthly reminder uses the installment amount',
   buildReminderPlan([planMonthlyDebt], { 2: [] }, { leadDays: 0, now })
     .find((reminder) => reminder.kind === 'due')
-    .body.includes('1000.00')
+    .body.includes('1,000.00')
 )
 check('installmentStatus paid', installmentStatus(1000, 1000, '2026-06-15', '2026-06-20') === 'paid')
 check('installmentStatus overdue', installmentStatus(0, 1000, '2026-06-15', '2026-06-20') === 'overdue')

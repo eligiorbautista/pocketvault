@@ -4,6 +4,7 @@
 // scheduled can never drift apart.
 
 import { fromCents, toCents } from './money.js'
+import { formatMoney, DEFAULT_CURRENCY } from './currency.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 export const REMINDER_HOUR = 9
@@ -29,6 +30,20 @@ export function formatDateOnly(date) {
 
 export function todayDateOnly(now = new Date()) {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+]
+
+// Renders a date-only string ("2023-05-05") as readable text ("May 5, 2003")
+// for human-facing copy such as notification bodies.
+export function formatReminderDate(value) {
+  if (!value) return ''
+  const date = parseDateOnly(value)
+  if (!date) return String(value)
+  return `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
 }
 
 // Adds whole months, clamping the day to the target month's length (matches
@@ -126,17 +141,18 @@ export function effectiveDueDate(debt, payments = []) {
 
 // --- reminder plan ---------------------------------------------------------
 
-function makeReminder(debt, kind, at, dueDate, amountValue) {
-  const amount = fromCents(toCents(amountValue ?? debt.remaining_amount)).toFixed(2)
+function makeReminder(debt, kind, at, dueDate, amountValue, currency) {
+  const amount = formatMoney(amountValue ?? debt.remaining_amount, currency)
+  const prettyDate = formatReminderDate(dueDate)
   const titles = {
-    upcoming: `Payment due soon: ${debt.creditor}`,
-    due: `Payment due today: ${debt.creditor}`,
-    overdue: `Payment overdue: ${debt.creditor}`
+    upcoming: 'Payment due soon',
+    due: 'Payment due today',
+    overdue: 'Payment overdue'
   }
   const bodies = {
-    upcoming: `${amount} is due on ${dueDate}.`,
-    due: `${amount} is due today (${dueDate}).`,
-    overdue: `${amount} was due on ${dueDate}.`
+    upcoming: `${amount} to ${debt.creditor} is due on ${prettyDate}.`,
+    due: `${amount} to ${debt.creditor} is due today (${prettyDate}).`,
+    overdue: `${amount} to ${debt.creditor} was due on ${prettyDate}.`
   }
   return {
     key: `${debt.id}:${dueDate}:${kind}`,
@@ -157,6 +173,7 @@ function makeReminder(debt, kind, at, dueDate, amountValue) {
 export function buildReminderPlan(debts, paymentsByDebtId = {}, opts = {}) {
   const leadDays = clampInt(opts.leadDays ?? DEFAULT_LEAD_DAYS, 0, MAX_LEAD_DAYS)
   const now = opts.now ?? new Date()
+  const currency = opts.currency || DEFAULT_CURRENCY
   const today = formatDateOnly(todayDateOnly(now))
   const horizonDays = opts.horizonDays ?? 400
   const maxPerDebt = opts.maxPerDebt ?? 24
@@ -176,7 +193,7 @@ export function buildReminderPlan(debts, paymentsByDebtId = {}, opts = {}) {
         if ((paidMap.get(installment.due_date) ?? 0) >= toCents(installment.amount)) continue
         if (installment.due_date < today) {
           if (!overdueReported) {
-            plan.push(makeReminder(debt, 'overdue', now, installment.due_date, installment.amount))
+            plan.push(makeReminder(debt, 'overdue', now, installment.due_date, installment.amount, currency))
             overdueReported = true
           }
           continue
@@ -186,10 +203,10 @@ export function buildReminderPlan(debts, paymentsByDebtId = {}, opts = {}) {
         if (leadDays > 0) {
           const remindAt = new Date(dueAt.getTime() - leadDays * DAY_MS)
           if (remindAt > now) {
-            plan.push(makeReminder(debt, 'upcoming', remindAt, installment.due_date, installment.amount))
+            plan.push(makeReminder(debt, 'upcoming', remindAt, installment.due_date, installment.amount, currency))
           }
         }
-        if (dueAt > now) plan.push(makeReminder(debt, 'due', dueAt, installment.due_date, installment.amount))
+        if (dueAt > now) plan.push(makeReminder(debt, 'due', dueAt, installment.due_date, installment.amount, currency))
         scheduled += 1
         if (scheduled >= maxPerDebt) break
       }
@@ -199,16 +216,16 @@ export function buildReminderPlan(debts, paymentsByDebtId = {}, opts = {}) {
     const dueDate = effectiveDueDate(debt, payments)
     if (!dueDate) continue
     if (dueDate < today) {
-      plan.push(makeReminder(debt, 'overdue', now, dueDate))
+      plan.push(makeReminder(debt, 'overdue', now, dueDate, undefined, currency))
       continue
     }
     const dueAt = atHour(dueDate, REMINDER_HOUR)
     if (!dueAt || dueAt > horizonEnd) continue
     if (leadDays > 0) {
       const remindAt = new Date(dueAt.getTime() - leadDays * DAY_MS)
-      if (remindAt > now) plan.push(makeReminder(debt, 'upcoming', remindAt, dueDate))
+      if (remindAt > now) plan.push(makeReminder(debt, 'upcoming', remindAt, dueDate, undefined, currency))
     }
-    if (dueAt > now) plan.push(makeReminder(debt, 'due', dueAt, dueDate))
+    if (dueAt > now) plan.push(makeReminder(debt, 'due', dueAt, dueDate, undefined, currency))
   }
 
   plan.sort((a, b) => a.at - b.at)

@@ -1,4 +1,5 @@
-import { Notification } from 'electron'
+import { app, Notification } from 'electron'
+import { join } from 'node:path'
 
 // Desktop reminders only fire while the app is running (Electron has no
 // background scheduler). The renderer builds the plan (shared logic) and hands
@@ -9,13 +10,29 @@ let pending = []
 let fired = new Set()
 let timer = null
 
-function show(item) {
-  if (!Notification.isSupported()) return
+// The brand logo shown in the notification. Packaged builds copy build/icon.png
+// into the app's resources; in dev we read it straight from the repo.
+function notificationIcon() {
+  return app.isPackaged
+    ? join(process.resourcesPath, 'icon.png')
+    : join(__dirname, '../../build/icon.png')
+}
+
+// Shows a single notification right away (used by the Settings "test
+// notification" button and by due reminders). Never throws.
+export function showReminder({ title, body } = {}) {
+  if (!Notification.isSupported()) return { shown: false, supported: false }
   try {
-    new Notification({ title: item.title, body: item.body }).show()
+    new Notification({ title, body, icon: notificationIcon() }).show()
+    return { shown: true, supported: true }
   } catch {
     // Never let a notification failure crash the main process.
+    return { shown: false, supported: true }
   }
+}
+
+function show(item) {
+  showReminder(item)
 }
 
 function armNext() {
