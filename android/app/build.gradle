@@ -7,8 +7,14 @@ android {
         applicationId "com.pocketvault.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        // Single source of truth: derive from package.json (not hand-edited).
+        def pkg = new groovy.json.JsonSlurper().parseText(file('../../package.json').text)
+        def semver = (pkg.version ?: '1.0.0').tokenize('.')
+        def major = semver[0] as int
+        def minor = semver.size() > 1 ? semver[1] as int : 0
+        def patch = semver.size() > 2 ? (semver[2] =~ /^\d+/)[0] as int : 0
+        versionCode major * 10000 + minor * 100 + patch
+        versionName pkg.version ?: '1.0.0'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -19,23 +25,25 @@ android {
     signingConfigs {
         release {
             // Reads android/../keystore.properties (repo root) when present so the
-            // passwords are not committed. Falls back to the build script defaults.
+            // passwords are not committed. There is intentionally NO fallback to a
+            // weak default: a release build must be given real signing values.
             def keystorePropertiesFile = file('../../keystore.properties')
             def keystoreProperties = new Properties()
             if (keystorePropertiesFile.exists()) {
                 keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
             }
             storeFile file(keystoreProperties['storeFile'] ?: '../../release.keystore')
-            storePassword keystoreProperties['storePassword'] ?: 'android'
+            storePassword keystoreProperties['storePassword'] ?: System.getenv('PV_KEYSTORE_PASSWORD')
             keyAlias keystoreProperties['keyAlias'] ?: 'release'
-            keyPassword keystoreProperties['keyPassword'] ?: 'android'
+            keyPassword keystoreProperties['keyPassword'] ?: System.getenv('PV_KEY_PASSWORD')
         }
     }
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
