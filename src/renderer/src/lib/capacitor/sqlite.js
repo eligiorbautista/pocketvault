@@ -5,6 +5,9 @@ const DATABASE = 'pocketvault'
 const sqlite = new SQLiteConnection(CapacitorSQLite)
 
 let databasePromise = null
+// Tracks whether we are inside an explicit transaction() so inner writes know
+// not to let the plugin open a nested transaction of its own.
+let txDepth = 0
 
 async function migrate(db) {
   let current = 0
@@ -80,9 +83,12 @@ export async function getOne(sql, params = []) {
   return rows[0] ?? null
 }
 
-export async function run(sql, params = []) {
+export async function run(sql, params = [], transactional) {
   const db = await getDatabase()
-  const result = await db.run(sql, params)
+  // Inside our explicit transaction() we must NOT let the plugin start its own
+  // (it throws "Already in transaction"); default the flag accordingly.
+  const useTransaction = transactional ?? !txDepth
+  const result = await db.run(sql, params, useTransaction)
   return {
     changes: result.changes?.changes ?? 0,
     lastId: result.changes?.lastId ?? null
@@ -90,9 +96,10 @@ export async function run(sql, params = []) {
 }
 
 // Executes several statements atomically.
-export async function executeSet(statements) {
+export async function executeSet(statements, transactional) {
   const db = await getDatabase()
-  return db.executeSet(statements, true)
+  const useTransaction = transactional ?? txDepth === 0
+  return db.executeSet(statements, useTransaction)
 }
 
 // Runs `fn` inside a single DB transaction. If `fn` throws (or rejects), the
@@ -100,6 +107,7 @@ export async function executeSet(statements) {
 export async function transaction(fn) {
   const db = await getDatabase()
   await db.beginTransaction()
+  txDepth += 1
   try {
     const result = await fn()
     await db.commitTransaction()
@@ -111,6 +119,8 @@ export async function transaction(fn) {
       // ignore rollback failure — surface the original error
     }
     throw error
+  } finally {
+    txDepth -= 1
   }
 }
 

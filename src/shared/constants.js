@@ -62,5 +62,10 @@ export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024
 // adapter cannot drift (they previously used 80 vs 120).
 export const INCOME_SOURCE_MAX_LEN = 80
 
+// Legacy Android builds allowed income sources up to 120 chars, so backups made
+// before the 80-char cap must still import. Import validation uses this upper
+// bound to avoid rejecting otherwise-valid historical backups.
+export const INCOME_SOURCE_IMPORT_MAX_LEN = 120
+
 // Upper bound on the total receipt payload inside a backup ZIP (both platforms).
 export const MAX_BACKUP_RECEIPTS_BYTES = 100 * 1024 * 1024

@@ -38,6 +38,9 @@ export function validateDate(value, field = 'date', { required = true } = {}) {
   // parsed value to reject dates that do not exist on the calendar.
   const [y, m, d] = value.split('-').map(Number)
   const parsed = new Date(Date.UTC(y, m - 1, d))
+  // Date.UTC maps years 0-99 to 1900-1999, so re-apply the true year for early
+  // dates (e.g. the '0001-01-01' range sentinel) before round-tripping.
+  if (y < 100) parsed.setUTCFullYear(y)
   assert(!Number.isNaN(parsed.getTime()), `${field} is not a valid date`)
   assert(
     parsed.getUTCFullYear() === y && parsed.getUTCMonth() === m - 1 && parsed.getUTCDate() === d,

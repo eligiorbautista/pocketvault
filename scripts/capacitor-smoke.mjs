@@ -35,30 +35,56 @@ const db = new Database(':memory:')
 db.pragma('foreign_keys = ON')
 for (const migration of MIGRATIONS) db.exec(migration)
 
+// Mirrors the real plugin: run() defaults to opening its own transaction, and
+// opening one while already active must fail (the real one throws "Already in
+// transaction"). This makes nested-transaction bugs visible in the smoke test.
+let txDepth = 0
+function begin() {
+  if (txDepth > 0) throw new Error('Already in transaction')
+  db.exec('BEGIN'); txDepth += 1
+}
+function commit() { db.exec('COMMIT'); txDepth -= 1 }
+function rollback() { db.exec('ROLLBACK'); txDepth -= 1 }
+
 export async function query(sql, params = []) {
   return db.prepare(sql).all(...params)
 }
 export async function getOne(sql, params = []) {
   return db.prepare(sql).get(...params) ?? null
 }
-export async function run(sql, params = []) {
+export async function run(sql, params = [], transactional) {
+  const useTransaction = transactional ?? txDepth === 0
+  if (useTransaction) {
+    begin()
+    try {
+      const info = db.prepare(sql).run(...params)
+      commit()
+      return { changes: info.changes, lastId: info.lastInsertRowid }
+    } catch (error) {
+      if (txDepth > 0) rollback()
+      throw error
+    }
+  }
   const info = db.prepare(sql).run(...params)
   return { changes: info.changes, lastId: info.lastInsertRowid }
 }
-export async function executeSet(statements) {
-  const tx = db.transaction(() => {
+export async function executeSet(statements, transactional) {
+  const useTransaction = transactional ?? txDepth === 0
+  const exec = () => {
     for (const entry of statements) db.prepare(entry.statement).run(...(entry.values ?? []))
-  })
-  return tx()
+  }
+  if (!useTransaction) return exec()
+  begin()
+  try { exec(); commit() } catch (error) { if (txDepth > 0) rollback(); throw error }
 }
 export async function transaction(fn) {
-  db.exec('BEGIN')
+  begin()
   try {
     const result = await fn()
-    db.exec('COMMIT')
+    commit()
     return result
   } catch (error) {
-    db.exec('ROLLBACK')
+    if (txDepth > 0) rollback()
     throw error
   }
 }

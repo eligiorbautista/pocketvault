@@ -6,7 +6,7 @@ import {
   DEBT_PAYMENT_KINDS,
   DEBT_PAYMENT_TYPE_VALUES,
   DEBT_STATUSES,
-  INCOME_SOURCE_MAX_LEN,
+  INCOME_SOURCE_IMPORT_MAX_LEN,
   RECEIPT_FILE_PATTERN
 } from './constants.js'
 import {
@@ -33,7 +33,7 @@ export function validateBackupData(data) {
   for (const row of asArray(data.income)) {
     validateAmount(row.amount, 'income amount')
     validateDate(row.date, 'income date')
-    validateText(row.source, 'income source', { max: INCOME_SOURCE_MAX_LEN })
+    validateText(row.source, 'income source', { max: INCOME_SOURCE_IMPORT_MAX_LEN })
     validateText(row.notes, 'income notes', { max: 500 })
     receiptOf(row.receipt_path, 'income receipt')
   }

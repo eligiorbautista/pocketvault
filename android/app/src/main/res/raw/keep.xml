@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The notification icons are referenced only by name at runtime
+  (Capacitor's LocalNotifications resolves them via getIdentifier), so the
+  resource shrinker cannot see the reference and would strip them from release
+  builds. Keep them explicitly.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_notification,@drawable/ic_notification_large" />

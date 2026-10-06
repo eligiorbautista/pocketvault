@@ -85,6 +85,9 @@ check('date optional empty -> null', validateDate('', 'date', { required: false 
 check('date valid accepted', validateDate('2026-03-01') === '2026-03-01')
 check('date leap day accepted', validateDate('2024-02-29') === '2024-02-29')
 throws('non-leap feb 29 rejected', () => validateDate('2026-02-29'))
+check('date year < 100 accepted (range sentinel)', validateDate('0001-01-01') === '0001-01-01')
+check('date year 0099 accepted', validateDate('0099-12-31') === '0099-12-31')
+throws('impossible early-year date still rejected', () => validateDate('0099-02-30'))
 throws('id 0 rejected', () => validateId(0))
 throws('id non-integer rejected', () => validateId(1.5))
 throws('id string rejected', () => validateId('x'))
@@ -155,6 +158,18 @@ throws('backup validation rejects bad category', () =>
 )
 throws('backup validation rejects bad receipt path', () =>
   validateBackupData({ income: [{ amount: 1, date: '2026-01-01', receipt_path: '../evil.png' }] })
+)
+check(
+  'backup validation accepts legacy 120-char income source',
+  (() => {
+    validateBackupData({
+      income: [{ amount: 1, date: '2026-01-01', source: 'x'.repeat(120) }]
+    })
+    return true
+  })()
+)
+throws('backup validation rejects over-long income source', () =>
+  validateBackupData({ income: [{ amount: 1, date: '2026-01-01', source: 'x'.repeat(121) }] })
 )
 check(
   'backupRowCounts maps rows',
