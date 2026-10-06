@@ -95,6 +95,25 @@ export async function executeSet(statements) {
   return db.executeSet(statements, true)
 }
 
+// Runs `fn` inside a single DB transaction. If `fn` throws (or rejects), the
+// whole transaction is rolled back, so a multi-step write is all-or-nothing.
+export async function transaction(fn) {
+  const db = await getDatabase()
+  await db.beginTransaction()
+  try {
+    const result = await fn()
+    await db.commitTransaction()
+    return result
+  } catch (error) {
+    try {
+      await db.rollbackTransaction()
+    } catch {
+      // ignore rollback failure — surface the original error
+    }
+    throw error
+  }
+}
+
 export async function paginate({
   select,
   from,

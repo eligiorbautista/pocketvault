@@ -43,24 +43,6 @@ export function getById(db, userId, id) {
   )
 }
 
-export function listAll(db, userId, { from, to } = {}) {
-  const where = ['user_id = ?', 'is_archived = 0']
-  const params = [userId]
-  if (from) {
-    where.push('date >= ?')
-    params.push(from)
-  }
-  if (to) {
-    where.push('date <= ?')
-    params.push(to)
-  }
-  return db
-    .prepare(
-      `SELECT ${COLUMNS} FROM expenses WHERE ${where.join(' AND ')} ORDER BY date DESC, id DESC`
-    )
-    .all(...params)
-}
-
 export function create(db, userId, data) {
   const info = db
     .prepare(
@@ -109,15 +91,6 @@ export function listArchived(db, userId) {
       `SELECT ${COLUMNS} FROM expenses WHERE user_id = ? AND is_archived = 1 ORDER BY date DESC, id DESC`
     )
     .all(userId)
-}
-
-export function spentByCategory(db, userId, { from, to }) {
-  return db
-    .prepare(
-      `SELECT category, amount FROM expenses
-       WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0`
-    )
-    .all(userId, from, to)
 }
 
 // Distinct active categories for this user (used to populate filter dropdowns

@@ -1,7 +1,7 @@
 import { dialog } from 'electron'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { handle } from './handle.js'
-import { getDatabase } from '../db/connection.js'
+import { checkpointDatabase, getDatabase } from '../db/connection.js'
 import {
   applyUserBackup,
   assertBackupMatchesAccount,
@@ -29,6 +29,8 @@ export function registerBackupHandlers() {
     if (!user) throw new Error('Account not found')
 
     const { buffer, counts } = await buildUserBackup(db, userId, receiptsDir())
+    // Fold the WAL back into the main DB so the exported snapshot is complete.
+    checkpointDatabase()
 
     const result = await dialog.showSaveDialog({
       title: 'Export account backup',

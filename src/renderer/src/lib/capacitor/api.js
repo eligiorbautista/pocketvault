@@ -4,13 +4,15 @@ import { Directory, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import {
   DEBT_PAYMENT_TYPE_VALUES,
+  INCOME_SOURCE_MAX_LEN,
   MAX_BACKUP_RECEIPTS_BYTES,
   MAX_RECEIPT_BYTES,
   PAGE_SIZE,
   RECEIPT_EXTENSIONS,
   RECEIPT_FILE_PATTERN
 } from '@shared/constants.js'
-import { DEFAULT_CURRENCY } from '@shared/currency.js'
+import { DEFAULT_CURRENCY, isValidCurrency } from '@shared/currency.js'
+import { validateBackupData, verifyBackupCounts } from '@shared/backupValidate.js'
 import { DEFAULT_LEAD_DAYS, MAX_LEAD_DAYS } from '@shared/reminders.js'
 import { currentMonth, monthRange, todayISO } from '@shared/dates.js'
 import { fromCents, toCents } from '@shared/money.js'
@@ -25,7 +27,7 @@ import {
   validateText,
   validateUsername
 } from '@shared/validate.js'
-import { executeSet, getOne, paginate, query, run } from './sqlite.js'
+import { executeSet, getOne, paginate, query, run, transaction } from './sqlite.js'
 
 const MIME_BY_EXT = {
   '.png': 'image/png',
@@ -64,6 +66,8 @@ function extname(name) {
 function validateMonth(value) {
   const month = String(value ?? currentMonth())
   if (!/^\d{4}-\d{2}$/.test(month)) throw new Error('month must be in YYYY-MM format')
+  const [, m] = month.split('-').map(Number)
+  if (m < 1 || m > 12) throw new Error('month must be in YYYY-MM format')
   return month
 }
 
@@ -188,9 +192,9 @@ async function debtSummary(userId) {
        COUNT(*) AS total_debts,
        COALESCE(SUM(remaining_amount), 0) AS outstanding,
        COALESCE(SUM(paid_amount), 0) AS paid,
-       SUM(CASE WHEN remaining_amount > 0 AND due_date IS NOT NULL AND due_date < date('now') THEN 1 ELSE 0 END) AS overdue_count
+       SUM(CASE WHEN remaining_amount > 0 AND due_date IS NOT NULL AND due_date < ? THEN 1 ELSE 0 END) AS overdue_count
      FROM debts WHERE user_id = ? AND is_archived = 0`,
-    [userId]
+    [todayISO(), userId]
   )
   return {
     totalDebts: row?.total_debts ?? 0,
@@ -559,6 +563,18 @@ export function createCapacitorApi() {
       const id = validateId(userId, 'userId')
       const user = await getOne('SELECT id, username FROM users WHERE id = ?', [id])
       if (!user) throw new Error('Saved session user no longer exists')
+      // Mirror the desktop gate: a stored id is not enough when the account
+      // requires a password on start.
+      const settingsRow = await getOne(
+        'SELECT require_password_on_start FROM user_settings WHERE user_id = ?',
+        [id]
+      )
+      if (settingsRow && Number(settingsRow.require_password_on_start)) {
+        session = null
+        const error = new Error('Password required')
+        error.code = 'PASSWORD_REQUIRED'
+        throw error
+      }
       session = { id: user.id, username: user.username }
       return { user: session }
     },
@@ -587,9 +603,9 @@ export function createCapacitorApi() {
       if (!bcrypt.compareSync(currentPassword, record.password_hash)) {
         throw new Error('Current password is incorrect')
       }
-      if (!newPassword) throw new Error('New password is required')
+      const nextPassword = validatePassword(newPasswordRaw, 'newPassword')
       await run('UPDATE users SET password_hash = ? WHERE id = ?', [
-        bcrypt.hashSync(newPassword, 10),
+        bcrypt.hashSync(nextPassword, 10),
         userId
       ])
       return true
@@ -622,6 +638,9 @@ export function createCapacitorApi() {
     update: async (patch = {}) => {
       const userId = requireUserId()
       const current = await settings.get()
+      if (patch.currency !== undefined && !isValidCurrency(patch.currency)) {
+        throw new Error('Unsupported currency')
+      }
       const nextCurrency = patch.currency ?? current.currency
       const nextRequire =
         patch.requirePasswordOnStart === undefined
@@ -713,9 +732,9 @@ export function createCapacitorApi() {
           userId,
           validateAmount(data.amount),
           validateDate(data.date),
-          validateText(data.source, 'source', { max: 120 }),
+          validateText(data.source, 'source', { max: INCOME_SOURCE_MAX_LEN }),
           validateText(data.notes, 'notes'),
-          data.receipt_path ?? null
+          normalizeReceipt(data.receipt_path)
         ]
       )
       return getOne(`SELECT ${INCOME_COLUMNS} FROM income WHERE id = ? AND user_id = ?`, [
@@ -733,9 +752,9 @@ export function createCapacitorApi() {
         [
           validateAmount(data.amount),
           validateDate(data.date),
-          validateText(data.source, 'source', { max: 120 }),
+          validateText(data.source, 'source', { max: INCOME_SOURCE_MAX_LEN }),
           validateText(data.notes, 'notes'),
-          data.receipt_path ?? null,
+          normalizeReceipt(data.receipt_path),
           validateId(id),
           userId
         ]
@@ -1233,12 +1252,21 @@ export function createCapacitorApi() {
         userId
       ])
       if (!goal) return null
+      let incomeId = null
+      if (data.income_id) {
+        const income = await getOne('SELECT id FROM income WHERE id = ? AND user_id = ?', [
+          validateId(data.income_id, 'income_id'),
+          userId
+        ])
+        if (!income) throw new Error('Linked income not found')
+        incomeId = income.id
+      }
       await run(
         `INSERT INTO savings_contributions (goal_id, income_id, amount, date, notes)
          VALUES (?, ?, ?, ?, ?)`,
         [
           id,
-          data.income_id ?? null,
+          incomeId,
           validateAmount(data.amount),
           validateDate(data.date),
           validateText(data.notes, 'notes')
@@ -1363,16 +1391,23 @@ export function createCapacitorApi() {
       return true
     },
 
-    saveExport: async ({ defaultName, data } = {}) => {
+    saveExport: async ({ defaultName, data, mimeType } = {}) => {
       const name = String(defaultName ?? 'export').replace(/[\\/]/g, '_')
       const base64 = toBase64(data)
-      const result = await Filesystem.writeFile({
+      const written = await Filesystem.writeFile({
         path: name,
         data: base64,
-        directory: Directory.Data,
+        directory: Directory.Cache,
         recursive: true
       })
-      return { saved: true, path: result.uri }
+      // Hand the file to the Android share sheet (Files, Drive, email, ...);
+      // app-private storage alone would make the export invisible to the user.
+      await Share.share({
+        title: name,
+        url: written.uri,
+        dialogTitle: 'Save or share your export'
+      }).catch(() => {})
+      return { saved: true, path: written.uri, mimeType }
     }
   }
 
@@ -1580,6 +1615,20 @@ export function createCapacitorApi() {
       }
       const included = new Set(receipts.map((receipt) => receipt.name))
 
+      // Reject malformed rows and truncated/tampered archives before we touch
+      // the database, and make the whole replace atomic so a mid-import failure
+      // rolls back instead of wiping the account.
+      validateBackupData({
+        income: Array.isArray(data.income) ? data.income : [],
+        expenses: Array.isArray(data.expenses) ? data.expenses : [],
+        debts: Array.isArray(data.debts) ? data.debts : [],
+        debt_payments: Array.isArray(data.debt_payments) ? data.debt_payments : [],
+        budgets: Array.isArray(data.budgets) ? data.budgets : [],
+        savings_goals: Array.isArray(data.savings_goals) ? data.savings_goals : [],
+        savings_contributions: Array.isArray(data.savings_contributions) ? data.savings_contributions : []
+      })
+      verifyBackupCounts(manifest, data, receipts.length)
+
       const oldReceipts = (
         await query(
           `SELECT receipt_path FROM income WHERE user_id = ? AND receipt_path IS NOT NULL
@@ -1602,23 +1651,20 @@ export function createCapacitorApi() {
       const contribRows = Array.isArray(data.savings_contributions) ? data.savings_contributions : []
       const now = new Date().toISOString()
 
-      await executeSet([
-        {
-          statement:
-            'DELETE FROM debt_payments WHERE debt_id IN (SELECT id FROM debts WHERE user_id = ?)',
-          values: [userId]
-        },
-        { statement: 'DELETE FROM debts WHERE user_id = ?', values: [userId] },
-        {
-          statement:
-            'DELETE FROM savings_contributions WHERE goal_id IN (SELECT id FROM savings_goals WHERE user_id = ?)',
-          values: [userId]
-        },
-        { statement: 'DELETE FROM savings_goals WHERE user_id = ?', values: [userId] },
-        { statement: 'DELETE FROM income WHERE user_id = ?', values: [userId] },
-        { statement: 'DELETE FROM expenses WHERE user_id = ?', values: [userId] },
-        { statement: 'DELETE FROM budgets WHERE user_id = ?', values: [userId] }
-      ])
+      await transaction(async () => {
+        await run(
+          'DELETE FROM debt_payments WHERE debt_id IN (SELECT id FROM debts WHERE user_id = ?)',
+          [userId]
+        )
+        await run('DELETE FROM debts WHERE user_id = ?', [userId])
+        await run(
+          'DELETE FROM savings_contributions WHERE goal_id IN (SELECT id FROM savings_goals WHERE user_id = ?)',
+          [userId]
+        )
+        await run('DELETE FROM savings_goals WHERE user_id = ?', [userId])
+        await run('DELETE FROM income WHERE user_id = ?', [userId])
+        await run('DELETE FROM expenses WHERE user_id = ?', [userId])
+        await run('DELETE FROM budgets WHERE user_id = ?', [userId])
 
       const incomeMap = new Map()
       for (const row of incomeRows) {
@@ -1759,6 +1805,7 @@ export function createCapacitorApi() {
           [goalId, incomeId, num(row.amount), row.date, row.notes ?? null, row.created_at ?? now]
         )
       }
+      })
 
       for (const name of oldReceipts) {
         if (!name || included.has(name) || !RECEIPT_FILE_PATTERN.test(name)) continue

@@ -8,6 +8,8 @@ import { validateDate } from '../db/validate.js'
 function validateMonth(value) {
   const month = String(value ?? currentMonth())
   if (!/^\d{4}-\d{2}$/.test(month)) throw new Error('month must be in YYYY-MM format')
+  const [, m] = month.split('-').map(Number)
+  if (m < 1 || m > 12) throw new Error('month must be in YYYY-MM format')
   return month
 }
 

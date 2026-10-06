@@ -6,6 +6,7 @@ import {
   MAX_RECEIPT_BYTES,
   RECEIPT_FILE_PATTERN
 } from '../../shared/constants.js'
+import { validateBackupData, verifyBackupCounts } from '../../shared/backupValidate.js'
 
 const FORMAT = 2
 const RECEIPTS_PREFIX = 'receipts/'
@@ -210,6 +211,11 @@ export async function parseUserBackup(buffer) {
     }
     receipts.push({ name, buffer })
   }
+
+  // Reject malformed rows and truncated/tampered archives before anything is
+  // written to the database.
+  validateBackupData(normalized)
+  verifyBackupCounts(manifest, normalized, receipts.length)
 
   return {
     manifest,

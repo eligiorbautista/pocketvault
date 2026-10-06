@@ -58,5 +58,9 @@ export const RECEIPT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.p
 
 export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024
 
+// Max length of an income `source` label. Shared so desktop and the Capacitor
+// adapter cannot drift (they previously used 80 vs 120).
+export const INCOME_SOURCE_MAX_LEN = 80
+
 // Upper bound on the total receipt payload inside a backup ZIP (both platforms).
 export const MAX_BACKUP_RECEIPTS_BYTES = 100 * 1024 * 1024

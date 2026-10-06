@@ -1,4 +1,5 @@
 import { fromCents, toCents } from '../../../shared/money.js'
+import { todayISO } from '../../../shared/dates.js'
 
 const MONTH_LABELS = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -137,10 +138,10 @@ export function debtSummary(db, userId) {
          COUNT(*) AS total_debts,
          COALESCE(SUM(remaining_amount), 0) AS outstanding,
          COALESCE(SUM(paid_amount), 0) AS paid,
-         SUM(CASE WHEN remaining_amount > 0 AND due_date IS NOT NULL AND due_date < date('now') THEN 1 ELSE 0 END) AS overdue_count
+         SUM(CASE WHEN remaining_amount > 0 AND due_date IS NOT NULL AND due_date < ? THEN 1 ELSE 0 END) AS overdue_count
        FROM debts WHERE user_id = ? AND is_archived = 0`
     )
-    .get(userId)
+    .get(todayISO(), userId)
   return {
     totalDebts: row.total_debts,
     outstanding: fromCents(toCents(row.outstanding)),

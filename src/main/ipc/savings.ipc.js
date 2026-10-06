@@ -1,12 +1,21 @@
 import { handle } from './handle.js'
 import { getDatabase } from '../db/connection.js'
 import * as savingsRepo from '../db/repositories/savings.js'
+import * as incomeRepo from '../db/repositories/income.js'
 import {
   validateAmount,
   validateDate,
   validateId,
   validateText
 } from '../db/validate.js'
+
+// A contribution may only link to an income row owned by the same user.
+function ownedIncomeId(db, userId, value) {
+  if (!value) return null
+  const id = validateId(value, 'income_id')
+  if (!incomeRepo.getById(db, userId, id)) throw new Error('Linked income not found')
+  return id
+}
 
 function normalizeGoal(payload) {
   return {
@@ -65,14 +74,15 @@ export function registerSavingsHandlers() {
   })
 
   handle('savings:addContribution', ({ userId, payload }) => {
+    const db = getDatabase()
     const row = savingsRepo.addContribution(
-      getDatabase(),
+      db,
       userId,
       validateId(payload.goalId, 'goalId'),
       {
         amount: validateAmount(payload.amount, 'amount'),
         date: validateDate(payload.date, 'date'),
-        income_id: payload.income_id ? validateId(payload.income_id, 'income_id') : null,
+        income_id: ownedIncomeId(db, userId, payload.income_id),
         notes: validateText(payload.notes, 'notes', { max: 500 })
       }
     )

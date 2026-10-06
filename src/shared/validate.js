@@ -34,8 +34,15 @@ export function validateDate(value, field = 'date', { required = true } = {}) {
     return null
   }
   assert(typeof value === 'string' && DATE_PATTERN.test(value), `${field} must be YYYY-MM-DD`)
-  const parsed = new Date(`${value}T00:00:00Z`)
+  // `new Date('2023-02-31')` silently rolls over to Mar 3, so round-trip the
+  // parsed value to reject dates that do not exist on the calendar.
+  const [y, m, d] = value.split('-').map(Number)
+  const parsed = new Date(Date.UTC(y, m - 1, d))
   assert(!Number.isNaN(parsed.getTime()), `${field} is not a valid date`)
+  assert(
+    parsed.getUTCFullYear() === y && parsed.getUTCMonth() === m - 1 && parsed.getUTCDate() === d,
+    `${field} is not a valid calendar date`
+  )
   return value
 }
 
@@ -70,8 +77,15 @@ export function validateUsername(value) {
   return username
 }
 
-export function validatePassword(value) {
-  return String(value ?? '')
+// Passwords are the app's at-rest gate (and protect "require password on
+// start"), so they must never be empty. Bounds also stop a multi-MB password
+// from being fed to bcrypt (CPU DoS).
+export function validatePassword(value, field = 'password') {
+  const text = String(value ?? '')
+  assert(text.length > 0, `${field} is required`)
+  assert(text.length >= 6, `${field} must be at least 6 characters`)
+  assert(text.length <= 128, `${field} must be 128 characters or fewer`)
+  return text
 }
 
 export function validatePaymentType(value, allowed) {

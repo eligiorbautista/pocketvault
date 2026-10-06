@@ -8,7 +8,7 @@ import {
   validatePage,
   validateText
 } from '../db/validate.js'
-import { RECEIPT_FILE_PATTERN } from '../../shared/constants.js'
+import { INCOME_SOURCE_MAX_LEN, RECEIPT_FILE_PATTERN } from '../../shared/constants.js'
 
 function normalizeReceipt(value) {
   if (value === undefined || value === null || value === '') return null
@@ -22,7 +22,7 @@ function normalize(payload) {
   return {
     amount: validateAmount(payload.amount, 'amount'),
     date: validateDate(payload.date, 'date'),
-    source: validateText(payload.source, 'source', { max: 80 }),
+    source: validateText(payload.source, 'source', { max: INCOME_SOURCE_MAX_LEN }),
     notes: validateText(payload.notes, 'notes', { max: 500 }),
     receipt_path: normalizeReceipt(payload.receipt_path)
   }

@@ -193,15 +193,6 @@ export function removePayment(db, userId, paymentId) {
   return getById(db, userId, payment.debt_id)
 }
 
-export function totalUnpaid(db, userId) {
-  const row = db
-    .prepare(
-      'SELECT COALESCE(SUM(remaining_amount), 0) AS total FROM debts WHERE user_id = ? AND remaining_amount > 0 AND is_archived = 0'
-    )
-    .get(userId)
-  return row.total
-}
-
 export function syncStatus(db, debtId, userId) {
   const debt = db.prepare('SELECT * FROM debts WHERE id = ?').get(debtId)
   if (!debt) return
