@@ -11,6 +11,7 @@ import { Input, Select } from '@renderer/components/ui/Input.jsx'
 import { Badge } from '@renderer/components/ui/Badge.jsx'
 import { ProgressBar } from '@renderer/components/ui/ProgressBar.jsx'
 import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
+import { ErrorState } from '@renderer/components/ui/ErrorState.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
@@ -201,12 +202,8 @@ export default function Budgets() {
       ) : null}
 
       {error ? (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-          {error}
-        </p>
-      ) : null}
-
-      {loading ? (
+        <ErrorState message={error} onRetry={reload} />
+      ) : loading ? (
         <Card>
           <LoadingBlock />
         </Card>

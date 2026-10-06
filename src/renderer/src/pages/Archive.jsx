@@ -5,6 +5,7 @@ import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
 import { Card, CardBody } from '@renderer/components/ui/Card.jsx'
 import { Badge, statusVariant } from '@renderer/components/ui/Badge.jsx'
 import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
+import { ErrorState } from '@renderer/components/ui/ErrorState.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
 import { cn } from '@renderer/lib/cn.js'
 import { categoryLabel, formatCurrency, formatDate } from '@renderer/lib/format.js'
@@ -69,11 +70,13 @@ const SECTIONS = [
 export default function Archive() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [active, setActive] = useState(SECTIONS[0].key)
   const [busyId, setBusyId] = useState(null)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const results = await Promise.all(SECTIONS.map((section) => section.load()))
       const next = {}
@@ -81,8 +84,8 @@ export default function Archive() {
         next[section.key] = results[index] ?? []
       })
       setData(next)
-    } catch (error) {
-      toast(error.message, 'error')
+    } catch (err) {
+      setError(err.message)
     } finally {
       setLoading(false)
     }
@@ -160,7 +163,11 @@ export default function Archive() {
 
       <Card>
         <CardBody className="p-0">
-          {loading ? (
+          {error ? (
+            <div className="p-4">
+              <ErrorState message={error} onRetry={loadAll} />
+            </div>
+          ) : loading ? (
             <LoadingBlock />
           ) : rows.length === 0 ? (
             <EmptyState

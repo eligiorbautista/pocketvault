@@ -69,7 +69,6 @@ export default function Reports() {
   const totalExpenses = sumPesos(months.map((m) => m.expenses))
   const net = sumPesos([totalIncome, -totalExpenses])
   const loading = monthlyQuery.loading
-  const error = monthlyQuery.error || categoriesQuery.error || sourcesQuery.error
   const retry = () => {
     monthlyQuery.reload()
     categoriesQuery.reload()
@@ -184,29 +183,33 @@ export default function Reports() {
         </Field>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label={`Income ${year}`}
-          value={formatCurrency(totalIncome)}
-          tone="positive"
-          icon={TrendingUp}
-          loading={loading}
-        />
-        <StatCard
-          label={`Expenses ${year}`}
-          value={formatCurrency(totalExpenses)}
-          tone="negative"
-          icon={TrendingDown}
-          loading={loading}
-        />
-        <StatCard
-          label="Net"
-          value={formatCurrency(net)}
-          tone={net >= 0 ? 'positive' : 'negative'}
-          icon={Scale}
-          loading={loading}
-        />
-      </div>
+      {monthlyQuery.error ? (
+        <ErrorState message={monthlyQuery.error} onRetry={retry} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard
+            label={`Income ${year}`}
+            value={formatCurrency(totalIncome)}
+            tone="positive"
+            icon={TrendingUp}
+            loading={loading}
+          />
+          <StatCard
+            label={`Expenses ${year}`}
+            value={formatCurrency(totalExpenses)}
+            tone="negative"
+            icon={TrendingDown}
+            loading={loading}
+          />
+          <StatCard
+            label="Net"
+            value={formatCurrency(net)}
+            tone={net >= 0 ? 'positive' : 'negative'}
+            icon={Scale}
+            loading={loading}
+          />
+        </div>
+      )}
 
       <Card>
         <CardHeader>
