@@ -51,6 +51,17 @@ export async function executeSet(statements) {
   })
   return tx()
 }
+export async function transaction(fn) {
+  db.exec('BEGIN')
+  try {
+    const result = await fn()
+    db.exec('COMMIT')
+    return result
+  } catch (error) {
+    db.exec('ROLLBACK')
+    throw error
+  }
+}
 export async function paginate({ select, from, where = [], params = [], orderBy = 'id DESC', page = 1, pageSize = 50 }) {
   const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : ''
   const total = db.prepare('SELECT COUNT(*) AS c FROM ' + from + ' ' + whereSql).get(...params).c
@@ -146,8 +157,9 @@ await check('register creates a session', async () => {
   const res = await api.auth.register('alice', 'secret123')
   return res.user.username === 'alice'
 })
-await expectThrow('duplicate username rejected', () => api.auth.register('alice', 'x'), 'already taken')
-await expectThrow('bad username rejected', () => api.auth.register('ab', 'x'), 'username must be')
+await expectThrow('duplicate username rejected', () => api.auth.register('alice', 'secret123'), 'already taken')
+await expectThrow('bad username rejected', () => api.auth.register('ab', 'secret123'), 'username must be')
+await expectThrow('weak password rejected', () => api.auth.register('bob', 'x'), 'at least 6 characters')
 await expectThrow('login with wrong password throws', () => api.auth.login('alice', 'nope'), 'Invalid username or password')
 await check('login works', async () => (await api.auth.login('alice', 'secret123')).user.id === 1)
 await check('current returns session', async () => (await api.auth.current()).user.username === 'alice')
@@ -178,6 +190,22 @@ await expectThrow(
   () => api.settings.update({ reminderLeadDays: 99 }),
   'reminderLeadDays'
 )
+await expectThrow(
+  'settings invalid currency rejected',
+  () => api.settings.update({ currency: 'NOPE' }),
+  'Unsupported currency'
+)
+await expectThrow(
+  'restore blocked when password required on start',
+  () => api.auth.restore(1),
+  'Password required'
+)
+await check('restore works after disabling the requirement', async () => {
+  await api.auth.login('alice', 'secret123')
+  await api.settings.update({ requirePasswordOnStart: false })
+  const restored = await api.auth.restore(1)
+  return restored.user.id === 1
+})
 
 let incomeId
 await check('income create', async () => {
