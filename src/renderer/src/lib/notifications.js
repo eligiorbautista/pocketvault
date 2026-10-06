@@ -66,6 +66,32 @@ async function ensureAndroidChannel(plugin) {
   }).catch(() => {})
 }
 
+// Android 12+ gates exact alarms behind a special-access permission. Without
+// it the plugin silently falls back to inexact scheduling, so we report the
+// status to the UI and let the user open the system setting.
+export async function checkExactAlarms() {
+  if (platform !== 'capacitor') return { supported: false }
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications')
+    const status = await LocalNotifications.checkExactNotificationSetting()
+    return { supported: true, granted: status?.exact_alarm === 'granted' }
+  } catch {
+    return { supported: false }
+  }
+}
+
+// Must be called from a user gesture (opens the OS settings screen).
+export async function requestExactAlarms() {
+  if (platform !== 'capacitor') return { supported: false }
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications')
+    const status = await LocalNotifications.changeExactNotificationSetting()
+    return { supported: true, granted: status?.exact_alarm === 'granted' }
+  } catch {
+    return { supported: false }
+  }
+}
+
 async function runAndroid(enabled) {
   const { LocalNotifications } = await import('@capacitor/local-notifications')
   if (!enabled) {
@@ -81,6 +107,7 @@ async function runAndroid(enabled) {
 
   const plan = await buildPlan()
   await clearAndroid(LocalNotifications)
+  const exact = await checkExactAlarms()
   if (plan.length) {
     const earliest = Date.now() + 1000
     await LocalNotifications.schedule({
@@ -99,7 +126,7 @@ async function runAndroid(enabled) {
       })
     })
   }
-  return { scheduled: plan.length }
+  return { scheduled: plan.length, exactAlarms: exact.granted !== false }
 }
 
 async function runDesktop(enabled) {
@@ -159,39 +186,4 @@ export async function clearDebtReminders() {
   } catch (error) {
     console.error('Failed to clear debt reminders', error)
   }
-}
-
-// Sends a single sample notification so the user can confirm the OS actually
-// surfaces PocketVault alerts. Fires immediately, independently of the reminder
-// schedule (it never replaces it). Returns a small result the caller can toast.
-export async function sendSampleNotification() {
-  const title = 'PocketVault'
-  const body = 'This is a sample payment reminder.'
-  if (platform === 'electron') return api.notifications.show(title, body)
-
-  if (platform === 'capacitor') {
-    const { LocalNotifications } = await import('@capacitor/local-notifications')
-    let permission = await LocalNotifications.checkPermissions()
-    if (permission.display !== 'granted') permission = await LocalNotifications.requestPermissions()
-    if (permission.display !== 'granted') return { shown: false, denied: true }
-
-    await ensureAndroidChannel(LocalNotifications)
-
-    // Distinct id per press (above ID_BASE) so repeats are never deduped.
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          id: ID_BASE + (Date.now() % 1_000_000_000),
-          title,
-          body,
-          channelId: CHANNEL_ID,
-          ...androidIconStyle(),
-          schedule: { at: new Date(Date.now() + 1000), allowWhileIdle: true }
-        }
-      ]
-    })
-    return { shown: true }
-  }
-
-  return { skipped: true }
 }

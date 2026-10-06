@@ -1,11 +1,10 @@
 import { api } from '@renderer/lib/api.js'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
   BarChart3,
   Bell,
-  BellRing,
   Coins,
   Database,
   Download,
@@ -34,7 +33,7 @@ import { DeleteDataForm } from '@renderer/components/settings/DeleteDataForm.jsx
 import { ThemeSelect } from '@renderer/components/settings/ThemeSelect.jsx'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { useSettingsStore } from '@renderer/store/settingsStore.js'
-import { sendSampleNotification, syncDebtReminders } from '@renderer/lib/notifications.js'
+import { checkExactAlarms, requestExactAlarms, syncDebtReminders } from '@renderer/lib/notifications.js'
 import { currencyCodes, currencyName, currencySymbol } from '@shared/currency.js'
 import { MAX_LEAD_DAYS } from '@shared/reminders.js'
 import { formatCurrency } from '@renderer/lib/format.js'
@@ -60,10 +59,21 @@ export default function Settings() {
   const [confirmImport, setConfirmImport] = useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [deleteDataOpen, setDeleteDataOpen] = useState(false)
+  const [exactAlarms, setExactAlarms] = useState({ supported: false, granted: true })
   const currency = useSettingsStore((state) => state.currency)
   const requirePasswordOnStart = useSettingsStore((state) => state.requirePasswordOnStart)
   const remindersEnabled = useSettingsStore((state) => state.remindersEnabled)
   const reminderLeadDays = useSettingsStore((state) => state.reminderLeadDays)
+
+  useEffect(() => {
+    let active = true
+    checkExactAlarms().then((status) => {
+      if (active) setExactAlarms(status)
+    })
+    return () => {
+      active = false
+    }
+  }, [])
 
   const changeCurrency = async (event) => {
     const next = event.target.value
@@ -108,25 +118,15 @@ export default function Settings() {
     }
   }
 
-  const sendSample = async () => {
-    setBusy('sample')
+  const enableExactAlarms = async () => {
     try {
-      const result = await sendSampleNotification()
-      if (result?.denied) {
-        toast('Notifications are blocked', 'error', {
-          description: 'Allow notifications for PocketVault in your system settings.'
-        })
-      } else if (result?.supported === false || result?.skipped) {
-        toast('Notifications are not available on this device', 'error')
-      } else {
-        toast('Sample notification sent', 'success', {
-          description: 'Check your system notifications.'
-        })
+      const result = await requestExactAlarms()
+      if (result?.granted) {
+        toast('Exact reminders enabled', 'success')
+        syncDebtReminders()
       }
     } catch (error) {
       toast(error.message, 'error')
-    } finally {
-      setBusy(null)
     }
   }
 
@@ -282,16 +282,17 @@ export default function Settings() {
             />
           </SettingRow>
 
-          <SettingRow
-            title="Test notification"
-            description="Send a sample now to check that notifications appear on your device."
-            last
-          >
-            <Button variant="secondary" size="sm" onClick={sendSample} loading={busy === 'sample'}>
-              <BellRing size={16} aria-hidden="true" />
-              Send test notification
-            </Button>
-          </SettingRow>
+          {exactAlarms.supported && !exactAlarms.granted && (
+            <SettingRow
+              title="Exact reminder timing"
+              description="Allow exact alarms so Android can fire reminders at the scheduled time instead of a delayed one."
+              last
+            >
+              <Button variant="secondary" size="sm" onClick={enableExactAlarms}>
+                Allow exact timings
+              </Button>
+            </SettingRow>
+          )}
         </CardBody>
       </Card>
 
