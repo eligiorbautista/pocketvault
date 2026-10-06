@@ -89,8 +89,7 @@ const api = {
     rangeTotals: (params) => call('reports:rangeTotals', params),
     categoryBreakdown: (params) => call('reports:categoryBreakdown', params),
     incomeBySource: (params) => call('reports:incomeBySource', params),
-    debtSummary: () => call('reports:debtSummary'),
-    monthRange: (month) => call('reports:monthRange', { month })
+    debtSummary: () => call('reports:debtSummary')
   },
 
   files: {
@@ -117,7 +116,6 @@ const api = {
 
   notifications: {
     schedule: (plan) => call('notifications:schedule', { plan }),
-    show: (title, body) => call('notifications:show', { title, body }),
     clear: () => call('notifications:clear')
   }
 }

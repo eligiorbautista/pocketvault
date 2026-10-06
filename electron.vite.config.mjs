@@ -13,7 +13,10 @@ const CSP = [
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
   "frame-src 'self' data: blob:",
-  "connect-src 'self'"
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'"
 ].join('; ')
 
 function cspPlugin() {

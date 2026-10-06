@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, dialog } from 'electron'
+import { app, shell, BrowserWindow, dialog, Menu } from 'electron'
 import { join } from 'node:path'
 import { closeDatabase, createDatabase, getDatabase } from './db/connection.js'
 import { clearSession } from './db/session.js'
@@ -6,11 +6,50 @@ import { registerIpcHandlers } from './ipc/index.js'
 import { receiptsDir } from './services/receipts.js'
 import { reconcileReceipts } from './services/receiptCleanup.js'
 import { clearReminders } from './services/reminders.js'
+import { log } from './services/logger.js'
 
 const isDev = !app.isPackaged
 
 // Required for Windows to show notifications under the right app identity.
 app.setAppUserModelId('com.pocketvault.app')
+
+// Only one instance may own the SQLite database at a time.
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    const [existing] = BrowserWindow.getAllWindows()
+    if (existing) {
+      if (existing.isMinimized()) existing.restore()
+      existing.focus()
+    }
+  })
+}
+
+// Crash safety nets: log and, where possible, keep the user informed instead of
+// dying silently.
+process.on('uncaughtException', (error) => {
+  log.error('uncaughtException', error)
+  try {
+    dialog.showErrorBox('PocketVault hit an unexpected error', String(error?.message ?? error))
+  } catch {
+    // ignore
+  }
+})
+process.on('unhandledRejection', (reason) => {
+  log.error('unhandledRejection', reason)
+})
+
+const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'mailto:'])
+
+function isSafeExternal(url) {
+  try {
+    return ALLOWED_EXTERNAL_PROTOCOLS.has(new URL(url).protocol)
+  } catch {
+    return false
+  }
+}
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -38,9 +77,28 @@ function createWindow() {
     mainWindow.show()
   })
 
+  // Only allow known-safe external links; never hand arbitrary schemes to the OS.
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    if (isSafeExternal(details.url)) shell.openExternal(details.url)
     return { action: 'deny' }
+  })
+
+  // Block top-level navigation away from the app bundle.
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (url !== mainWindow.webContents.getURL()) {
+      event.preventDefault()
+      if (isSafeExternal(url)) shell.openExternal(url)
+    }
+  })
+
+  // The app needs no device permissions of its own.
+  mainWindow.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) =>
+    callback(false)
+  )
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    log.error('render-process-gone', details)
+    clearSession(webContentsId)
   })
 
   mainWindow.webContents.on('destroyed', () => {
@@ -54,33 +112,41 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
-  try {
-    createDatabase(join(app.getPath('userData'), 'pocketvault.db'))
-    registerIpcHandlers()
-    // Clean up abandoned receipt uploads left by cancelled forms/crashes.
-    reconcileReceipts(getDatabase(), receiptsDir())
-  } catch (error) {
-    dialog.showErrorBox(
-      'PocketVault could not start',
-      `The local database failed to initialize.\n\n${error?.message ?? error}`
-    )
-    app.quit()
-    return
-  }
+if (gotLock) {
+  app.whenReady().then(() => {
+    if (!isDev) Menu.setApplicationMenu(null)
+    try {
+      createDatabase(join(app.getPath('userData'), 'pocketvault.db'))
+      registerIpcHandlers()
+      // Clean up abandoned receipt uploads left by cancelled forms/crashes.
+      reconcileReceipts(getDatabase(), receiptsDir())
+    } catch (error) {
+      log.error('startup failed', error)
+      dialog.showErrorBox(
+        'PocketVault could not start',
+        `The local database failed to initialize.\n\n${error?.message ?? error}`
+      )
+      app.quit()
+      return
+    }
 
-  createWindow()
+    createWindow()
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
   })
-})
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
 app.on('before-quit', () => {
-  clearReminders()
-  closeDatabase()
+  try {
+    clearReminders()
+    closeDatabase()
+  } catch (error) {
+    log.error('shutdown cleanup failed', error)
+  }
 })

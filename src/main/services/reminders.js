@@ -1,5 +1,6 @@
 import { app, Notification } from 'electron'
 import { join } from 'node:path'
+import { log } from './logger.js'
 
 // Desktop reminders only fire while the app is running (Electron has no
 // background scheduler). The renderer builds the plan (shared logic) and hands
@@ -18,21 +19,17 @@ function notificationIcon() {
     : join(__dirname, '../../build/icon.png')
 }
 
-// Shows a single notification right away (used by the Settings "test
-// notification" button and by due reminders). Never throws.
-export function showReminder({ title, body } = {}) {
+// Shows a single notification. Never throws.
+function show({ title, body } = {}) {
   if (!Notification.isSupported()) return { shown: false, supported: false }
   try {
     new Notification({ title, body, icon: notificationIcon() }).show()
     return { shown: true, supported: true }
-  } catch {
+  } catch (error) {
     // Never let a notification failure crash the main process.
+    log.warn('notification failed', error)
     return { shown: false, supported: true }
   }
-}
-
-function show(item) {
-  showReminder(item)
 }
 
 function armNext() {
