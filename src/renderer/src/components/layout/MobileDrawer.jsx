@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { useUIStore } from '@renderer/store/uiStore.js'
 import { NavList } from './NavList.jsx'
@@ -8,14 +8,44 @@ import { UserSummary } from './UserSummary.jsx'
 export function MobileDrawer() {
   const drawerOpen = useUIStore((state) => state.drawerOpen)
   const closeDrawer = useUIStore((state) => state.closeDrawer)
+  const panelRef = useRef(null)
 
   useEffect(() => {
     if (!drawerOpen) return undefined
+    const previouslyFocused = document.activeElement
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') closeDrawer()
+      if (event.key === 'Escape') {
+        closeDrawer()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const panel = panelRef.current
+      if (!panel) return
+      const focusable = panel.querySelectorAll(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusable.length === 0) {
+        event.preventDefault()
+        panel.focus()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (event.shiftKey && (active === first || active === panel)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
+    panelRef.current?.focus()
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      previouslyFocused?.focus?.()
+    }
   }, [drawerOpen, closeDrawer])
 
   if (!drawerOpen) return null
@@ -28,10 +58,12 @@ export function MobileDrawer() {
         aria-hidden="true"
       />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
-        className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white shadow-xl dark:bg-[#333333]"
+        tabIndex={-1}
+        className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white shadow-xl outline-none dark:bg-[#333333]"
       >
         <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4 dark:border-gray-700">
           <BrandLockup size={30} />

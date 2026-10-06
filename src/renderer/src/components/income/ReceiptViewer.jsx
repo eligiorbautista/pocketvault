@@ -4,6 +4,7 @@ import { ExternalLink } from 'lucide-react'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
+import { platform } from '@renderer/lib/platform.js'
 import { toast } from '@renderer/store/uiStore.js'
 
 export function ReceiptViewer({ filename, open, onClose }) {
@@ -51,12 +52,14 @@ export function ReceiptViewer({ filename, open, onClose }) {
       title="Receipt"
       size="lg"
       footer={
-        <div className="flex justify-end">
-          <Button variant="secondary" onClick={openExternally}>
-            <ExternalLink size={16} aria-hidden="true" />
-            Open in system viewer
-          </Button>
-        </div>
+        platform === 'capacitor' ? null : (
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={openExternally}>
+              <ExternalLink size={16} aria-hidden="true" />
+              Open in system viewer
+            </Button>
+          </div>
+        )
       }
     >
       {loading ? <LoadingBlock label="Loading receipt..." /> : null}

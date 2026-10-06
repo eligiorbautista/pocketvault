@@ -1,4 +1,5 @@
 import { Monitor, Moon, Sun } from 'lucide-react'
+import { useRef } from 'react'
 import { cn } from '@renderer/lib/cn.js'
 import { useThemeStore } from '@renderer/store/themeStore.js'
 
@@ -9,15 +10,38 @@ const OPTIONS = [
 ]
 
 // Segmented radio group for the Theme preference (light / dark / system).
+// Standard radiogroup keyboard support: arrows move + select, roving tabindex.
 export function ThemeSelect({ id }) {
   const preference = useThemeStore((state) => state.preference)
   const setPreference = useThemeStore((state) => state.setPreference)
+  const groupRef = useRef(null)
+
+  const onKeyDown = (event) => {
+    const keys = {
+      ArrowRight: 1,
+      ArrowDown: 1,
+      ArrowLeft: -1,
+      ArrowUp: -1
+    }
+    let delta = keys[event.key]
+    if (delta === undefined && event.key !== 'Home' && event.key !== 'End') return
+    event.preventDefault()
+    const current = OPTIONS.findIndex((option) => option.value === preference)
+    let next
+    if (event.key === 'Home') next = 0
+    else if (event.key === 'End') next = OPTIONS.length - 1
+    else next = (current + delta + OPTIONS.length) % OPTIONS.length
+    setPreference(OPTIONS[next].value)
+    groupRef.current?.querySelectorAll('[role="radio"]')[next]?.focus()
+  }
 
   return (
     <div
+      ref={groupRef}
       id={id}
       role="radiogroup"
       aria-label="Theme"
+      onKeyDown={onKeyDown}
       className="inline-flex rounded-lg bg-slate-100 p-1 dark:bg-gray-800"
     >
       {OPTIONS.map(({ value, label, icon: Icon }) => {
@@ -28,6 +52,7 @@ export function ThemeSelect({ id }) {
             type="button"
             role="radio"
             aria-checked={active}
+            tabIndex={active ? 0 : -1}
             onClick={() => setPreference(value)}
             className={cn(
               'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors',

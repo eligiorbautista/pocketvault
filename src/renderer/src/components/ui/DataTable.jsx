@@ -1,5 +1,6 @@
 import { LoadingBlock } from './Spinner.jsx'
 import { RowActionsMenu } from './RowActionsMenu.jsx'
+import { ErrorState } from './ErrorState.jsx'
 import { cn } from '@renderer/lib/cn.js'
 
 // Renders a responsive table:
@@ -8,17 +9,21 @@ import { cn } from '@renderer/lib/cn.js'
 //
 // `actions`  : (row) => [{ key, label, tone?: 'danger', onSelect, mobile?: false }]
 // `onRowClick`: (row) => void  — makes the whole mobile card body the "view" trigger.
+// `error`    : when set, an error + retry is shown instead of the empty state.
 export function DataTable({
   columns,
   rows,
   getRowKey,
   loading,
+  error,
+  onRetry,
   emptyState,
   actions,
   onRowClick,
   onRowClickLabel = 'View details'
 }) {
   if (loading) return <LoadingBlock />
+  if (error) return <ErrorState message={error} onRetry={onRetry} />
   if (!rows || rows.length === 0) return emptyState ?? null
 
   const resolveActions = typeof actions === 'function' ? actions : () => actions ?? []

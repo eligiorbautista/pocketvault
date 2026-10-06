@@ -12,6 +12,7 @@ import { Badge, statusVariant } from '@renderer/components/ui/Badge.jsx'
 import { ProgressBar } from '@renderer/components/ui/ProgressBar.jsx'
 import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
+import { ErrorState } from '@renderer/components/ui/ErrorState.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
 import { ReceiptViewer } from '@renderer/components/income/ReceiptViewer.jsx'
 import { ReceiptField } from '@renderer/components/ui/ReceiptField.jsx'
@@ -353,8 +354,12 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
 
   return (
     <Modal open={open} onClose={onClose} title="Debt details" size="xl">
-      {debtQuery.loading || !debt ? (
+      {debtQuery.loading ? (
         <LoadingBlock />
+      ) : debtQuery.error ? (
+        <ErrorState message={debtQuery.error} onRetry={debtQuery.reload} />
+      ) : !debt ? (
+        <ErrorState message="This debt could not be found." />
       ) : (
         <div className="space-y-5">
           <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-gray-700 dark:bg-[#2f2f2f] sm:p-5">

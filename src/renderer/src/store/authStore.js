@@ -4,14 +4,24 @@ import { SESSION_STORAGE_KEY } from '@shared/constants.js'
 import { clearDebtReminders } from '@renderer/lib/notifications.js'
 
 function persistSession(user) {
-  localStorage.setItem(
-    SESSION_STORAGE_KEY,
-    JSON.stringify({ id: user.id, username: user.username })
-  )
+  // Persisting is a convenience for the next launch; a storage-restricted
+  // environment must not turn a successful login into a failure.
+  try {
+    localStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ id: user.id, username: user.username })
+    )
+  } catch {
+    // ignore — the main-process session is already established
+  }
 }
 
 function clearPersistedSession() {
-  localStorage.removeItem(SESSION_STORAGE_KEY)
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY)
+  } catch {
+    // ignore
+  }
 }
 
 export const useAuthStore = create((set) => ({

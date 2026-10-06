@@ -8,6 +8,17 @@ let implementationPromise = null
 
 export function resolveApi() {
   if (!implementationPromise) {
+    // Distinguish "running on desktop with a broken preload" from "no bridge at
+    // all" so a missing window.api fails loudly instead of silently falling
+    // through to the native Capacitor adapter.
+    const looksLikeDesktop =
+      typeof window !== 'undefined' && window.process?.type === 'renderer'
+    if (!isElectron && looksLikeDesktop) {
+      implementationPromise = Promise.reject(
+        new Error('Desktop bridge unavailable. Reinstall or restart PocketVault.')
+      )
+      return implementationPromise
+    }
     implementationPromise = (
       isElectron
         ? Promise.resolve(window.api)

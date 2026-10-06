@@ -29,13 +29,29 @@ export function RowActionsMenu({ actions, label = 'Row actions' }) {
       if (event.key === 'Escape') {
         setOpen(false)
         buttonRef.current?.focus()
+        return
       }
+      if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+      const panel = menuRef.current
+      if (!panel) return
+      const options = Array.from(panel.querySelectorAll('[role="menuitem"]'))
+      if (options.length === 0) return
+      event.preventDefault()
+      const current = options.indexOf(document.activeElement)
+      let next
+      if (event.key === 'Home') next = 0
+      else if (event.key === 'End') next = options.length - 1
+      else if (event.key === 'ArrowDown') next = current < 0 ? 0 : (current + 1) % options.length
+      else next = current < 0 ? options.length - 1 : (current - 1 + options.length) % options.length
+      options[next].focus()
     }
     const close = () => setOpen(false)
     window.addEventListener('mousedown', onPointerDown)
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('scroll', close, true)
     window.addEventListener('resize', close)
+    // Move focus into the menu so keyboard users land on the first item.
+    menuRef.current?.querySelector('[role="menuitem"]')?.focus()
     return () => {
       window.removeEventListener('mousedown', onPointerDown)
       window.removeEventListener('keydown', onKeyDown)

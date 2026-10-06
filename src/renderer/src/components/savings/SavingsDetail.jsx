@@ -8,6 +8,7 @@ import { Field } from '@renderer/components/ui/Field.jsx'
 import { Input, Select } from '@renderer/components/ui/Input.jsx'
 import { ProgressBar } from '@renderer/components/ui/ProgressBar.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
+import { ErrorState } from '@renderer/components/ui/ErrorState.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
 import { formatCurrency, formatDate, todayInput } from '@renderer/lib/format.js'
 import { useApiData } from '@renderer/hooks/useApiData.js'
@@ -133,8 +134,12 @@ export function SavingsDetail({ goalId, open, onClose, onChanged }) {
 
   return (
     <Modal open={open} onClose={onClose} title="Savings goal" size="lg">
-      {goalQuery.loading || !goal ? (
+      {goalQuery.loading ? (
         <LoadingBlock />
+      ) : goalQuery.error ? (
+        <ErrorState message={goalQuery.error} onRetry={goalQuery.reload} />
+      ) : !goal ? (
+        <ErrorState message="This savings goal could not be found." />
       ) : (
         <div className="space-y-6">
           <div>

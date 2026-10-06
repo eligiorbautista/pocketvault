@@ -40,8 +40,13 @@ function BudgetForm({ open, initial, onClose, onSaved }) {
   }, [open, initial, reset])
 
   const onSubmit = async (values) => {
-    const resolvedCategory =
-      values.category === '__custom__' ? values.customCategory.trim() : values.category
+    // On edit the category is locked, so use it directly rather than relying on
+    // a disabled control being included in the submitted values.
+    const resolvedCategory = initial
+      ? initial.category
+      : values.category === '__custom__'
+        ? values.customCategory.trim()
+        : values.category
     try {
       await api.budgets.upsert({
         category: resolvedCategory,

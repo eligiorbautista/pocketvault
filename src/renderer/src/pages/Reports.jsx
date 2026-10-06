@@ -22,6 +22,7 @@ import { Field } from '@renderer/components/ui/Field.jsx'
 import { Input } from '@renderer/components/ui/Input.jsx'
 import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
+import { ErrorState } from '@renderer/components/ui/ErrorState.jsx'
 import { categoryLabel, formatCompactCurrency, formatCurrency, formatMonth } from '@renderer/lib/format.js'
 import { exportCsv, exportPdf } from '@renderer/lib/export.js'
 import { useApiData } from '@renderer/hooks/useApiData.js'
@@ -68,6 +69,12 @@ export default function Reports() {
   const totalExpenses = sumPesos(months.map((m) => m.expenses))
   const net = sumPesos([totalIncome, -totalExpenses])
   const loading = monthlyQuery.loading
+  const error = monthlyQuery.error || categoriesQuery.error || sourcesQuery.error
+  const retry = () => {
+    monthlyQuery.reload()
+    categoriesQuery.reload()
+    sourcesQuery.reload()
+  }
 
   const activeMonths = months.filter((month) => month.income > 0 || month.expenses > 0)
 
@@ -208,6 +215,8 @@ export default function Reports() {
         <CardBody>
           {loading ? (
             <LoadingBlock />
+          ) : monthlyQuery.error ? (
+            <ErrorState message={monthlyQuery.error} onRetry={retry} />
           ) : activeMonths.length === 0 ? (
             <EmptyState icon={TrendingUp} title="No data for this year" />
           ) : (
@@ -245,6 +254,8 @@ export default function Reports() {
           <CardBody>
             {categoriesQuery.loading ? (
               <LoadingBlock />
+            ) : categoriesQuery.error ? (
+              <ErrorState message={categoriesQuery.error} onRetry={retry} />
             ) : categories.length === 0 ? (
               <EmptyState icon={TrendingDown} title="No expenses recorded" />
             ) : (
@@ -283,6 +294,8 @@ export default function Reports() {
           <CardBody>
             {sourcesQuery.loading ? (
               <LoadingBlock />
+            ) : sourcesQuery.error ? (
+              <ErrorState message={sourcesQuery.error} onRetry={retry} />
             ) : sources.length === 0 ? (
               <EmptyState icon={TrendingUp} title="No income recorded" />
             ) : (

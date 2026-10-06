@@ -17,6 +17,7 @@ import { Card, CardBody, CardHeader, CardTitle } from '@renderer/components/ui/C
 import { Badge } from '@renderer/components/ui/Badge.jsx'
 import { ProgressBar } from '@renderer/components/ui/ProgressBar.jsx'
 import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
+import { ErrorState } from '@renderer/components/ui/ErrorState.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
 import {
   PeriodFilter,
@@ -41,7 +42,7 @@ export default function Dashboard() {
     to: todayInput()
   })
 
-  const { data, loading, error } = useApiData(
+  const { data, loading, error, reload } = useApiData(
     () => api.reports.dashboard(dashboardPeriodPayload(period, currentMonth)),
     [period.mode, period.month, period.from, period.to]
   )
@@ -69,11 +70,9 @@ export default function Dashboard() {
       />
 
       {error ? (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-          {error}
-        </p>
-      ) : null}
-
+        <ErrorState message={error} onRetry={reload} />
+      ) : (
+        <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
           label="Total income"
@@ -266,6 +265,8 @@ export default function Dashboard() {
           Open full reports
         </Link>
       </div>
+        </>
+      )}
     </div>
   )
 }

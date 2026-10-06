@@ -6,6 +6,7 @@ import { useSettingsStore } from '@renderer/store/settingsStore.js'
 import { useTheme } from '@renderer/hooks/useTheme.js'
 import { syncDebtReminders } from '@renderer/lib/notifications.js'
 import { ProtectedRoute, PublicOnlyRoute } from '@renderer/components/ProtectedRoute.jsx'
+import { ErrorBoundary } from '@renderer/components/ErrorBoundary.jsx'
 import { AppShell } from '@renderer/components/layout/AppShell.jsx'
 import { SplashScreen } from '@renderer/components/layout/SplashScreen.jsx'
 import Login from '@renderer/pages/Login.jsx'
@@ -84,9 +85,11 @@ export default function App() {
               <Route
                 path="/reports"
                 element={
-                  <Suspense fallback={<LoadingBlock />}>
-                    <Reports />
-                  </Suspense>
+                  <ErrorBoundary message="The reports screen failed to load.">
+                    <Suspense fallback={<LoadingBlock />}>
+                      <Reports />
+                    </Suspense>
+                  </ErrorBoundary>
                 }
               />
               <Route path="/archive" element={<Archive />} />

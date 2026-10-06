@@ -13,13 +13,31 @@ export function fieldClasses(hasError) {
   return cn(base, 'h-11 px-3', border(hasError))
 }
 
-export const Input = forwardRef(function Input({ hasError, className, ...props }, ref) {
-  return <input ref={ref} className={cn(fieldClasses(hasError), className)} {...props} />
+// Applied to every control so the error state is conveyed to assistive tech,
+// not just via the red border. `aria-describedby` mirrors Field's `${id}-error`.
+function a11y(hasError, id, describedBy) {
+  if (!hasError) return {}
+  return {
+    'aria-invalid': true,
+    'aria-describedby': describedBy ?? (id ? `${id}-error` : undefined)
+  }
+}
+
+export const Input = forwardRef(function Input({ hasError, className, id, ...props }, ref) {
+  return (
+    <input
+      ref={ref}
+      id={id}
+      className={cn(fieldClasses(hasError), className)}
+      {...a11y(hasError, id, props['aria-describedby'])}
+      {...props}
+    />
+  )
 })
 
 // Password input with a show/hide visibility toggle.
 export const PasswordInput = forwardRef(function PasswordInput(
-  { hasError, className, ...props },
+  { hasError, className, id, ...props },
   ref
 ) {
   const [visible, setVisible] = useState(false)
@@ -27,7 +45,9 @@ export const PasswordInput = forwardRef(function PasswordInput(
     <div className="relative">
       <input
         ref={ref}
+        id={id}
         className={cn(fieldClasses(hasError), 'pr-11', className)}
+        {...a11y(hasError, id, props['aria-describedby'])}
         {...props}
         type={visible ? 'text' : 'password'}
       />
@@ -44,23 +64,27 @@ export const PasswordInput = forwardRef(function PasswordInput(
   )
 })
 
-export const Textarea = forwardRef(function Textarea({ hasError, className, rows = 3, ...props }, ref) {
+export const Textarea = forwardRef(function Textarea({ hasError, className, id, rows = 3, ...props }, ref) {
   return (
     <textarea
       ref={ref}
+      id={id}
       rows={rows}
       className={cn(base, 'min-h-11 px-3 py-2', border(hasError), className)}
+      {...a11y(hasError, id, props['aria-describedby'])}
       {...props}
     />
   )
 })
 
-export const Select = forwardRef(function Select({ hasError, className, children, ...props }, ref) {
+export const Select = forwardRef(function Select({ hasError, className, id, children, ...props }, ref) {
   return (
     <div className={cn('relative', className)}>
       <select
         ref={ref}
+        id={id}
         className={cn(base, 'h-11 cursor-pointer appearance-none py-0 pl-3 pr-10', border(hasError))}
+        {...a11y(hasError, id, props['aria-describedby'])}
         {...props}
       >
         {children}

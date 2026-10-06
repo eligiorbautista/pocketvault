@@ -1,5 +1,4 @@
 import { api } from '@renderer/lib/api.js'
-import { jsPDF } from 'jspdf'
 import { formatCurrency, formatDate } from './format.js'
 
 function escapeCsv(value) {
@@ -28,6 +27,9 @@ export async function exportCsv(defaultName, rows, columns) {
 }
 
 export async function exportPdf(defaultName, { title, subtitle, sections = [] }) {
+  // jsPDF is heavy; load it only when a PDF is actually generated so the
+  // Reports screen does not pay for it up front.
+  const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
   const margin = 48
   let y = margin

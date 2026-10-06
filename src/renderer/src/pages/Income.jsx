@@ -323,17 +323,13 @@ export default function Income() {
           </div>
         </form>
 
-        {error ? (
-          <p role="alert" className="px-4 pb-4 text-sm text-red-600 dark:text-red-400">
-            {error}
-          </p>
-        ) : null}
-
         <DataTable
           columns={columns}
           rows={rows}
           getRowKey={(row) => row.id}
           loading={loading}
+          error={error}
+          onRetry={reload}
           actions={rowActions}
           onRowClick={(row) => {
             setEditing(row)

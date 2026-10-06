@@ -1,6 +1,9 @@
 import { cn } from '@renderer/lib/cn.js'
 
 export function Field({ label, htmlFor, error, hint, className, children }) {
+  // Link the error text to the control so screen readers announce it. Controls
+  // derive `aria-describedby` from their own id, so the ids must line up.
+  const errorId = error && htmlFor ? `${htmlFor}-error` : undefined
   return (
     <div className={cn('space-y-1.5', className)}>
       {label ? (
@@ -10,7 +13,9 @@ export function Field({ label, htmlFor, error, hint, className, children }) {
       ) : null}
       {children}
       {error ? (
-        <p className="mt-1 text-sm text-red-500 dark:text-red-400">{error}</p>
+        <p id={errorId} role="alert" className="mt-1 text-sm text-red-500 dark:text-red-400">
+          {error}
+        </p>
       ) : hint ? (
         <p className="text-xs text-slate-500 dark:text-gray-400">{hint}</p>
       ) : null}
