@@ -40,7 +40,7 @@ are required.
 
 | Platform | Runtime | Database | Files |
 | --- | --- | --- | --- |
-| Desktop (Windows/macOS/Linux) | Electron | `better-sqlite3` (main process) | `userData` dir |
+| Desktop (Windows) | Electron | `better-sqlite3` (main process) | `userData` dir |
 | Android | Capacitor 8 | `@capacitor-community/sqlite` | `@capacitor/filesystem` |
 
 The renderer never branches on the platform: it talks to one `api` facade
@@ -57,7 +57,7 @@ bcryptjs · react-hook-form · Recharts · date-fns · jsPDF · JSZip · sonner 
 ## Requirements
 
 - Node.js **>= 22** and npm.
-- Desktop: Windows/macOS/Linux.
+- Desktop: Windows.
 - Android build (optional): the Android SDK with **platform/build-tools 36** and a
   **JDK 21** to run Gradle. Gradle auto-provisions the JDK 21 toolchain (Foojay resolver);
   `build-capacitor.sh` finds a suitable JDK for you.
@@ -88,15 +88,15 @@ taken, change `server.port` in that file.
 | `npm test` | All smoke tests (db + backup + audit + capacitor) |
 | `npm run icons` | Render the "PV" monogram logo (desktop icons + favicon + Android source layers) |
 | `npm run build:desktop` | Package the desktop app with electron-builder |
-| `npm run build:win` / `build:mac` / `build:linux` | Per-OS installers → `installers/<os>/` |
-| `./build-electron.sh [win\|mac\|linux\|all]` | Auto-detect host OS and package it |
+| `npm run build:win` | Package the Windows installers → `installers/windows/` |
+| `./build-electron.sh` | Build the Windows installers |
 | `npm run dev:mobile` | Build the web app and `cap sync` Android |
 | `npm run build:mobile` | Build + sync the Android project |
 | `npm run cap:sync` / `npm run cap:open` | Sync / open the native Android project |
 | `npm run assets` | Regenerate Android icons + splash from `assets/icon.png` |
 | `./build-capacitor.sh [debug\|release]` | Build a **signed** APK → `installers/android/PocketVault.apk` |
 
-Cross-building macOS/Linux installers is only reliable on the matching OS or in CI.
+Prebuilt installers are Windows (NSIS `.exe` + `.msi`); the Android app ships as a signed APK/AAB.
 
 ## Android build
 

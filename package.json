@@ -15,7 +15,7 @@
     "dev:mobile": "electron-vite build && cap sync android",
     "start": "electron-vite preview",
     "build": "electron-vite build",
-    "build:desktop": "npm run build && electron-builder --config electron-builder.yml",
+    "build:desktop": "npm run build && electron-builder --win --publish never --config electron-builder.yml",
     "build:mobile": "npm run build && cap sync android",
     "cap:sync": "cap sync android",
     "cap:open": "cap open android",
@@ -23,9 +23,7 @@
     "icons": "node scripts/generate-icon.mjs",
     "test": "node scripts/run-tests.mjs",
     "postinstall": "electron-builder install-app-deps && node node_modules/electron/install.js",
-    "build:win": "npm run build && electron-builder --win --config electron-builder.yml --config.directories.output=installers/windows",
-    "build:mac": "npm run build && electron-builder --mac --config electron-builder.yml --config.directories.output=installers/macos",
-    "build:linux": "npm run build && electron-builder --linux --config electron-builder.yml --config.directories.output=installers/linux"
+    "build:win": "npm run build && electron-builder --win --publish never --config electron-builder.yml --config.directories.output=installers/windows"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3"

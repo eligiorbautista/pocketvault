@@ -8,7 +8,7 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
 - Dev: `npm run dev` / `npm run dev:desktop` (Electron + hot reload). Renderer dev server is pinned to `127.0.0.1:4321` in `electron.vite.config.mjs`; on this machine Windows reserves the `5098-5657` range for Docker/WSL, so 5173 fails with `EACCES`.
 - Build bundles: `npm run build` → `out/` (`out/renderer` is also the Capacitor `webDir`).
 - Preview build: `npm run start`.
-- Package desktop: `npm run build:desktop`, or per-OS `npm run build:win` / `build:mac` / `build:linux` (or `./build-electron.sh [win|mac|linux|all]`).
+- Package desktop (Windows only): `npm run build:desktop` or `npm run build:win` (or `./build-electron.sh`) → `installers/windows/` (NSIS `.exe` + `.msi`).
 - Mobile / Capacitor: `npm run build:mobile` (= build + `cap sync android`), `npm run dev:mobile`, `npm run cap:sync`, `npm run cap:open`, `npm run assets` (regenerates Android icons/splash from `assets/icon.png`). Full signed APK build: `./build-capacitor.sh [debug|release]` (release is the default; it generates a gitignored `release.keystore`, verifies the signature, and names the artifact after `capacitor.config.json` → `installers/android/PocketVault.apk`, or `PocketVault-debug.apk`).
 - Logo / icons: `npm run icons` (`scripts/generate-icon.mjs`, uses the `sharp` devDependency) renders the "PV" monogram from Roboto Bold outlines embedded in the script (source: `assets/fonts/Roboto-Bold.ttf`, Apache-2.0) into `build/icon.png` + `build/icon.ico`, the renderer favicon, and the Android source layers (`assets/icon*`, `assets/splash*`). `npm run assets` then feeds those into `@capacitor/assets` to build the Android mipmaps/splash.
 - DB/repository smoke test (run from repo root):

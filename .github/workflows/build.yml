@@ -8,21 +8,8 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            script: build:win
-            artifact: installers/windows
-          - os: macos-latest
-            script: build:mac
-            artifact: installers/macos
-          - os: ubuntu-latest
-            script: build:linux
-            artifact: installers/linux
+    name: windows-latest
+    runs-on: windows-latest
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
@@ -32,9 +19,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run ${{ matrix.script }}
+      - run: npm run build:win
       - uses: actions/upload-artifact@v4
         with:
-          name: pocketvault-${{ matrix.os }}
-          path: ${{ matrix.artifact }}
+          name: pocketvault-windows
+          path: installers/windows
           if-no-files-found: error
