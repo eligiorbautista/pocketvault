@@ -98,6 +98,23 @@ taken, change `server.port` in that file.
 
 Prebuilt installers are Windows (NSIS `.exe` + `.msi`); the Android app ships as a signed APK/AAB.
 
+## Windows build
+
+```powershell
+npm run build:win          # build bundles + package the installers
+./build-electron.sh        # same, via the shell script (Git Bash / WSL)
+```
+
+This builds the main/preload/renderer bundles and packages the Windows installers
+into `installers/windows/`:
+
+- `PocketVault Setup <version>.exe` — NSIS installer (custom install folder, desktop shortcut).
+- `PocketVault <version>.msi` — MSI installer (x64).
+
+`npm run build:desktop` does the same packaging but writes to the default output dir
+(`dist/`). Both pass `--publish never`, so packaging a tagged build never tries to
+publish to GitHub Releases.
+
 ## Android build
 
 ```bash
