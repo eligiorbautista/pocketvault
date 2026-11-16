@@ -23,7 +23,7 @@ jobs:
       - run: npm test
       - run: npm run test:unit
       - run: npm run build:win
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pocketvault-windows
           path: installers/windows
