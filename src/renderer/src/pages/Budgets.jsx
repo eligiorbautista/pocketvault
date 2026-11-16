@@ -235,7 +235,7 @@ export default function Budgets() {
                   <p className="truncate text-sm font-semibold text-slate-900 dark:text-gray-100">
                     {categoryLabel(budget.category)}
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-gray-400">
+                  <p className="text-xs text-slate-500 dark:text-dark-faint">
                     {formatCurrency(budget.spent)} of {formatCurrency(budget.monthly_limit)}
                   </p>
                 </div>
@@ -243,7 +243,7 @@ export default function Budgets() {
               </div>
               <ProgressBar percent={budget.percent} over={budget.over} />
               <div className="mt-3 flex items-center justify-between">
-                <span className="text-xs text-slate-500 dark:text-gray-400">
+                <span className="text-xs text-slate-500 dark:text-dark-faint">
                   {budget.over
                     ? `${formatCurrency(Math.abs(budget.remaining))} over`
                     : `${formatCurrency(budget.remaining)} left`}

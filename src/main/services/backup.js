@@ -8,7 +8,7 @@ import {
 } from '../../shared/constants.js'
 import { validateBackupData, verifyBackupCounts } from '../../shared/backupValidate.js'
 
-const FORMAT = 2
+const FORMAT = 3
 const RECEIPTS_PREFIX = 'receipts/'
 const DATA_KEYS = [
   'income',
@@ -17,7 +17,9 @@ const DATA_KEYS = [
   'debt_payments',
   'budgets',
   'savings_goals',
-  'savings_contributions'
+  'savings_contributions',
+  'wallets',
+  'wallet_transfers'
 ]
 
 function num(value) {
@@ -34,19 +36,19 @@ export async function buildUserBackup(db, userId, receiptsDir) {
 
   const income = db
     .prepare(
-      `SELECT id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at
+      `SELECT id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at
        FROM income WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
   const expenses = db
     .prepare(
-      `SELECT category, amount, date, notes, is_archived, created_at, updated_at
+      `SELECT wallet_id, category, amount, date, notes, is_archived, created_at, updated_at
        FROM expenses WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
   const debts = db
     .prepare(
-      `SELECT id, creditor, total_amount, paid_amount, remaining_amount, due_date,
+      `SELECT id, wallet_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
               payment_type, monthly_amount, payment_day, first_payment_date, receipt_path,
               status, notes, is_archived, created_at, updated_at
        FROM debts WHERE user_id = ? ORDER BY id`
@@ -56,7 +58,7 @@ export async function buildUserBackup(db, userId, receiptsDir) {
   const debt_payments = debtIds.length
     ? db
         .prepare(
-          `SELECT debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
+          `SELECT debt_id, wallet_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
            FROM debt_payments WHERE debt_id IN (${debtIds.map(() => '?').join(',')}) ORDER BY id`
         )
         .all(...debtIds)
@@ -83,6 +85,19 @@ export async function buildUserBackup(db, userId, receiptsDir) {
         )
         .all(...goalIds)
     : []
+  const wallets = db
+    .prepare(
+      `SELECT id, name, type, style, opening_balance, last4, color, card_image, sort_order,
+              is_archived, created_at, updated_at
+       FROM wallets WHERE user_id = ? ORDER BY id`
+    )
+    .all(userId)
+  const wallet_transfers = db
+    .prepare(
+      `SELECT id, from_wallet_id, to_wallet_id, amount, date, notes, is_archived, created_at, updated_at
+       FROM wallet_transfers WHERE user_id = ? ORDER BY id`
+    )
+    .all(userId)
 
   const zip = new JSZip()
   const counts = {
@@ -93,6 +108,8 @@ export async function buildUserBackup(db, userId, receiptsDir) {
     budgets: budgets.length,
     savingsGoals: savings_goals.length,
     savingsContributions: savings_contributions.length,
+    wallets: wallets.length,
+    walletTransfers: wallet_transfers.length,
     receipts: 0
   }
 
@@ -110,7 +127,9 @@ export async function buildUserBackup(db, userId, receiptsDir) {
         debt_payments,
         budgets,
         savings_goals,
-        savings_contributions
+        savings_contributions,
+        wallets,
+        wallet_transfers
       },
       null,
       2
@@ -181,7 +200,7 @@ export async function parseUserBackup(buffer) {
     throw new Error('Invalid backup: the archive contents are corrupted')
   }
 
-  if (!manifest || manifest.format !== FORMAT) {
+  if (!manifest || (manifest.format !== 2 && manifest.format !== 3)) {
     throw new Error('Unsupported backup format. This file was made by a different version.')
   }
   const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -241,6 +260,8 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
   assertBackupMatchesAccount(account.username, currentUsername)
   const includedReceipts = new Set(receipts.map((receipt) => receipt.name))
   const now = new Date().toISOString()
+  const walletRows = Array.isArray(data.wallets) ? data.wallets : []
+  const transferRows = Array.isArray(data.wallet_transfers) ? data.wallet_transfers : []
 
   const oldReceipts = [
     ...db
@@ -270,10 +291,65 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     db.prepare('DELETE FROM income WHERE user_id = ?').run(userId)
     db.prepare('DELETE FROM expenses WHERE user_id = ?').run(userId)
     db.prepare('DELETE FROM budgets WHERE user_id = ?').run(userId)
+    db.prepare('DELETE FROM wallet_transfers WHERE user_id = ?').run(userId)
+    db.prepare('DELETE FROM wallets WHERE user_id = ?').run(userId)
+
+    const insertWallet = db.prepare(
+      `INSERT INTO wallets
+        (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order,
+         is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    const walletMap = new Map()
+    walletRows.forEach((row, index) => {
+      const info = insertWallet.run(
+        userId,
+        row.name,
+        row.type ?? 'cash',
+        row.style ?? 'generic',
+        num(row.opening_balance),
+        row.last4 ?? null,
+        row.color ?? null,
+        row.card_image ?? null,
+        row.sort_order ?? index,
+        row.is_archived ? 1 : 0,
+        row.created_at ?? now,
+        row.updated_at ?? null
+      )
+      if (row.id != null) walletMap.set(row.id, info.lastInsertRowid)
+    })
+
+    let cash = db
+      .prepare("SELECT id FROM wallets WHERE user_id = ? AND name = 'Cash' ORDER BY id LIMIT 1")
+      .get(userId)
+    if (!cash) {
+      const next = db
+        .prepare('SELECT COALESCE(MAX(sort_order) + 1, 0) AS next FROM wallets WHERE user_id = ?')
+        .get(userId).next
+      const info = insertWallet.run(
+        userId,
+        'Cash',
+        'cash',
+        'cash',
+        0,
+        null,
+        null,
+        null,
+        next,
+        0,
+        now,
+        null
+      )
+      cash = { id: info.lastInsertRowid }
+    }
+    // Rows from a v2 backup (or an unknown wallet id) fall back to Cash so no
+    // money movement is ever dropped.
+    const resolveWallet = (value) =>
+      value != null && walletMap.has(value) ? walletMap.get(value) : cash.id
 
     const insertIncome = db.prepare(
-      `INSERT INTO income (user_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO income (user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const incomeMap = new Map()
     for (const row of data.income) {
@@ -281,6 +357,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         row.receipt_path && includedReceipts.has(row.receipt_path) ? row.receipt_path : null
       const info = insertIncome.run(
         userId,
+        resolveWallet(row.wallet_id),
         num(row.amount),
         row.date,
         row.source ?? null,
@@ -294,12 +371,13 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     }
 
     const insertExpense = db.prepare(
-      `INSERT INTO expenses (user_id, category, amount, date, notes, is_archived, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO expenses (user_id, wallet_id, category, amount, date, notes, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     for (const row of data.expenses) {
       insertExpense.run(
         userId,
+        resolveWallet(row.wallet_id),
         row.category,
         num(row.amount),
         row.date,
@@ -311,10 +389,10 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     }
 
     const insertDebt = db.prepare(
-      `INSERT INTO debts (user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
+      `INSERT INTO debts (user_id, wallet_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
                           payment_type, monthly_amount, payment_day, first_payment_date, receipt_path,
                           status, notes, is_archived, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const debtMap = new Map()
     for (const row of data.debts) {
@@ -322,6 +400,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         row.receipt_path && includedReceipts.has(row.receipt_path) ? row.receipt_path : null
       const info = insertDebt.run(
         userId,
+        resolveWallet(row.wallet_id),
         row.creditor,
         num(row.total_amount),
         num(row.paid_amount),
@@ -342,8 +421,8 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     }
 
     const insertPayment = db.prepare(
-      `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO debt_payments (debt_id, wallet_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     for (const row of data.debt_payments) {
       const debtId = debtMap.get(row.debt_id)
@@ -352,6 +431,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         row.receipt_path && includedReceipts.has(row.receipt_path) ? row.receipt_path : null
       insertPayment.run(
         debtId,
+        resolveWallet(row.wallet_id),
         num(row.amount),
         row.date,
         row.notes ?? null,
@@ -359,6 +439,28 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         row.installment_due ?? null,
         receipt,
         row.created_at ?? now
+      )
+    }
+
+    const insertTransfer = db.prepare(
+      `INSERT INTO wallet_transfers
+        (user_id, from_wallet_id, to_wallet_id, amount, date, notes, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    for (const row of transferRows) {
+      const fromWallet = resolveWallet(row.from_wallet_id)
+      const toWallet = resolveWallet(row.to_wallet_id)
+      if (fromWallet === toWallet) continue
+      insertTransfer.run(
+        userId,
+        fromWallet,
+        toWallet,
+        num(row.amount),
+        row.date,
+        row.notes ?? null,
+        row.is_archived ? 1 : 0,
+        row.created_at ?? now,
+        row.updated_at ?? null
       )
     }
 
@@ -441,6 +543,8 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
       budgets: data.budgets.length,
       savingsGoals: data.savings_goals.length,
       savingsContributions: data.savings_contributions.length,
+      wallets: data.wallets.length,
+      walletTransfers: data.wallet_transfers.length,
       receipts: receipts.length
     }
   }

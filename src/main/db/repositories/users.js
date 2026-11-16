@@ -1,8 +1,16 @@
+import { DEFAULT_WALLET } from '../../../shared/wallets.js'
+
 export function createUser(db, { username, passwordHash }) {
-  const info = db
-    .prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
-    .run(username, passwordHash)
-  return findById(db, info.lastInsertRowid)
+  const run = db.transaction(() => {
+    const info = db
+      .prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
+      .run(username, passwordHash)
+    db.prepare(
+      'INSERT INTO wallets (user_id, name, type, style, opening_balance, sort_order) VALUES (?, ?, ?, ?, 0, 0)'
+    ).run(info.lastInsertRowid, DEFAULT_WALLET.name, DEFAULT_WALLET.type, DEFAULT_WALLET.style)
+    return findById(db, info.lastInsertRowid)
+  })
+  return run()
 }
 
 export function findByUsername(db, username) {

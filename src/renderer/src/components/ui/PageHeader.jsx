@@ -14,7 +14,7 @@ export function PageHeader({ title, description, actions, className }) {
           {title}
         </h1>
         {description ? (
-          <p className="mt-1 text-sm text-slate-500 dark:text-gray-400">{description}</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-dark-faint">{description}</p>
         ) : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
@@ -32,13 +32,13 @@ export function StatCard({ label, value, hint, icon: Icon, tone = 'default', loa
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-gray-400">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-dark-faint">
             {label}
           </p>
           <p className={cn('mt-2 truncate text-2xl font-semibold', tones[tone])}>
             {loading ? '\u2014' : value}
           </p>
-          {hint ? <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">{hint}</p> : null}
+          {hint ? <p className="mt-1 text-xs text-slate-500 dark:text-dark-faint">{hint}</p> : null}
         </div>
         {Icon ? (
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-900 dark:text-accent-300">

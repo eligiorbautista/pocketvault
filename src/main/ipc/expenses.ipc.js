@@ -9,9 +9,11 @@ import {
   validatePage,
   validateText
 } from '../db/validate.js'
+import { validateWalletId } from '../../shared/wallets.js'
 
 function normalize(payload) {
   return {
+    wallet_id: validateWalletId(payload.wallet_id),
     category: validateCategory(payload.category),
     amount: validateAmount(payload.amount, 'amount'),
     date: validateDate(payload.date, 'date'),
@@ -28,6 +30,7 @@ export function registerExpensesHandlers() {
       search: payload.search ? String(payload.search).trim() : undefined,
       from: payload.from || undefined,
       to: payload.to || undefined,
+      walletId: payload.walletId ? validateWalletId(payload.walletId) : undefined,
       order: payload.order
     })
   )

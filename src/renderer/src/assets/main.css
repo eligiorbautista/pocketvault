@@ -8,7 +8,13 @@
     sans-serif;
 
   /* App background in dark mode. */
-  --color-dark-bg: #252526;
+  --color-dark-bg: #0b0b0b;
+  --color-dark-surface: #1a1a1b;
+  --color-dark-surface-2: #232324;
+  --color-dark-border: #2a2a2b;
+  --color-dark-rule: #222223;
+  --color-dark-muted: #b4b4b4;
+  --color-dark-faint: #949494;
 
   --color-accent-50: #ecfdf5;
   --color-accent-100: #d1fae5;
@@ -61,5 +67,10 @@
 
   html.dark :focus-visible {
     outline-color: var(--color-accent-400);
+  }
+
+  ::selection {
+    background-color: var(--color-accent-500);
+    color: #052e22;
   }
 }

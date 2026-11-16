@@ -42,7 +42,7 @@ export function ThemeSelect({ id }) {
       role="radiogroup"
       aria-label="Theme"
       onKeyDown={onKeyDown}
-      className="inline-flex rounded-lg bg-slate-100 p-1 dark:bg-gray-800"
+      className="inline-flex rounded-lg bg-slate-100 p-1 dark:bg-dark-surface-2"
     >
       {OPTIONS.map(({ value, label, icon: Icon }) => {
         const active = preference === value
@@ -55,11 +55,11 @@ export function ThemeSelect({ id }) {
             tabIndex={active ? 0 : -1}
             onClick={() => setPreference(value)}
             className={cn(
-              'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors',
+              'inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors',
               'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
               active
-                ? 'bg-white text-slate-900 shadow-sm dark:bg-[#3a3a3a] dark:text-gray-100'
-                : 'text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200'
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-dark-surface-2 dark:text-gray-100'
+                : 'text-slate-500 hover:text-slate-700 dark:text-dark-faint dark:hover:text-gray-200'
             )}
           >
             <Icon size={15} aria-hidden="true" />

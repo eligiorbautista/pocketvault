@@ -6,14 +6,20 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { createDatabase, closeDatabase } from '../src/main/db/connection.js'
+import { applyMigrations } from '../src/main/db/schema.js'
+import { MIGRATIONS } from '../src/shared/schema.js'
+import Database from 'better-sqlite3'
 import * as users from '../src/main/db/repositories/users.js'
 import * as incomeRepo from '../src/main/db/repositories/income.js'
 import * as expensesRepo from '../src/main/db/repositories/expenses.js'
 import * as debtsRepo from '../src/main/db/repositories/debts.js'
+import * as walletsRepo from '../src/main/db/repositories/wallets.js'
 import * as budgetsRepo from '../src/main/db/repositories/budgets.js'
 import * as savingsRepo from '../src/main/db/repositories/savings.js'
 import * as reportsRepo from '../src/main/db/repositories/reports.js'
 import * as dashboardRepo from '../src/main/db/repositories/dashboard.js'
+
+const cashId = (db, userId) => walletsRepo.list(db, userId)[0].id
 
 let passed = 0
 function check(label, condition, detail) {
@@ -34,21 +40,21 @@ const alice = users.createUser(db, { username: 'alice', passwordHash: 'x' })
 const bob = users.createUser(db, { username: 'bob', passwordHash: 'y' })
 check('two users created', alice.id === 1 && bob.id === 2)
 
-incomeRepo.create(db, alice.id, {
+incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
   amount: 25000,
   date: '2026-03-01',
   source: 'Salary',
   notes: 'March salary',
   receipt_path: null
 })
-incomeRepo.create(db, alice.id, {
+incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
   amount: 5000.5,
   date: '2026-03-15',
   source: 'Freelance',
   notes: null,
   receipt_path: null
 })
-incomeRepo.create(db, alice.id, {
+incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
   amount: 1000,
   date: '2026-04-02',
   source: 'Gifts',
@@ -59,7 +65,7 @@ const aliceIncome = incomeRepo.list(db, alice.id, { page: 1 })
 check('alice sees 3 income rows', aliceIncome.total === 3, aliceIncome.total)
 check('income pagination meta', aliceIncome.totalPages === 1 && aliceIncome.page === 1)
 
-incomeRepo.create(db, bob.id, {
+incomeRepo.create(db, bob.id, { wallet_id: cashId(db, bob.id),
   amount: 9999,
   date: '2026-03-10',
   source: 'Business',
@@ -76,12 +82,12 @@ check(
 const search = incomeRepo.list(db, alice.id, { search: 'freelance' })
 check('income search filter', search.total === 1 && search.rows[0].source === 'Freelance')
 
-expensesRepo.create(db, alice.id, { category: 'food', amount: 1500, date: '2026-03-05', notes: 'groceries' })
-expensesRepo.create(db, alice.id, { category: 'food', amount: 500, date: '2026-03-20', notes: null })
-expensesRepo.create(db, alice.id, { category: 'transport', amount: 300, date: '2026-03-21', notes: null })
-expensesRepo.create(db, alice.id, { category: 'food', amount: 700, date: '2026-04-01', notes: null })
+expensesRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), category: 'food', amount: 1500, date: '2026-03-05', notes: 'groceries' })
+expensesRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), category: 'food', amount: 500, date: '2026-03-20', notes: null })
+expensesRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), category: 'transport', amount: 300, date: '2026-03-21', notes: null })
+expensesRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), category: 'food', amount: 700, date: '2026-04-01', notes: null })
 
-const debt = debtsRepo.create(db, alice.id, {
+const debt = debtsRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
   creditor: 'Landlord',
   total_amount: 10000,
   due_date: '2026-12-31',
@@ -92,7 +98,7 @@ const debt = debtsRepo.create(db, alice.id, {
 })
 check('debt starts unpaid', debt.effective_status === 'unpaid', debt.effective_status)
 
-debtsRepo.addPayment(db, alice.id, debt.id, { amount: 4000, date: '2026-03-05', notes: null })
+debtsRepo.addPayment(db, alice.id, debt.id, { wallet_id: cashId(db, alice.id), amount: 4000, date: '2026-03-05', notes: null })
 let updatedDebt = debtsRepo.getById(db, alice.id, debt.id)
 check('debt partial after payment', updatedDebt.paid_amount === 4000 && updatedDebt.remaining_amount === 6000)
 check('debt effective status partial', updatedDebt.effective_status === 'partial')
@@ -100,12 +106,12 @@ check('debt effective status partial', updatedDebt.effective_status === 'partial
 const payments = debtsRepo.listPayments(db, alice.id, debt.id)
 check('debt has 1 ledger entry', payments.length === 1)
 
-debtsRepo.addPayment(db, alice.id, debt.id, { amount: 6000, date: '2026-03-07', notes: null })
+debtsRepo.addPayment(db, alice.id, debt.id, { wallet_id: cashId(db, alice.id), amount: 6000, date: '2026-03-07', notes: null })
 updatedDebt = debtsRepo.getById(db, alice.id, debt.id)
 check('debt paid off', updatedDebt.remaining_amount === 0 && updatedDebt.effective_status === 'paid')
 check('payments advance paid amount', updatedDebt.paid_amount === 10000, updatedDebt.paid_amount)
 
-debtsRepo.addPayment(db, alice.id, debt.id, { amount: 500, date: '2026-03-08', notes: null })
+debtsRepo.addPayment(db, alice.id, debt.id, { wallet_id: cashId(db, alice.id), amount: 500, date: '2026-03-08', notes: null })
 updatedDebt = debtsRepo.getById(db, alice.id, debt.id)
 check('overpayment clamped at zero remaining', updatedDebt.remaining_amount === 0, updatedDebt.remaining_amount)
 
@@ -168,7 +174,7 @@ check('dashboard total saved', dash.totalSaved === 15000, dash.totalSaved)
 check('dashboard budgets over count zero', dash.budgets.over === 0)
 check('dashboard recent income capped at 5', dash.recentIncome.length <= 5)
 
-incomeRepo.update(db, alice.id, incomeForContribution.id, {
+incomeRepo.update(db, alice.id, incomeForContribution.id, { wallet_id: cashId(db, alice.id),
   amount: 111,
   date: '2026-03-01',
   source: 'Salary',
@@ -181,7 +187,7 @@ check('income update sets updated_at', Boolean(incomeRepo.getById(db, alice.id, 
 check('expense delete', expensesRepo.remove(db, alice.id, expensesRepo.list(db, alice.id, {}).rows[0].id) === true)
 check('delete other user row is blocked', expensesRepo.remove(db, alice.id, 9999) === false)
 
-const overdueDebt = debtsRepo.create(db, alice.id, {
+const overdueDebt = debtsRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
   creditor: 'Old bill',
   total_amount: 500,
   due_date: '2020-01-01',
@@ -195,7 +201,7 @@ check('overdue appears in status filter', debtsRepo.list(db, alice.id, { status:
 check('debt summary counts overdue', reportsRepo.debtSummary(db, alice.id).overdueCount === 1)
 
 // soft delete (archive) semantics
-const archIncome = incomeRepo.create(db, alice.id, {
+const archIncome = incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
   amount: 77,
   date: '2026-05-01',
   source: 'Archive me',
@@ -218,6 +224,142 @@ check(
   incomeRepo.restore(db, alice.id, archIncome.id) === true &&
     incomeRepo.list(db, alice.id, {}).total === activeBefore
 )
+
+// ---------- wallets ----------
+const aliceCash = walletsRepo.list(db, alice.id)[0]
+check(
+  'registration creates Cash first',
+  aliceCash && aliceCash.name === 'Cash' && aliceCash.type === 'cash' && aliceCash.sort_order === 0
+)
+const bdo = walletsRepo.create(db, alice.id, {
+  name: 'BDO Savings',
+  type: 'bank',
+  style: 'bdo',
+  opening_balance: 0,
+  last4: '4218'
+})
+check('wallet create preserves name/style/last4', bdo.name === 'BDO Savings' && bdo.style === 'bdo' && bdo.last4 === '4218')
+
+const balanceOf = (walletId) => walletsRepo.balances(db, alice.id).byId[walletId]?.balance ?? 0
+const baseBdo = balanceOf(bdo.id)
+const baseCash = balanceOf(aliceCash.id)
+
+incomeRepo.create(db, alice.id, {
+  wallet_id: bdo.id,
+  amount: 50,
+  date: '2026-06-01',
+  source: 'Wallet test',
+  notes: null,
+  receipt_path: null
+})
+expensesRepo.create(db, alice.id, {
+  wallet_id: aliceCash.id,
+  category: 'food',
+  amount: 20,
+  date: '2026-06-01',
+  notes: null
+})
+walletsRepo.transfer(db, alice.id, {
+  from_wallet_id: bdo.id,
+  to_wallet_id: aliceCash.id,
+  amount: 10,
+  date: '2026-06-02',
+  notes: null
+})
+const walletDebt = debtsRepo.create(db, alice.id, {
+  wallet_id: bdo.id,
+  creditor: 'Wallet loan',
+  total_amount: 100,
+  due_date: '2026-12-01',
+  payment_type: 'fixed-date',
+  monthly_amount: null,
+  payment_day: null,
+  first_payment_date: null,
+  receipt_path: null,
+  notes: null
+})
+debtsRepo.addPayment(db, alice.id, walletDebt.id, {
+  wallet_id: bdo.id,
+  amount: 30,
+  date: '2026-06-03',
+  notes: null,
+  installment_due: null,
+  receipt_path: null
+})
+
+check('wallet balance adds income, loan and subtracts payment/transfer', Math.abs(balanceOf(bdo.id) - (baseBdo + 110)) < 0.001)
+check('transfer moves money between wallets', Math.abs(balanceOf(aliceCash.id) - (baseCash - 10)) < 0.001)
+const walletSummary = walletsRepo.summary(db, alice.id)
+check(
+  'summary totals equal the sum of wallet balances',
+  Math.abs(walletSummary.total - walletSummary.wallets.reduce((sum, w) => sum + w.balance, 0)) < 0.001
+)
+
+// Archiving a debt drops both its proceeds and its payments.
+debtsRepo.remove(db, alice.id, walletDebt.id)
+check(
+  'archived debt drops proceeds and payments from the wallet',
+  Math.abs(balanceOf(bdo.id) - (baseBdo + 40)) < 0.001
+)
+
+check('wallet archive excludes it from the active list', walletsRepo.remove(db, alice.id, bdo.id) === true && walletsRepo.list(db, alice.id).every((w) => w.id !== bdo.id))
+check('wallet restore returns it', walletsRepo.restore(db, alice.id, bdo.id) === true && walletsRepo.list(db, alice.id).some((w) => w.id === bdo.id))
+
+const activeCount = walletsRepo.list(db, alice.id).length
+walletsRepo.remove(db, alice.id, bdo.id)
+let guard = null
+try {
+  walletsRepo.remove(db, alice.id, aliceCash.id)
+} catch (error) {
+  guard = error
+}
+check('last active wallet cannot be archived', guard?.message === 'At least one wallet must stay active', guard?.message)
+walletsRepo.restore(db, alice.id, bdo.id)
+
+check('move up reorders wallets', walletsRepo.move(db, alice.id, bdo.id, 'up') === true && walletsRepo.list(db, alice.id)[0].id === bdo.id)
+check('move down restores the order', walletsRepo.move(db, alice.id, bdo.id, 'down') === true && walletsRepo.list(db, alice.id)[0].id === aliceCash.id)
+check('active wallet count is stable', walletsRepo.list(db, alice.id).length === activeCount)
+
+// V6 is re-runnable: the Cash guard and duplicate-column tolerance hold.
+const beforeMigration = walletsRepo.list(db, alice.id).length
+db.pragma('user_version = 5')
+applyMigrations(db)
+check(
+  're-applying V6 does not duplicate Cash',
+  walletsRepo.list(db, alice.id).length === beforeMigration &&
+    walletsRepo.list(db, alice.id).filter((w) => w.name === 'Cash').length === 1
+)
+
+// A real v5 database (rows, no wallets) migrates and backfills to Cash.
+const legacyPath = join(dir, 'legacy.db')
+const legacy = new Database(legacyPath)
+legacy.pragma('foreign_keys = ON')
+for (const migration of MIGRATIONS.slice(0, 5)) legacy.exec(migration)
+legacy
+  .prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
+  .run('legacy', 'x')
+legacy
+  .prepare('INSERT INTO income (user_id, amount, date) VALUES (1, 10, ?)')
+  .run('2026-01-01')
+const legacyDebt = legacy
+  .prepare('INSERT INTO debts (user_id, creditor, total_amount, remaining_amount) VALUES (1, ?, 50, 50)')
+  .run('Old loan')
+legacy
+  .prepare('INSERT INTO debt_payments (debt_id, amount, date) VALUES (?, 10, ?)')
+  .run(legacyDebt.lastInsertRowid, '2026-01-02')
+legacy.pragma('user_version = 5')
+applyMigrations(legacy)
+const legacyCash = legacy
+  .prepare("SELECT id FROM wallets WHERE user_id = 1 AND name = 'Cash'")
+  .get()
+check('v5 migration creates a Cash wallet', Boolean(legacyCash))
+check(
+  'v5 migration backfills income, debt and payment wallets',
+  legacy.prepare('SELECT wallet_id FROM income WHERE user_id = 1').get().wallet_id === legacyCash.id &&
+    legacy.prepare('SELECT wallet_id FROM debts WHERE user_id = 1').get().wallet_id === legacyCash.id &&
+    legacy.prepare('SELECT wallet_id FROM debt_payments').get().wallet_id === legacyCash.id
+)
+legacy.close()
 
 closeDatabase()
 rmSync(dir, { recursive: true, force: true })

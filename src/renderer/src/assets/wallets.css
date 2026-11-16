@@ -1,0 +1,296 @@
+/* Wallet card faces. Each preset is a colour/pattern study, never a logo asset.
+   The card component renders the CSS chip/contactless marks; the shared module
+   only owns labels and validation. */
+
+.wallet-face {
+  position: relative;
+  aspect-ratio: 1.586;
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  container-type: inline-size;
+  isolation: isolate;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.wallet-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.wallet-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wallet-name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wallet-mid {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.wallet-chip {
+  width: 38px;
+  height: 28px;
+  border-radius: 5px;
+  flex: none;
+  background:
+    repeating-linear-gradient(90deg, rgba(120, 80, 10, 0.55) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(0deg, rgba(120, 80, 10, 0.55) 0 1px, transparent 1px 8px),
+    linear-gradient(135deg, #f6df9a, #d7ab45 55%, #f3d98b);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.wallet-contactless {
+  width: 20px;
+  height: 20px;
+  opacity: 0.9;
+}
+
+.wallet-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wallet-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.wallet-balance {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 2px;
+}
+
+.wallet-meta {
+  font-size: 11px;
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+.wallet-negative {
+  color: #ef4444;
+}
+
+/* BDO: royal blue, wave + halftone */
+.wallet-face--bdo { background: linear-gradient(155deg, #144fc0 0%, #0a3796 42%, #06205c 100%); }
+.wallet-face--bdo::after {
+  background:
+    radial-gradient(120% 85% at 8% 128%, rgba(0, 0, 0, 0.32), transparent 62%),
+    radial-gradient(70% 55% at 104% 8%, rgba(80, 140, 255, 0.45), transparent 60%),
+    radial-gradient(95% 65% at 82% 118%, #0a2a78 0%, #0a2a78 42%, transparent 43%);
+}
+.wallet-face--bdo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.17) 1px, transparent 1.35px);
+  background-size: 11px 11px;
+  -webkit-mask-image: radial-gradient(58% 62% at 76% 28%, #000 0%, transparent 74%);
+  mask-image: radial-gradient(58% 62% at 76% 28%, #000 0%, transparent 74%);
+  opacity: 0.6;
+}
+.wallet-wave {
+  position: absolute;
+  left: -10%;
+  bottom: -46%;
+  width: 130%;
+  height: 80%;
+  border-radius: 50%;
+  border-top: 1.5px solid rgba(120, 170, 255, 0.35);
+  z-index: -1;
+}
+
+/* MariBank: orange over cream */
+.wallet-face--maribank {
+  background: linear-gradient(180deg, #f36a1e 0%, #f57b2b 46%, #f8e8ce 46.6%, #fbf3e4 100%);
+  color: #3a2818;
+}
+.wallet-face--maribank .wallet-name { color: #fff; }
+.wallet-face--maribank .wallet-label,
+.wallet-face--maribank .wallet-meta { color: #8a6a49; opacity: 1; }
+.wallet-face--maribank::before {
+  content: '';
+  position: absolute;
+  left: -18%;
+  top: 18%;
+  width: 78%;
+  height: 66%;
+  z-index: -1;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+/* GoTyme: black + lime rings */
+.wallet-face--gotyme { background: radial-gradient(120% 130% at 84% 34%, #171a12 0%, #0a0b09 58%), #080808; }
+.wallet-face--gotyme::after {
+  background: repeating-radial-gradient(circle at 82% 40%, rgba(200, 240, 74, 0.2) 0 1.5px, transparent 1.5px 10px);
+  opacity: 0.9;
+}
+.wallet-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #c8f04a;
+  display: inline-block;
+  margin-left: 6px;
+}
+
+/* Cash: black leather wallet, note + card peeking out */
+.wallet-face--cash {
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.06), transparent 55%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(25deg, rgba(0, 0, 0, 0.2) 0 2px, transparent 2px 7px),
+    radial-gradient(140% 130% at 24% 6%, #272420 0%, #151311 40%, #080706 100%);
+  color: #ece3d6;
+}
+.wallet-face--cash .wallet-top { margin-top: 10%; }
+.wallet-face--cash::after {
+  background:
+    radial-gradient(60% 50% at 50% 118%, rgba(0, 0, 0, 0.6), transparent 70%),
+    linear-gradient(105deg, transparent 62%, rgba(255, 255, 255, 0.04) 63%, transparent 66%);
+}
+.wallet-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  pointer-events: none;
+}
+.wallet-face--cash .wallet-label,
+.wallet-face--cash .wallet-meta { opacity: 0.55; }
+
+/* BPI: deep red, white sweep */
+.wallet-face--bpi { background: linear-gradient(150deg, #cf1230 0%, #9a0c24 62%, #6a0716 100%); }
+.wallet-face--bpi::after {
+  background:
+    radial-gradient(90% 70% at 0% 110%, rgba(0, 0, 0, 0.35), transparent 60%),
+    linear-gradient(108deg, transparent 54%, rgba(255, 255, 255, 0.18) 55%, rgba(255, 255, 255, 0.05) 62%, transparent 63%);
+}
+
+/* Metrobank: navy, light ribbon + notch motif */
+.wallet-face--metrobank { background: linear-gradient(155deg, #0a2d78 0%, #061f57 55%, #041a4a 100%); }
+.wallet-face--metrobank::after {
+  background:
+    linear-gradient(112deg, transparent 40%, rgba(130, 185, 255, 0.3) 41%, rgba(130, 185, 255, 0.06) 56%, transparent 57%),
+    radial-gradient(70% 60% at 92% 104%, rgba(40, 110, 220, 0.55), transparent 60%);
+}
+
+/* UnionBank: cream + orange flow */
+.wallet-face--unionbank { background: linear-gradient(170deg, #fffdf8 0%, #f7f0e4 62%, #f2e7d6 100%); color: #22201c; }
+.wallet-face--unionbank .wallet-name { color: #22201c; }
+.wallet-face--unionbank .wallet-label,
+.wallet-face--unionbank .wallet-meta { color: #7a5a3a; opacity: 1; }
+.wallet-face--unionbank::after {
+  background: radial-gradient(78% 120% at 108% 38%, #f58220 0%, #f58220 36%, #f59a45 37%, transparent 39%);
+}
+
+/* Security Bank: navy + gold arc */
+.wallet-face--securitybank { background: linear-gradient(150deg, #0b2c52 0%, #061b35 60%, #04121f 100%); }
+.wallet-face--securitybank::after {
+  background:
+    radial-gradient(62% 86% at 94% 8%, rgba(248, 204, 45, 0.95) 0%, rgba(248, 204, 45, 0.55) 20%, transparent 52%),
+    linear-gradient(120deg, transparent 62%, rgba(255, 255, 255, 0.05));
+}
+
+/* RCBC: blue + red ribbon */
+.wallet-face--rcbc { background: linear-gradient(150deg, #0b4ea2 0%, #073573 60%, #052a5c 100%); }
+.wallet-face--rcbc::after {
+  background:
+    linear-gradient(118deg, transparent 36%, #e2232b 37%, #e2232b 45%, transparent 46%),
+    radial-gradient(70% 60% at 0% 110%, rgba(0, 0, 0, 0.3), transparent 62%);
+}
+
+/* Landbank: green + yellow */
+.wallet-face--landbank { background: linear-gradient(150deg, #0a7a42 0%, #055b2f 58%, #03401f 100%); }
+.wallet-face--landbank::after {
+  background:
+    radial-gradient(80% 70% at 94% 100%, rgba(250, 204, 21, 0.65), transparent 58%),
+    radial-gradient(60% 50% at 0% 0%, rgba(255, 255, 255, 0.1), transparent 60%);
+}
+
+/* PNB: navy + red band */
+.wallet-face--pnb { background: linear-gradient(150deg, #0b2f7a 0%, #061a44 100%); }
+.wallet-face--pnb::after {
+  background:
+    linear-gradient(114deg, transparent 58%, #c8102e 59%, #c8102e 73%, transparent 74%),
+    radial-gradient(60% 50% at 0% 110%, rgba(0, 0, 0, 0.3), transparent 65%);
+}
+
+/* PSBank: navy + yellow corner */
+.wallet-face--psbank { background: linear-gradient(150deg, #0a2a4f 0%, #061c37 100%); }
+.wallet-face--psbank::after {
+  background: linear-gradient(246deg, #f7c948 0%, #f7c948 27%, transparent 27.5%);
+}
+
+/* GCash: vivid blue */
+.wallet-face--gcash { background: linear-gradient(160deg, #1a8cff 0%, #0064e0 58%, #0044a8 100%); }
+.wallet-face--gcash::after {
+  background:
+    radial-gradient(70% 60% at 102% 0%, rgba(255, 255, 255, 0.24), transparent 58%),
+    radial-gradient(70% 60% at 0% 110%, rgba(0, 0, 0, 0.28), transparent 65%);
+}
+
+/* Maya: black + green pad */
+.wallet-face--maya { background: radial-gradient(120% 130% at 84% 10%, #12351f 0%, #070d09 55%), #050505; }
+.wallet-face--maya::after {
+  background: radial-gradient(58% 78% at 92% 0%, rgba(0, 210, 106, 0.62), transparent 58%);
+}
+
+/* CIMB: red */
+.wallet-face--cimb { background: linear-gradient(150deg, #f01e28 0%, #b60f16 62%, #8f0c12 100%); }
+.wallet-face--cimb::after {
+  background:
+    radial-gradient(80% 60% at 102% 0%, rgba(255, 255, 255, 0.2), transparent 60%),
+    radial-gradient(60% 50% at 0% 110%, rgba(0, 0, 0, 0.3), transparent 65%);
+}
+
+/* Generic preset */
+.wallet-face--generic { background: linear-gradient(150deg, #2b2b2e, #151516); }
+.wallet-face--generic::after {
+  background: radial-gradient(60% 50% at 100% 0%, rgba(255, 255, 255, 0.08), transparent 60%);
+}
+
+/* Custom image: a bottom scrim keeps the balance readable over any photo. */
+.wallet-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.68), transparent 62%);
+}
+
+@container (max-width: 220px) {
+  .wallet-face { padding: 11px 12px; border-radius: 14px; }
+  .wallet-name { font-size: 13px; }
+  .wallet-balance { font-size: 14px; }
+  .wallet-label { font-size: 9px; letter-spacing: 0.06em; }
+  .wallet-meta { display: none; }
+  .wallet-chip { width: 28px; height: 21px; }
+  .wallet-contactless { width: 15px; height: 15px; }
+}

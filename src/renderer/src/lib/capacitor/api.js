@@ -13,6 +13,14 @@ import {
 } from '@shared/constants.js'
 import { DEFAULT_CURRENCY, isValidCurrency } from '@shared/currency.js'
 import { validateBackupData, verifyBackupCounts } from '@shared/backupValidate.js'
+import {
+  DEFAULT_WALLET,
+  computeWalletBalances,
+  summarizeWallets,
+  validateTransferInput,
+  validateWalletId,
+  validateWalletInput
+} from '@shared/wallets.js'
 import { DEFAULT_LEAD_DAYS, MAX_LEAD_DAYS } from '@shared/reminders.js'
 import { currentMonth, monthRange, todayISO } from '@shared/dates.js'
 import { fromCents, toCents } from '@shared/money.js'
@@ -39,17 +47,20 @@ const MIME_BY_EXT = {
 }
 
 const RECEIPTS_DIR = 'receipts'
-const BACKUP_FORMAT = 2
+const BACKUP_FORMAT = 3
 const BACKUP_RECEIPTS_PREFIX = 'receipts/'
 const INCOME_COLUMNS =
-  'id, user_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
+  'id, user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
 const EXPENSE_COLUMNS =
-  'id, user_id, category, amount, date, notes, is_archived, created_at, updated_at'
+  'id, user_id, wallet_id, category, amount, date, notes, is_archived, created_at, updated_at'
 const GOAL_COLUMNS =
   'id, user_id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at'
-const DEBT_COLUMNS = `id, user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
+const DEBT_COLUMNS = `id, user_id, wallet_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
   payment_type, monthly_amount, payment_day, first_payment_date, receipt_path, status, notes,
   is_archived, created_at, updated_at`
+const WALLET_COLUMNS =
+  'id, user_id, name, type, style, opening_balance, last4, color, sort_order, is_archived, created_at, updated_at'
+const WALLET_CARD_COLUMNS = `${WALLET_COLUMNS}, card_image`
 
 let session = null // { id, username } - in-memory, mirrors the main-process session
 
@@ -484,6 +495,16 @@ function normalizeReceipt(value) {
   return value
 }
 
+async function ensureWallet(userId, value) {
+  const id = validateWalletId(value)
+  const row = await getOne(
+    'SELECT id, user_id, name, type, style, is_archived FROM wallets WHERE id = ? AND user_id = ?',
+    [id, userId]
+  )
+  if (!row) throw new Error('Wallet not found')
+  return row
+}
+
 // Mirrors the desktop `normalize` in src/main/ipc/debts.ipc.js so both platforms
 // validate a debt the same way (first payment date required for monthly, etc.).
 function normalizeDebtWrite(data) {
@@ -511,6 +532,7 @@ function normalizeDebtWrite(data) {
   }
 
   return {
+    wallet_id: validateWalletId(data.wallet_id),
     creditor: validateText(data.creditor, 'creditor', { required: true, max: 120 }),
     total_amount: validateAmount(data.total_amount, 'total_amount'),
     due_date: dueDate,
@@ -537,11 +559,17 @@ export function createCapacitorApi() {
       ])
       if (existing) throw new Error('Username is already taken')
       const hash = bcrypt.hashSync(password, 10)
-      const info = await run('INSERT INTO users (username, password_hash) VALUES (?, ?)', [
-        username,
-        hash
-      ])
-      const record = await getOne('SELECT id, username FROM users WHERE id = ?', [info.lastId])
+      const record = await transaction(async () => {
+        const info = await run('INSERT INTO users (username, password_hash) VALUES (?, ?)', [
+          username,
+          hash
+        ])
+        await run(
+          'INSERT INTO wallets (user_id, name, type, style, opening_balance, sort_order) VALUES (?, ?, ?, ?, 0, 0)',
+          [info.lastId, DEFAULT_WALLET.name, DEFAULT_WALLET.type, DEFAULT_WALLET.style]
+        )
+        return getOne('SELECT id, username FROM users WHERE id = ?', [info.lastId])
+      })
       session = { id: record.id, username: record.username }
       return { user: session }
     },
@@ -681,6 +709,10 @@ export function createCapacitorApi() {
         where.push('date <= ?')
         params.push(opts.to)
       }
+      if (opts.walletId) {
+        where.push('wallet_id = ?')
+        params.push(validateWalletId(opts.walletId))
+      }
       if (opts.search) {
         where.push("(COALESCE(source, '') LIKE ? OR COALESCE(notes, '') LIKE ?)")
         params.push(`%${opts.search}%`, `%${opts.search}%`)
@@ -725,11 +757,13 @@ export function createCapacitorApi() {
 
     create: async (data) => {
       const userId = requireUserId()
+      const wallet = await ensureWallet(userId, data.wallet_id)
       const info = await run(
-        `INSERT INTO income (user_id, amount, date, source, notes, receipt_path, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        `INSERT INTO income (user_id, wallet_id, amount, date, source, notes, receipt_path, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [
           userId,
+          wallet.id,
           validateAmount(data.amount),
           validateDate(data.date),
           validateText(data.source, 'source', { max: INCOME_SOURCE_MAX_LEN }),
@@ -745,11 +779,13 @@ export function createCapacitorApi() {
 
     update: async (id, data) => {
       const userId = requireUserId()
+      const wallet = await ensureWallet(userId, data.wallet_id)
       const info = await run(
         `UPDATE income
-         SET amount = ?, date = ?, source = ?, notes = ?, receipt_path = ?, updated_at = CURRENT_TIMESTAMP
+         SET wallet_id = ?, amount = ?, date = ?, source = ?, notes = ?, receipt_path = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ? AND user_id = ?`,
         [
+          wallet.id,
           validateAmount(data.amount),
           validateDate(data.date),
           validateText(data.source, 'source', { max: INCOME_SOURCE_MAX_LEN }),
@@ -807,6 +843,10 @@ export function createCapacitorApi() {
         where.push('date <= ?')
         params.push(opts.to)
       }
+      if (opts.walletId) {
+        where.push('wallet_id = ?')
+        params.push(validateWalletId(opts.walletId))
+      }
       if (opts.search) {
         where.push("COALESCE(notes, '') LIKE ?")
         params.push(`%${opts.search}%`)
@@ -833,11 +873,13 @@ export function createCapacitorApi() {
 
     create: async (data) => {
       const userId = requireUserId()
+      const wallet = await ensureWallet(userId, data.wallet_id)
       const info = await run(
-        `INSERT INTO expenses (user_id, category, amount, date, notes, updated_at)
-         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        `INSERT INTO expenses (user_id, wallet_id, category, amount, date, notes, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [
           userId,
+          wallet.id,
           validateCategory(data.category),
           validateAmount(data.amount),
           validateDate(data.date),
@@ -852,11 +894,13 @@ export function createCapacitorApi() {
 
     update: async (id, data) => {
       const userId = requireUserId()
+      const wallet = await ensureWallet(userId, data.wallet_id)
       const info = await run(
         `UPDATE expenses
-         SET category = ?, amount = ?, date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+         SET wallet_id = ?, category = ?, amount = ?, date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ? AND user_id = ?`,
         [
+          wallet.id,
           validateCategory(data.category),
           validateAmount(data.amount),
           validateDate(data.date),
@@ -953,14 +997,16 @@ export function createCapacitorApi() {
     create: async (data) => {
       const userId = requireUserId()
       const row = normalizeDebtWrite(data)
+      const wallet = await ensureWallet(userId, row.wallet_id)
       const remaining = fromCents(toCents(row.total_amount))
       const info = await run(
         `INSERT INTO debts
-          (user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
+          (user_id, wallet_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
            payment_type, monthly_amount, payment_day, first_payment_date, receipt_path, status, notes, updated_at)
-         VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 'unpaid', ?, CURRENT_TIMESTAMP)`,
+         VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 'unpaid', ?, CURRENT_TIMESTAMP)`,
         [
           userId,
+          wallet.id,
           row.creditor,
           row.total_amount,
           remaining,
@@ -984,15 +1030,17 @@ export function createCapacitorApi() {
       ])
       if (!current) return null
       const row = normalizeDebtWrite(data)
+      const wallet = await ensureWallet(userId, row.wallet_id)
       const paid = toCents(current.paid_amount)
       const remaining = fromCents(Math.max(0, toCents(row.total_amount) - paid))
       const info = await run(
         `UPDATE debts
-         SET creditor = ?, total_amount = ?, remaining_amount = ?, due_date = ?,
+         SET wallet_id = ?, creditor = ?, total_amount = ?, remaining_amount = ?, due_date = ?,
              payment_type = ?, monthly_amount = ?, payment_day = ?, first_payment_date = ?,
              receipt_path = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ? AND user_id = ?`,
         [
+          wallet.id,
           row.creditor,
           row.total_amount,
           remaining,
@@ -1045,7 +1093,7 @@ export function createCapacitorApi() {
       const debt = await getOne('SELECT id FROM debts WHERE id = ? AND user_id = ?', [id, userId])
       if (!debt) return null
       return query(
-        `SELECT id, debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
+        `SELECT id, debt_id, wallet_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
          FROM debt_payments WHERE debt_id = ? ORDER BY date DESC, id DESC`,
         [id]
       )
@@ -1056,6 +1104,7 @@ export function createCapacitorApi() {
       const id = validateId(debtId, 'debtId')
       const debt = await getOne('SELECT id FROM debts WHERE id = ? AND user_id = ?', [id, userId])
       if (!debt) return null
+      const wallet = await ensureWallet(userId, data.wallet_id)
       const amount = validateAmount(data.amount)
       const date = validateDate(data.date)
       const notes = validateText(data.notes, 'notes')
@@ -1063,9 +1112,9 @@ export function createCapacitorApi() {
         ? validateDate(data.installment_due, 'installment_due')
         : null
       await run(
-        `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type, installment_due, receipt_path)
-         VALUES (?, ?, ?, ?, 'payment', ?, ?)`,
-        [id, amount, date, notes, installmentDue, normalizeReceipt(data.receipt_path)]
+        `INSERT INTO debt_payments (debt_id, wallet_id, amount, date, notes, payment_type, installment_due, receipt_path)
+         VALUES (?, ?, ?, ?, ?, 'payment', ?, ?)`,
+        [id, wallet.id, amount, date, notes, installmentDue, normalizeReceipt(data.receipt_path)]
       )
       await syncDebtStatus(id, userId)
       return getDebtById(userId, id)
@@ -1085,6 +1134,292 @@ export function createCapacitorApi() {
       await syncDebtStatus(payment.debt_id, userId)
       return getDebtById(userId, payment.debt_id)
     }
+  }
+
+  const wallets = {
+    list: async () => {
+      const userId = requireUserId()
+      return query(
+        `SELECT ${WALLET_COLUMNS} FROM wallets
+         WHERE user_id = ? AND is_archived = 0 ORDER BY sort_order ASC, id ASC`,
+        [userId]
+      )
+    },
+
+    get: async (id) => {
+      const userId = requireUserId()
+      return getOne(`SELECT ${WALLET_CARD_COLUMNS} FROM wallets WHERE id = ? AND user_id = ?`, [
+        validateId(id),
+        userId
+      ])
+    },
+
+    create: async (data) => {
+      const userId = requireUserId()
+      const row = validateWalletInput(data)
+      const next = await getOne(
+        'SELECT COALESCE(MAX(sort_order) + 1, 0) AS next FROM wallets WHERE user_id = ?',
+        [userId]
+      )
+      const info = await run(
+        `INSERT INTO wallets
+          (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        [
+          userId,
+          row.name,
+          row.type,
+          row.style,
+          row.opening_balance,
+          row.last4,
+          row.color,
+          row.card_image,
+          next?.next ?? 0
+        ]
+      )
+      return getOne(`SELECT ${WALLET_CARD_COLUMNS} FROM wallets WHERE id = ? AND user_id = ?`, [
+        info.lastId,
+        userId
+      ])
+    },
+
+    update: async (id, data) => {
+      const userId = requireUserId()
+      const current = await getOne('SELECT id FROM wallets WHERE id = ? AND user_id = ?', [
+        validateId(id),
+        userId
+      ])
+      if (!current) return null
+      const row = validateWalletInput(data)
+      await run(
+        `UPDATE wallets
+         SET name = ?, type = ?, style = ?, opening_balance = ?, last4 = ?, color = ?, card_image = ?,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND user_id = ?`,
+        [
+          row.name,
+          row.type,
+          row.style,
+          row.opening_balance,
+          row.last4,
+          row.color,
+          row.card_image,
+          id,
+          userId
+        ]
+      )
+      return getOne(`SELECT ${WALLET_CARD_COLUMNS} FROM wallets WHERE id = ? AND user_id = ?`, [
+        id,
+        userId
+      ])
+    },
+
+    remove: async (id) => {
+      const userId = requireUserId()
+      const active = await getOne(
+        'SELECT COUNT(*) AS count FROM wallets WHERE user_id = ? AND is_archived = 0',
+        [userId]
+      )
+      if ((active?.count ?? 0) <= 1) throw new Error('At least one wallet must stay active')
+      const info = await run(
+        'UPDATE wallets SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+
+    restore: async (id) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE wallets SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+
+    archived: async () => {
+      const userId = requireUserId()
+      return query(
+        `SELECT ${WALLET_COLUMNS} FROM wallets
+         WHERE user_id = ? AND is_archived = 1 ORDER BY sort_order ASC, id ASC`,
+        [userId]
+      )
+    },
+
+    move: async (id, direction) => {
+      const userId = requireUserId()
+      if (direction !== 'up' && direction !== 'down') throw new Error('direction must be up or down')
+      const walletId = validateId(id)
+      const rows = await query(
+        `SELECT id, sort_order FROM wallets
+         WHERE user_id = ? AND is_archived = 0 ORDER BY sort_order ASC, id ASC`,
+        [userId]
+      )
+      const index = rows.findIndex((row) => row.id === walletId)
+      const target = direction === 'up' ? index - 1 : index + 1
+      if (index === -1 || target < 0 || target >= rows.length) return { moved: false }
+      const a = rows[index]
+      const b = rows[target]
+      await transaction(async () => {
+        await run('UPDATE wallets SET sort_order = ? WHERE id = ?', [b.sort_order, a.id])
+        await run('UPDATE wallets SET sort_order = ? WHERE id = ?', [a.sort_order, b.id])
+      })
+      return { moved: true }
+    },
+
+    summary: async () => {
+      const userId = requireUserId()
+      const [rows, income, expenses, debts, payments, transfers, debt] = await Promise.all([
+        query(
+          `SELECT ${WALLET_CARD_COLUMNS} FROM wallets
+           WHERE user_id = ? AND is_archived = 0 ORDER BY sort_order ASC, id ASC`,
+          [userId]
+        ),
+        query('SELECT amount, wallet_id FROM income WHERE user_id = ? AND is_archived = 0', [
+          userId
+        ]),
+        query('SELECT amount, wallet_id FROM expenses WHERE user_id = ? AND is_archived = 0', [
+          userId
+        ]),
+        query(
+          'SELECT total_amount, wallet_id FROM debts WHERE user_id = ? AND is_archived = 0 AND wallet_id IS NOT NULL',
+          [userId]
+        ),
+        query(
+          `SELECT p.amount, p.wallet_id FROM debt_payments p
+           JOIN debts d ON d.id = p.debt_id
+           WHERE d.user_id = ? AND d.is_archived = 0 AND p.wallet_id IS NOT NULL`,
+          [userId]
+        ),
+        query(
+          'SELECT amount, from_wallet_id, to_wallet_id FROM wallet_transfers WHERE user_id = ? AND is_archived = 0',
+          [userId]
+        ),
+        debtSummary(userId)
+      ])
+      const balances = computeWalletBalances({
+        wallets: rows,
+        income,
+        expenses,
+        debts,
+        payments,
+        transfers
+      })
+      return {
+        wallets: balances.wallets,
+        total: balances.total,
+        ...summarizeWallets(balances.wallets, toCents(debt.outstanding))
+      }
+    },
+
+    activity: async (walletId, limit = 100) => {
+      const userId = requireUserId()
+      const id = validateWalletId(walletId)
+      const capped = Math.min(500, Math.max(1, Number(limit) || 100))
+      return query(
+        `SELECT * FROM (
+          SELECT 'income' AS kind, id, date AS date, amount AS amount, COALESCE(source, '') AS label,
+                 notes, NULL AS from_name, NULL AS to_name
+          FROM income WHERE user_id = ? AND wallet_id = ? AND is_archived = 0
+          UNION ALL
+          SELECT 'expense', id, date, -amount, category, notes, NULL, NULL
+          FROM expenses WHERE user_id = ? AND wallet_id = ? AND is_archived = 0
+          UNION ALL
+          SELECT 'loan', d.id, COALESCE(substr(d.created_at, 1, 10), d.due_date, ''), d.total_amount,
+                 d.creditor, d.notes, NULL, NULL
+          FROM debts d WHERE d.user_id = ? AND d.wallet_id = ? AND d.is_archived = 0
+          UNION ALL
+          SELECT 'payment', p.id, p.date, -p.amount, 'Debt payment', p.notes, NULL, NULL
+          FROM debt_payments p JOIN debts d ON d.id = p.debt_id
+          WHERE d.user_id = ? AND p.wallet_id = ? AND d.is_archived = 0
+          UNION ALL
+          SELECT 'transfer', t.id, t.date, -t.amount, 'Transfer out', t.notes, fw.name, tw.name
+          FROM wallet_transfers t
+          JOIN wallets fw ON fw.id = t.from_wallet_id
+          JOIN wallets tw ON tw.id = t.to_wallet_id
+          WHERE t.user_id = ? AND t.from_wallet_id = ? AND t.is_archived = 0
+          UNION ALL
+          SELECT 'transfer', t.id, t.date, t.amount, 'Transfer in', t.notes, fw.name, tw.name
+          FROM wallet_transfers t
+          JOIN wallets fw ON fw.id = t.from_wallet_id
+          JOIN wallets tw ON tw.id = t.to_wallet_id
+          WHERE t.user_id = ? AND t.to_wallet_id = ? AND t.is_archived = 0
+        )
+        ORDER BY date DESC, id DESC
+        LIMIT ?`,
+        [
+          userId,
+          id,
+          userId,
+          id,
+          userId,
+          id,
+          userId,
+          id,
+          userId,
+          id,
+          userId,
+          id,
+          capped
+        ]
+      )
+    },
+
+    transfer: async (data) => {
+      const userId = requireUserId()
+      const row = validateTransferInput(data)
+      const from = await ensureWallet(userId, row.from_wallet_id)
+      const to = await ensureWallet(userId, row.to_wallet_id)
+      const info = await run(
+        `INSERT INTO wallet_transfers
+          (user_id, from_wallet_id, to_wallet_id, amount, date, notes, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        [userId, from.id, to.id, row.amount, row.date, row.notes]
+      )
+      return getTransfer(userId, info.lastId)
+    },
+
+    removeTransfer: async (id) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE wallet_transfers SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+
+    restoreTransfer: async (id) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE wallet_transfers SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+
+    archivedTransfers: async () => {
+      const userId = requireUserId()
+      return query(
+        `SELECT t.*, fw.name AS from_name, tw.name AS to_name
+         FROM wallet_transfers t
+         JOIN wallets fw ON fw.id = t.from_wallet_id
+         JOIN wallets tw ON tw.id = t.to_wallet_id
+         WHERE t.user_id = ? AND t.is_archived = 1
+         ORDER BY t.date DESC, t.id DESC`,
+        [userId]
+      )
+    }
+  }
+
+  async function getTransfer(userId, id) {
+    return getOne(
+      `SELECT t.*, fw.name AS from_name, tw.name AS to_name
+       FROM wallet_transfers t
+       JOIN wallets fw ON fw.id = t.from_wallet_id
+       JOIN wallets tw ON tw.id = t.to_wallet_id
+       WHERE t.id = ? AND t.user_id = ?`,
+      [id, userId]
+    )
   }
 
   const budgets = {
@@ -1420,17 +1755,17 @@ export function createCapacitorApi() {
       if (!user) throw new Error('Account not found')
 
       const income = await query(
-        `SELECT id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at
+        `SELECT id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at
          FROM income WHERE user_id = ? ORDER BY id`,
         [userId]
       )
       const expenses = await query(
-        `SELECT category, amount, date, notes, is_archived, created_at, updated_at
+        `SELECT wallet_id, category, amount, date, notes, is_archived, created_at, updated_at
          FROM expenses WHERE user_id = ? ORDER BY id`,
         [userId]
       )
       const debts = await query(
-        `SELECT id, creditor, total_amount, paid_amount, remaining_amount, due_date,
+        `SELECT id, wallet_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
                 payment_type, monthly_amount, payment_day, first_payment_date, receipt_path,
                 status, notes, is_archived, created_at, updated_at
          FROM debts WHERE user_id = ? ORDER BY id`,
@@ -1439,7 +1774,7 @@ export function createCapacitorApi() {
       const debtIds = debts.map((row) => row.id)
       const debtPayments = debtIds.length
         ? await query(
-            `SELECT debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
+            `SELECT debt_id, wallet_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
              FROM debt_payments WHERE debt_id IN (${debtIds.map(() => '?').join(',')}) ORDER BY id`,
             debtIds
           )
@@ -1462,6 +1797,17 @@ export function createCapacitorApi() {
             goalIds
           )
         : []
+      const walletRows = await query(
+        `SELECT id, name, type, style, opening_balance, last4, color, card_image, sort_order,
+                is_archived, created_at, updated_at
+         FROM wallets WHERE user_id = ? ORDER BY id`,
+        [userId]
+      )
+      const transferRows = await query(
+        `SELECT id, from_wallet_id, to_wallet_id, amount, date, notes, is_archived, created_at, updated_at
+         FROM wallet_transfers WHERE user_id = ? ORDER BY id`,
+        [userId]
+      )
 
       const counts = {
         income: income.length,
@@ -1471,6 +1817,8 @@ export function createCapacitorApi() {
         budgets: budgets.length,
         savingsGoals: savingsGoals.length,
         savingsContributions: savingsContributions.length,
+        wallets: walletRows.length,
+        walletTransfers: transferRows.length,
         receipts: 0
       }
 
@@ -1489,7 +1837,9 @@ export function createCapacitorApi() {
             debt_payments: debtPayments,
             budgets,
             savings_goals: savingsGoals,
-            savings_contributions: savingsContributions
+            savings_contributions: savingsContributions,
+            wallets: walletRows,
+            wallet_transfers: transferRows
           },
           null,
           2
@@ -1585,7 +1935,7 @@ export function createCapacitorApi() {
         throw new Error('Invalid backup: the archive contents are corrupted')
       }
 
-      if (!manifest || manifest.format !== BACKUP_FORMAT) {
+      if (!manifest || (manifest.format !== 2 && manifest.format !== BACKUP_FORMAT)) {
         throw new Error('Unsupported backup format. This file was made by a different version.')
       }
       const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -1625,7 +1975,9 @@ export function createCapacitorApi() {
         debt_payments: Array.isArray(data.debt_payments) ? data.debt_payments : [],
         budgets: Array.isArray(data.budgets) ? data.budgets : [],
         savings_goals: Array.isArray(data.savings_goals) ? data.savings_goals : [],
-        savings_contributions: Array.isArray(data.savings_contributions) ? data.savings_contributions : []
+        savings_contributions: Array.isArray(data.savings_contributions) ? data.savings_contributions : [],
+        wallets: Array.isArray(data.wallets) ? data.wallets : [],
+        wallet_transfers: Array.isArray(data.wallet_transfers) ? data.wallet_transfers : []
       })
       verifyBackupCounts(manifest, data, receipts.length)
 
@@ -1649,6 +2001,8 @@ export function createCapacitorApi() {
       const budgetRows = Array.isArray(data.budgets) ? data.budgets : []
       const goalRows = Array.isArray(data.savings_goals) ? data.savings_goals : []
       const contribRows = Array.isArray(data.savings_contributions) ? data.savings_contributions : []
+      const walletRows = Array.isArray(data.wallets) ? data.wallets : []
+      const transferRows = Array.isArray(data.wallet_transfers) ? data.wallet_transfers : []
       const now = new Date().toISOString()
 
       await transaction(async () => {
@@ -1665,16 +2019,63 @@ export function createCapacitorApi() {
         await run('DELETE FROM income WHERE user_id = ?', [userId])
         await run('DELETE FROM expenses WHERE user_id = ?', [userId])
         await run('DELETE FROM budgets WHERE user_id = ?', [userId])
+        await run('DELETE FROM wallet_transfers WHERE user_id = ?', [userId])
+        await run('DELETE FROM wallets WHERE user_id = ?', [userId])
+
+      const walletMap = new Map()
+      for (const [index, row] of walletRows.entries()) {
+        const info = await run(
+          `INSERT INTO wallets
+            (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order,
+             is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId,
+            row.name,
+            row.type ?? 'cash',
+            row.style ?? 'generic',
+            num(row.opening_balance),
+            row.last4 ?? null,
+            row.color ?? null,
+            row.card_image ?? null,
+            row.sort_order ?? index,
+            row.is_archived ? 1 : 0,
+            row.created_at ?? now,
+            row.updated_at ?? null
+          ]
+        )
+        if (row.id != null) walletMap.set(row.id, info.lastId)
+      }
+      let cash = await getOne(
+        "SELECT id FROM wallets WHERE user_id = ? AND name = 'Cash' ORDER BY id LIMIT 1",
+        [userId]
+      )
+      if (!cash) {
+        const next = await getOne(
+          'SELECT COALESCE(MAX(sort_order) + 1, 0) AS next FROM wallets WHERE user_id = ?',
+          [userId]
+        )
+        const info = await run(
+          `INSERT INTO wallets
+            (user_id, name, type, style, opening_balance, sort_order, created_at)
+           VALUES (?, 'Cash', 'cash', 'cash', 0, ?, ?)`,
+          [userId, next?.next ?? 0, now]
+        )
+        cash = { id: info.lastId }
+      }
+      const resolveWallet = (value) =>
+        value != null && walletMap.has(value) ? walletMap.get(value) : cash.id
 
       const incomeMap = new Map()
       for (const row of incomeRows) {
         const receipt =
           row.receipt_path && included.has(row.receipt_path) ? row.receipt_path : null
         const info = await run(
-          `INSERT INTO income (user_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO income (user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
+            resolveWallet(row.wallet_id),
             num(row.amount),
             row.date,
             row.source ?? null,
@@ -1690,10 +2091,11 @@ export function createCapacitorApi() {
 
       for (const row of expenseRows) {
         await run(
-          `INSERT INTO expenses (user_id, category, amount, date, notes, is_archived, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO expenses (user_id, wallet_id, category, amount, date, notes, is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
+            resolveWallet(row.wallet_id),
             row.category,
             num(row.amount),
             row.date,
@@ -1710,12 +2112,13 @@ export function createCapacitorApi() {
         const receipt =
           row.receipt_path && included.has(row.receipt_path) ? row.receipt_path : null
         const info = await run(
-          `INSERT INTO debts (user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
+          `INSERT INTO debts (user_id, wallet_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
                               payment_type, monthly_amount, payment_day, first_payment_date, receipt_path,
                               status, notes, is_archived, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
+            resolveWallet(row.wallet_id),
             row.creditor,
             num(row.total_amount),
             num(row.paid_amount),
@@ -1742,10 +2145,11 @@ export function createCapacitorApi() {
         const receipt =
           row.receipt_path && included.has(row.receipt_path) ? row.receipt_path : null
         await run(
-          `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO debt_payments (debt_id, wallet_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             debtId,
+            resolveWallet(row.wallet_id),
             num(row.amount),
             row.date,
             row.notes ?? null,
@@ -1753,6 +2157,28 @@ export function createCapacitorApi() {
             row.installment_due ?? null,
             receipt,
             row.created_at ?? now
+          ]
+        )
+      }
+
+      for (const row of transferRows) {
+        const fromWallet = resolveWallet(row.from_wallet_id)
+        const toWallet = resolveWallet(row.to_wallet_id)
+        if (fromWallet === toWallet) continue
+        await run(
+          `INSERT INTO wallet_transfers
+            (user_id, from_wallet_id, to_wallet_id, amount, date, notes, is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId,
+            fromWallet,
+            toWallet,
+            num(row.amount),
+            row.date,
+            row.notes ?? null,
+            row.is_archived ? 1 : 0,
+            row.created_at ?? now,
+            row.updated_at ?? null
           ]
         )
       }
@@ -1838,6 +2264,8 @@ export function createCapacitorApi() {
           budgets: budgetRows.length,
           savingsGoals: goalRows.length,
           savingsContributions: contribRows.length,
+          wallets: walletRows.length,
+          walletTransfers: transferRows.length,
           receipts: receipts.length
         }
       }
@@ -1877,7 +2305,14 @@ export function createCapacitorApi() {
         { statement: 'DELETE FROM savings_goals WHERE user_id = ?', values: [userId] },
         { statement: 'DELETE FROM income WHERE user_id = ?', values: [userId] },
         { statement: 'DELETE FROM expenses WHERE user_id = ?', values: [userId] },
-        { statement: 'DELETE FROM budgets WHERE user_id = ?', values: [userId] }
+        { statement: 'DELETE FROM budgets WHERE user_id = ?', values: [userId] },
+        { statement: 'DELETE FROM wallet_transfers WHERE user_id = ?', values: [userId] },
+        { statement: 'DELETE FROM wallets WHERE user_id = ?', values: [userId] },
+        {
+          statement:
+            "INSERT INTO wallets (user_id, name, type, style, opening_balance, sort_order) VALUES (?, 'Cash', 'cash', 'cash', 0, 0)",
+          values: [userId]
+        }
       ])
       for (const row of receiptRows) {
         if (row.receipt_path) {
@@ -1894,6 +2329,7 @@ export function createCapacitorApi() {
   return {
     platform: 'android',
     auth,
+    wallets,
     settings,
     income,
     expenses,

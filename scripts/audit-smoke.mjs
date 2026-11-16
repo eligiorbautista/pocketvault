@@ -9,6 +9,7 @@ import * as users from '../src/main/db/repositories/users.js'
 import * as incomeRepo from '../src/main/db/repositories/income.js'
 import * as expensesRepo from '../src/main/db/repositories/expenses.js'
 import * as debtsRepo from '../src/main/db/repositories/debts.js'
+import * as walletsRepo from '../src/main/db/repositories/wallets.js'
 import * as budgetsRepo from '../src/main/db/repositories/budgets.js'
 import * as savingsRepo from '../src/main/db/repositories/savings.js'
 import * as reportsRepo from '../src/main/db/repositories/reports.js'
@@ -37,6 +38,7 @@ import {
   validateUsername
 } from '../src/main/db/validate.js'
 import { fromCents, round2, sumPesos, toCents } from '../src/shared/money.js'
+import { contrastInk, validateCardImage, validateColor } from '../src/shared/wallets.js'
 import {
   buildInstallments,
   buildReminderPlan,
@@ -49,6 +51,8 @@ import {
   validateBackupData,
   verifyBackupCounts
 } from '../src/shared/backupValidate.js'
+
+const cashId = (db, userId) => walletsRepo.list(db, userId)[0].id
 
 let passed = 0
 const failures = []
@@ -231,7 +235,7 @@ check('updatePassword missing user returns false', users.updatePassword(db, 9999
 
 // ---------- income CRUD + pagination + filters ----------
 for (let i = 1; i <= 60; i += 1) {
-  incomeRepo.create(db, alice.id, {
+  incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
     amount: i,
     date: '2026-05-01',
     source: i === 30 ? 'UniqueFindMe' : `Src${i}`,
@@ -252,24 +256,24 @@ check('date range inclusive filter', incomeRepo.list(db, alice.id, { from: '2026
 check('date range excludes out of range', incomeRepo.list(db, alice.id, { from: '2026-06-01', to: '2026-06-30' }).total === 0)
 const oldest = incomeRepo.list(db, alice.id, { order: 'oldest', pageSize: 1 })
 check('order oldest returns first inserted', oldest.rows[0].amount === 1, oldest.rows[0].amount)
-const created = incomeRepo.create(db, alice.id, { amount: 12.34, date: '2026-07-01', source: 'Edit', notes: 'n', receipt_path: null })
-const updated = incomeRepo.update(db, alice.id, created.id, { amount: 99.99, date: '2026-07-02', source: 'Edited', notes: 'x', receipt_path: null })
+const created = incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), amount: 12.34, date: '2026-07-01', source: 'Edit', notes: 'n', receipt_path: null })
+const updated = incomeRepo.update(db, alice.id, created.id, { wallet_id: cashId(db, alice.id), amount: 99.99, date: '2026-07-02', source: 'Edited', notes: 'x', receipt_path: null })
 check('income update persists', updated.amount === 99.99 && updated.date === '2026-07-02')
 check('income update sets updated_at', Boolean(updated.updated_at))
 check('income cross-user get blocked', incomeRepo.getById(db, bob.id, created.id) === null)
-check('income cross-user update blocked', incomeRepo.update(db, bob.id, created.id, { amount: 1, date: '2026-07-02', source: null, notes: null, receipt_path: null }) === null)
+check('income cross-user update blocked', incomeRepo.update(db, bob.id, created.id, { wallet_id: cashId(db, bob.id), amount: 1, date: '2026-07-02', source: null, notes: null, receipt_path: null }) === null)
 check('income remove works', incomeRepo.remove(db, alice.id, created.id) === true)
 check('income remove missing returns false', incomeRepo.remove(db, alice.id, 999999) === false)
 check('deleting income keeps other rows', incomeRepo.list(db, alice.id, {}).total === 60)
 
 // ---------- expenses CRUD + filters ----------
-const exp = expensesRepo.create(db, alice.id, { category: 'food', amount: 100, date: '2026-05-10', notes: 'lunch' })
-expensesRepo.create(db, alice.id, { category: 'transport', amount: 50, date: '2026-05-11', notes: null })
+const exp = expensesRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), category: 'food', amount: 100, date: '2026-05-10', notes: 'lunch' })
+expensesRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), category: 'transport', amount: 50, date: '2026-05-11', notes: null })
 check('expense category filter', expensesRepo.list(db, alice.id, { category: 'food' }).total === 1)
 check('expense search filter', expensesRepo.list(db, alice.id, { search: 'lunch' }).total === 1)
-const expUpd = expensesRepo.update(db, alice.id, exp.id, { category: 'shopping', amount: 200, date: '2026-05-12', notes: null })
+const expUpd = expensesRepo.update(db, alice.id, exp.id, { wallet_id: cashId(db, alice.id), category: 'shopping', amount: 200, date: '2026-05-12', notes: null })
 check('expense update persists', expUpd.category === 'shopping' && expUpd.amount === 200)
-check('expense cross-user update blocked', expensesRepo.update(db, bob.id, exp.id, { category: 'food', amount: 1, date: '2026-05-12', notes: null }) === null)
+check('expense cross-user update blocked', expensesRepo.update(db, bob.id, exp.id, { wallet_id: cashId(db, bob.id), category: 'food', amount: 1, date: '2026-05-12', notes: null }) === null)
 check('expense remove works', expensesRepo.remove(db, alice.id, exp.id) === true)
 check('expense remove missing false', expensesRepo.remove(db, alice.id, 999999) === false)
 check('expense distinct categories exclude archived', (() => {
@@ -278,7 +282,7 @@ check('expense distinct categories exclude archived', (() => {
 })())
 
 // ---------- debts CRUD + payments ----------
-const debt = debtsRepo.create(db, alice.id, {
+const debt = debtsRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
   creditor: 'Bank',
   total_amount: 10000,
   due_date: '2026-12-31',
@@ -289,24 +293,24 @@ const debt = debtsRepo.create(db, alice.id, {
   notes: null
 })
 check('debt starts unpaid/0 remaining delta', debt.paid_amount === 0 && debt.remaining_amount === 10000 && debt.effective_status === 'unpaid')
-debtsRepo.addPayment(db, alice.id, debt.id, { amount: 2500, date: '2026-05-05', notes: null })
+debtsRepo.addPayment(db, alice.id, debt.id, { wallet_id: cashId(db, alice.id), amount: 2500, date: '2026-05-05', notes: null })
 let d = debtsRepo.getById(db, alice.id, debt.id)
 check('debt partial after payment', d.paid_amount === 2500 && d.remaining_amount === 7500 && d.effective_status === 'partial')
 const payments = debtsRepo.listPayments(db, alice.id, debt.id)
 check('payment ledger has 1 entry', payments.length === 1)
-debtsRepo.addPayment(db, alice.id, debt.id, { amount: 5000, date: '2026-05-07', notes: null })
+debtsRepo.addPayment(db, alice.id, debt.id, { wallet_id: cashId(db, alice.id), amount: 5000, date: '2026-05-07', notes: null })
 d = debtsRepo.getById(db, alice.id, debt.id)
 check('debt partial after 7500 paid', d.paid_amount === 7500 && d.remaining_amount === 2500 && d.effective_status === 'partial', { paid: d.paid_amount, rem: d.remaining_amount })
-debtsRepo.addPayment(db, alice.id, debt.id, { amount: 2500, date: '2026-05-08', notes: null })
+debtsRepo.addPayment(db, alice.id, debt.id, { wallet_id: cashId(db, alice.id), amount: 2500, date: '2026-05-08', notes: null })
 d = debtsRepo.getById(db, alice.id, debt.id)
 check('debt paid after full payment', d.paid_amount === 10000 && d.remaining_amount === 0 && d.effective_status === 'paid', { paid: d.paid_amount, rem: d.remaining_amount })
-debtsRepo.addPayment(db, alice.id, debt.id, { amount: 100, date: '2026-05-09', notes: null })
+debtsRepo.addPayment(db, alice.id, debt.id, { wallet_id: cashId(db, alice.id), amount: 100, date: '2026-05-09', notes: null })
 d = debtsRepo.getById(db, alice.id, debt.id)
 check('overpayment clamps remaining at 0', d.remaining_amount === 0 && d.paid_amount === 10100, { paid: d.paid_amount })
 check('debt cross-user get blocked', debtsRepo.getById(db, bob.id, debt.id) === null)
 check('debt cross-user payments blocked', debtsRepo.listPayments(db, bob.id, debt.id) === null)
-check('debt cross-user addPayment returns null', debtsRepo.addPayment(db, bob.id, debt.id, { amount: 1, date: '2026-05-10', notes: null }) === null)
-const updatedDebt = debtsRepo.update(db, alice.id, debt.id, { creditor: 'Bank', total_amount: 20000, due_date: '2026-12-31', payment_type: 'fixed-date', monthly_amount: null, payment_day: null, notes: null })
+check('debt cross-user addPayment returns null', debtsRepo.addPayment(db, bob.id, debt.id, { wallet_id: cashId(db, bob.id), amount: 1, date: '2026-05-10', notes: null }) === null)
+const updatedDebt = debtsRepo.update(db, alice.id, debt.id, { wallet_id: cashId(db, alice.id), creditor: 'Bank', total_amount: 20000, due_date: '2026-12-31', payment_type: 'fixed-date', monthly_amount: null, payment_day: null, notes: null })
 check('debt update recomputes remaining', updatedDebt.remaining_amount === 9900, updatedDebt.remaining_amount)
 check('debt remove works', debtsRepo.remove(db, alice.id, debt.id) === true)
 check('archiving debt keeps its payments', (debtsRepo.listPayments(db, alice.id, debt.id) ?? []).length > 0)
@@ -316,7 +320,7 @@ check('restoring debt returns it to active list', debtsRepo.restore(db, alice.id
 debtsRepo.remove(db, alice.id, debt.id)
 
 // monthly debt requires amounts (repo just stores)
-const monthlyDebt = debtsRepo.create(db, alice.id, {
+const monthlyDebt = debtsRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
   creditor: 'Friend',
   total_amount: 3000,
   due_date: null,
@@ -334,20 +338,20 @@ debtsRepo.remove(db, alice.id, monthlyDebt.id)
 // ---------- budgets ----------
 budgetsRepo.upsert(db, alice.id, { category: 'food', monthly_limit: 1000 })
 budgetsRepo.upsert(db, alice.id, { category: 'food', monthly_limit: 2000 })
-expensesRepo.create(db, alice.id, { category: 'food', amount: 1500, date: '2026-06-05', notes: null })
+expensesRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), category: 'food', amount: 1500, date: '2026-06-05', notes: null })
 const budgetList = budgetsRepo.listMonthly(db, alice.id, '2026-06')
 check('budget upsert unique per category', budgetList.filter((b) => b.category === 'food').length === 1)
 check('budget limit updated', budgetList[0].monthly_limit === 2000)
 check('budget spent for month', budgetList[0].spent === 1500)
 check('budget over flag false at 75%', budgetList[0].over === false && budgetList[0].percent === 75)
-expensesRepo.create(db, alice.id, { category: 'food', amount: 800, date: '2026-06-20', notes: null })
+expensesRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), category: 'food', amount: 800, date: '2026-06-20', notes: null })
 check('budget over flag true after overspend', budgetsRepo.listMonthly(db, alice.id, '2026-06')[0].over === true)
 check('budget spent ignores other months', budgetsRepo.listMonthly(db, alice.id, '2026-07')[0].spent === 0)
 check('budget remove works', budgetsRepo.remove(db, alice.id, budgetList[0].id) === true)
 
 // ---------- savings ----------
 const goal = savingsRepo.create(db, alice.id, { goal_name: 'Trip', target_amount: 10000, deadline: '2026-12-31' })
-const incLink = incomeRepo.create(db, alice.id, { amount: 500, date: '2026-06-01', source: 'Salary', notes: null, receipt_path: null })
+const incLink = incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), amount: 500, date: '2026-06-01', source: 'Salary', notes: null, receipt_path: null })
 savingsRepo.addContribution(db, alice.id, goal.id, { amount: 2500, date: '2026-06-02', income_id: incLink.id, notes: null })
 savingsRepo.addContribution(db, alice.id, goal.id, { amount: 1500, date: '2026-06-03', income_id: null, notes: null })
 let g = savingsRepo.getById(db, alice.id, goal.id)
@@ -368,8 +372,8 @@ savingsRepo.remove(db, alice.id, goal.id)
 check('income survives contribution cascade (SET NULL)', incomeRepo.getById(db, alice.id, incLink.id) !== null)
 
 // ---------- reports ----------
-incomeRepo.create(db, alice.id, { amount: 0.1, date: '2026-08-01', source: 'A', notes: null, receipt_path: null })
-incomeRepo.create(db, alice.id, { amount: 0.2, date: '2026-08-01', source: 'B', notes: null, receipt_path: null })
+incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), amount: 0.1, date: '2026-08-01', source: 'A', notes: null, receipt_path: null })
+incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), amount: 0.2, date: '2026-08-01', source: 'B', notes: null, receipt_path: null })
 const range = reportsRepo.rangeTotals(db, alice.id, { from: '2026-08-01', to: '2026-08-31' })
 check('rangeTotals exact float sum', range.income === 0.3, range.income)
 const monthly = reportsRepo.monthlyTotals(db, alice.id, 2026)
@@ -466,7 +470,7 @@ const keepReceipt = '33333333-3333-3333-3333-333333333333.png'
 const orphanReceipt = '44444444-4444-4444-4444-444444444444.png'
 writeFileSync(join(recDir, keepReceipt), Buffer.from('k'))
 writeFileSync(join(recDir, orphanReceipt), Buffer.from('o'))
-incomeRepo.create(db, alice.id, { amount: 1, date: '2026-10-01', source: 'Rec', notes: null, receipt_path: keepReceipt })
+incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), amount: 1, date: '2026-10-01', source: 'Rec', notes: null, receipt_path: keepReceipt })
 const removedCount = reconcileReceipts(db, recDir)
 check('reconcile removes orphan receipt', removedCount === 1 && !existsSync(join(recDir, orphanReceipt)))
 check('reconcile keeps referenced receipt', existsSync(join(recDir, keepReceipt)))
@@ -476,8 +480,8 @@ const delReceipts = join(dir, 'del-receipts')
 mkdirSync(delReceipts, { recursive: true })
 const delReceipt = '22222222-2222-2222-2222-222222222222.png'
 writeFileSync(join(delReceipts, delReceipt), Buffer.from('x'))
-incomeRepo.create(db, alice.id, { amount: 5, date: '2026-09-01', source: 'Del', notes: null, receipt_path: delReceipt })
-incomeRepo.create(db, bob.id, { amount: 7, date: '2026-09-01', source: 'BobKeep', notes: null, receipt_path: null })
+incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), amount: 5, date: '2026-09-01', source: 'Del', notes: null, receipt_path: delReceipt })
+incomeRepo.create(db, bob.id, { wallet_id: cashId(db, bob.id), amount: 7, date: '2026-09-01', source: 'BobKeep', notes: null, receipt_path: null })
 const bobBeforeDelete = incomeRepo.list(db, bob.id, {}).total
 const delCounts = deleteUserData(db, alice.id, delReceipts)
 check('deleteUserData removed all alice income', incomeRepo.list(db, alice.id, {}).total === 0)
@@ -489,6 +493,109 @@ check('deleteUserData removed alice receipt file', !existsSync(join(delReceipts,
 check('deleteUserData reports receipt count', delCounts.receipts === 1, delCounts.receipts)
 check('deleteUserData keeps the account', users.exists(db, alice.id) === true)
 check('deleteUserData keeps other users data', incomeRepo.list(db, bob.id, {}).total === bobBeforeDelete && bobBeforeDelete === 1)
+const walletsAfterDelete = walletsRepo.list(db, alice.id)
+check(
+  'deleteUserData recreates the Cash wallet',
+  walletsAfterDelete.length === 1 && walletsAfterDelete[0].name === 'Cash'
+)
+
+// ---------- wallet rules ----------
+check('contrastInk picks dark ink on white', contrastInk('#ffffff') === '#1b1b1b')
+check('contrastInk picks white ink on black', contrastInk('#000000') === '#ffffff')
+check('validateColor lowercases and accepts hex', validateColor('#3B3B40') === '#3b3b40')
+
+const pixel =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+check('validateCardImage accepts a PNG data URL', validateCardImage(pixel) === pixel)
+let svgRejected = false
+try {
+  validateCardImage('data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=')
+} catch {
+  svgRejected = true
+}
+check('validateCardImage rejects SVG payloads', svgRejected === true)
+
+const custom = walletsRepo.create(db, alice.id, {
+  name: 'Custom wallet',
+  type: 'other',
+  style: 'custom',
+  opening_balance: 0,
+  last4: null,
+  color: '#3b3b40',
+  card_image: pixel
+})
+check(
+  'custom wallet keeps colour and image',
+  custom.color === '#3b3b40' && custom.card_image === pixel
+)
+const preset = walletsRepo.update(db, alice.id, custom.id, {
+  name: 'BDO again',
+  type: 'bank',
+  style: 'bdo',
+  opening_balance: 0,
+  last4: null,
+  color: '#ff0000',
+  card_image: pixel
+})
+check(
+  'saving a preset clears custom colour and image',
+  preset.color === null && preset.card_image === null
+)
+check(
+  'wallets.list omits card_image',
+  walletsRepo.list(db, alice.id).every((wallet) => !('card_image' in wallet))
+)
+
+let missingWallet = null
+try {
+  incomeRepo.create(db, alice.id, {
+    amount: 1,
+    date: '2026-09-01',
+    source: 'No wallet',
+    notes: null,
+    receipt_path: null
+  })
+} catch (error) {
+  missingWallet = error
+}
+check('income requires a wallet', missingWallet?.message.includes('wallet_id'), missingWallet?.message)
+
+let foreignWallet = null
+try {
+  expensesRepo.create(db, alice.id, {
+    wallet_id: cashId(db, bob.id),
+    category: 'food',
+    amount: 1,
+    date: '2026-09-01',
+    notes: null
+  })
+} catch (error) {
+  foreignWallet = error
+}
+check('foreign wallet is rejected', foreignWallet?.message === 'Wallet not found', foreignWallet?.message)
+
+let selfTransfer = null
+try {
+  walletsRepo.transfer(db, alice.id, {
+    from_wallet_id: cashId(db, alice.id),
+    to_wallet_id: cashId(db, alice.id),
+    amount: 5,
+    date: '2026-09-01',
+    notes: null
+  })
+} catch (error) {
+  selfTransfer = error
+}
+check('transfer to the same wallet is rejected', selfTransfer?.message === 'Choose two different wallets')
+
+const solo = users.createUser(db, { username: 'solo', passwordHash: 'z' })
+let lastActive = null
+try {
+  walletsRepo.remove(db, solo.id, cashId(db, solo.id))
+} catch (error) {
+  lastActive = error
+}
+check('the last active wallet cannot be archived', lastActive?.message === 'At least one wallet must stay active')
 
 closeDatabase()
 rmSync(dir, { recursive: true, force: true })

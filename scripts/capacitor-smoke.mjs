@@ -183,7 +183,9 @@ await check('register creates a session', async () => {
   const res = await api.auth.register('alice', 'secret123')
   return res.user.username === 'alice'
 })
-await expectThrow('duplicate username rejected', () => api.auth.register('alice', 'secret123'), 'already taken')
+const wallets = await api.wallets.list()
+  const walletId = wallets[0].id
+  await expectThrow('duplicate username rejected', () => api.auth.register('alice', 'secret123'), 'already taken')
 await expectThrow('bad username rejected', () => api.auth.register('ab', 'secret123'), 'username must be')
 await expectThrow('weak password rejected', () => api.auth.register('bob', 'x'), 'at least 6 characters')
 await expectThrow('login with wrong password throws', () => api.auth.login('alice', 'nope'), 'Invalid username or password')
@@ -235,7 +237,7 @@ await check('restore works after disabling the requirement', async () => {
 
 let incomeId
 await check('income create', async () => {
-  const row = await api.income.create({ amount: 1000.555, date: '2026-09-05', source: 'Salary', notes: 'pay', receipt_path: null })
+  const row = await api.income.create({ wallet_id: walletId, amount: 1000.555, date: '2026-09-05', source: 'Salary', notes: 'pay', receipt_path: null })
   incomeId = row.id
   return row.amount === 1000.56 && row.source === 'Salary'
 })
@@ -244,31 +246,31 @@ await check('income list paginates', async () => {
   return res.total === 1 && res.rows.length === 1 && res.totalPages === 1
 })
 await check('income update', async () => {
-  const row = await api.income.update(incomeId, { amount: 2000, date: '2026-09-06', source: 'Salary', notes: null, receipt_path: null })
+  const row = await api.income.update(incomeId, { wallet_id: walletId, amount: 2000, date: '2026-09-06', source: 'Salary', notes: null, receipt_path: null })
   return row.amount === 2000
 })
 await check('income all', async () => (await api.income.all({ from: '2026-01-01', to: '2026-12-31' })).length === 1)
 
 await check('expense create + custom category', async () => {
-  const row = await api.expenses.create({ category: 'Pet care', amount: 300, date: '2026-09-07', notes: 'vet' })
+  const row = await api.expenses.create({ wallet_id: walletId, category: 'Pet care', amount: 300, date: '2026-09-07', notes: 'vet' })
   return row.category === 'Pet care'
 })
-await expectThrow('expense bad category rejected', () => api.expenses.create({ category: '@@', amount: 1, date: '2026-09-07' }), 'category is not recognized')
-await expectThrow('expense bad date rejected', () => api.expenses.create({ category: 'food', amount: 1, date: '09/07/2026' }), 'YYYY-MM-DD')
-await expectThrow('expense zero amount rejected', () => api.expenses.create({ category: 'food', amount: 0, date: '2026-09-07' }), 'greater than zero')
+await expectThrow('expense bad category rejected', () => api.expenses.create({ wallet_id: walletId, category: '@@', amount: 1, date: '2026-09-07' }), 'category is not recognized')
+await expectThrow('expense bad date rejected', () => api.expenses.create({ wallet_id: walletId, category: 'food', amount: 1, date: '09/07/2026' }), 'YYYY-MM-DD')
+await expectThrow('expense zero amount rejected', () => api.expenses.create({ wallet_id: walletId, category: 'food', amount: 0, date: '2026-09-07' }), 'greater than zero')
 
 let debtId
 await check('debt create (monthly)', async () => {
-  const row = await api.debts.create({ creditor: 'Home Credit', total_amount: 30000, due_date: '2026-12-15', payment_type: 'monthly', monthly_amount: 2500, first_payment_date: '2026-09-15', notes: null })
+  const row = await api.debts.create({ wallet_id: walletId, creditor: 'Home Credit', total_amount: 30000, due_date: '2026-12-15', payment_type: 'monthly', monthly_amount: 2500, first_payment_date: '2026-09-15', notes: null })
   debtId = row.id
   return row.remaining_amount === 30000 && row.effective_status === 'unpaid'
 })
 await check('add payment recomputes balance', async () => {
-  const row = await api.debts.addPayment(debtId, { amount: 2500, date: '2026-09-15', notes: null, installment_due: '2026-09-15' })
+  const row = await api.debts.addPayment(debtId, { wallet_id: walletId, amount: 2500, date: '2026-09-15', notes: null, installment_due: '2026-09-15' })
   return row.paid_amount === 2500 && row.remaining_amount === 27500 && row.effective_status === 'partial'
 })
 await check('add second payment', async () => {
-  const row = await api.debts.addPayment(debtId, { amount: 2500, date: '2026-09-16', notes: 'extra', installment_due: '2026-10-15' })
+  const row = await api.debts.addPayment(debtId, { wallet_id: walletId, amount: 2500, date: '2026-09-16', notes: 'extra', installment_due: '2026-10-15' })
   return row.paid_amount === 5000 && row.remaining_amount === 25000 && row.effective_status === 'partial'
 })
 await check('remove payment recomputes balance', async () => {
@@ -286,23 +288,23 @@ await check('monthly debt stores derived payment_day', async () => {
 })
 await expectThrow(
   'monthly debt without first payment date rejected',
-  () => api.debts.create({ creditor: 'X', total_amount: 1000, payment_type: 'monthly', monthly_amount: 100 }),
+  () => api.debts.create({ wallet_id: walletId, creditor: 'X', total_amount: 1000, payment_type: 'monthly', monthly_amount: 100 }),
   'first payment date'
 )
 await expectThrow(
   'fixed-date debt without due date rejected',
-  () => api.debts.create({ creditor: 'X', total_amount: 1000, payment_type: 'fixed-date' }),
+  () => api.debts.create({ wallet_id: walletId, creditor: 'X', total_amount: 1000, payment_type: 'fixed-date' }),
   'due date'
 )
 await expectThrow(
   'debt with bad receipt reference rejected',
-  () => api.debts.create({ creditor: 'X', total_amount: 1000, payment_type: 'no-schedule', receipt_path: '../evil.png' }),
+  () => api.debts.create({ wallet_id: walletId, creditor: 'X', total_amount: 1000, payment_type: 'no-schedule', receipt_path: '../evil.png' }),
   'Invalid receipt'
 )
 
 await check('budget upsert + monthly spend', async () => {
   await api.budgets.upsert({ category: 'food', monthly_limit: 1000 })
-  await api.expenses.create({ category: 'food', amount: 1200, date: '2026-09-08', notes: null })
+  await api.expenses.create({ wallet_id: walletId, category: 'food', amount: 1200, date: '2026-09-08', notes: null })
   const list = await api.budgets.list('2026-09')
   return list.length === 1 && list[0].spent === 1200 && list[0].over === true
 })
@@ -374,6 +376,62 @@ await check('backup export/import round-trips', async () => {
 })
 await expectThrow('openReceipt reports unsupported', () => api.files.openReceipt('abc.png'), 'not supported on mobile')
 
+// ---------- wallets ----------
+await check('wallet list starts with Cash', () => wallets[0]?.name === 'Cash' && wallets[0]?.type === 'cash')
+const walletRowsNow = await api.wallets.list()
+const freshCashId = walletRowsNow[0].id
+const bdoWallet = await api.wallets.create({
+  name: 'BDO Android',
+  type: 'bank',
+  style: 'bdo',
+  opening_balance: 0,
+  last4: '4218'
+})
+const transferRow = await api.wallets.transfer({
+  from_wallet_id: freshCashId,
+  to_wallet_id: bdoWallet.id,
+  amount: 10,
+  date: '2026-09-20',
+  notes: 'move'
+})
+await check('wallet transfer is recorded', () => transferRow?.amount === 10)
+const walletSummary = await api.wallets.summary()
+const bdoAfterTransfer = walletSummary.wallets.find((wallet) => wallet.id === bdoWallet.id)
+await check(
+  'wallet summary derives the transferred balance',
+  () => Math.abs((bdoAfterTransfer?.balance ?? 0) - 10) < 0.001
+)
+const pixel =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+const customWallet = await api.wallets.create({
+  name: 'Android custom',
+  type: 'other',
+  style: 'custom',
+  opening_balance: 0,
+  color: '#3b3b40',
+  card_image: pixel
+})
+await check('wallet get returns the custom image, list omits it', async () => {
+  const full = await api.wallets.get(customWallet.id)
+  const listRow = (await api.wallets.list()).find((wallet) => wallet.id === customWallet.id)
+  return full.card_image === pixel && listRow?.card_image === undefined
+})
+await check('wallet activity explains a transfer', async () => {
+  const rows = await api.wallets.activity(bdoWallet.id)
+  return rows.some((row) => row.kind === 'transfer')
+})
+await api.wallets.removeTransfer(transferRow.id)
+await check('archived transfer can be restored', async () => {
+  const archived = await api.wallets.archivedTransfers()
+  return archived.some((row) => row.id === transferRow.id) && (await api.wallets.restoreTransfer(transferRow.id)) === true
+})
+await check('wallet archive and restore work', async () => {
+  const removed = await api.wallets.remove(customWallet.id)
+  const archived = await api.wallets.archived()
+  const restored = await api.wallets.restore(customWallet.id)
+  return removed === true && archived.some((wallet) => wallet.id === customWallet.id) && restored === true
+})
+
 await expectThrow('deleteData rejects wrong password', () => api.account.deleteData('nope'), 'Password is incorrect')
 await check('deleteData wipes records but keeps account', async () => {
   const res = await api.account.deleteData('secret123')
@@ -382,6 +440,10 @@ await check('deleteData wipes records but keeps account', async () => {
   return res.deleted === true && dashboard.totalIncome === 0 && stillLoggedIn.user.username === 'alice'
 })
 await check('login still works after deleteData', async () => (await api.auth.login('alice', 'secret123')).user.id === 1)
+await check('deleteData recreates Cash', async () => {
+  const rows = await api.wallets.list()
+  return rows.length === 1 && rows[0].name === 'Cash'
+})
 
 rmSync(OUT, { force: true })
 rmSync(path.join(ROOT, '.pv-fs-stub.js'), { force: true })

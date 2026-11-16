@@ -27,7 +27,7 @@ export function UserSummary({ className }) {
         <p className="truncate text-sm font-semibold text-slate-800 dark:text-gray-100" title={name}>
           {name}
         </p>
-        <p className="text-xs text-slate-400 dark:text-gray-500">Signed in</p>
+        <p className="text-xs text-slate-400 dark:text-dark-faint">Signed in</p>
       </div>
 
       <button
@@ -35,7 +35,7 @@ export function UserSummary({ className }) {
         onClick={logout}
         title="Sign out"
         aria-label="Sign out"
-        className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100 dark:focus-visible:outline-accent-400"
+        className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:text-dark-faint dark:hover:bg-dark-surface-2 dark:hover:text-gray-100 dark:focus-visible:outline-accent-400"
       >
         <LogOut size={18} aria-hidden="true" />
       </button>

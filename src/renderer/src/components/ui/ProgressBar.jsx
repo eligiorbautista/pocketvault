@@ -30,14 +30,14 @@ export function ProgressStat({ label, caption, percent, over }) {
         <span
           className={cn(
             'text-xs',
-            over ? 'font-semibold text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-gray-400'
+            over ? 'font-semibold text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-dark-faint'
           )}
         >
           {formatPercent(percent)}
         </span>
       </div>
       <ProgressBar percent={percent} over={over} />
-      {caption ? <p className="text-xs text-slate-500 dark:text-gray-400">{caption}</p> : null}
+      {caption ? <p className="text-xs text-slate-500 dark:text-dark-faint">{caption}</p> : null}
     </div>
   )
 }

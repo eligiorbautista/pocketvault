@@ -1,8 +1,10 @@
 import { PAGE_SIZE } from '../../../shared/constants.js'
 import { runPaginated } from './helpers.js'
+import { validateWalletId } from '../../../shared/wallets.js'
+import { ensureWallet } from './wallets.js'
 
 const COLUMNS =
-  'id, user_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
+  'id, user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
 
 export function list(db, userId, opts = {}) {
   const where = ['user_id = ?', 'is_archived = 0']
@@ -15,6 +17,10 @@ export function list(db, userId, opts = {}) {
   if (opts.to) {
     where.push('date <= ?')
     params.push(opts.to)
+  }
+  if (opts.walletId) {
+    where.push('wallet_id = ?')
+    params.push(opts.walletId)
   }
   if (opts.search) {
     where.push("(COALESCE(source, '') LIKE ? OR COALESCE(notes, '') LIKE ?)")
@@ -55,23 +61,27 @@ export function listAll(db, userId, { from, to } = {}) {
 }
 
 export function create(db, userId, data) {
+  const walletId = validateWalletId(data.wallet_id)
+  ensureWallet(db, userId, walletId)
   const info = db
     .prepare(
-      `INSERT INTO income (user_id, amount, date, source, notes, receipt_path, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+      `INSERT INTO income (user_id, wallet_id, amount, date, source, notes, receipt_path, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
     )
-    .run(userId, data.amount, data.date, data.source, data.notes, data.receipt_path)
+    .run(userId, walletId, data.amount, data.date, data.source, data.notes, data.receipt_path)
   return getById(db, userId, info.lastInsertRowid)
 }
 
 export function update(db, userId, id, data) {
+  const walletId = validateWalletId(data.wallet_id)
+  ensureWallet(db, userId, walletId)
   const info = db
     .prepare(
       `UPDATE income
-       SET amount = ?, date = ?, source = ?, notes = ?, receipt_path = ?, updated_at = CURRENT_TIMESTAMP
+       SET wallet_id = ?, amount = ?, date = ?, source = ?, notes = ?, receipt_path = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND user_id = ?`
     )
-    .run(data.amount, data.date, data.source, data.notes, data.receipt_path, id, userId)
+    .run(walletId, data.amount, data.date, data.source, data.notes, data.receipt_path, id, userId)
   if (info.changes === 0) return null
   return getById(db, userId, id)
 }

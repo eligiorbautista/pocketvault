@@ -157,5 +157,79 @@ ALTER TABLE user_settings ADD COLUMN reminders_enabled INTEGER NOT NULL DEFAULT 
 ALTER TABLE user_settings ADD COLUMN reminder_lead_days INTEGER NOT NULL DEFAULT 3;
 `
 
-export const MIGRATIONS = [V1, V2, V3, V4, V5]
+// v6: wallets, transfers, and a wallet on every money movement. The backfill
+// gives every existing user a Cash wallet and points legacy rows at it.
+const V6 = `
+CREATE TABLE IF NOT EXISTS wallets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'cash',
+  style TEXT NOT NULL DEFAULT 'generic',
+  opening_balance REAL NOT NULL DEFAULT 0,
+  last4 TEXT,
+  color TEXT,
+  card_image TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_archived INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS wallet_transfers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  from_wallet_id INTEGER NOT NULL,
+  to_wallet_id INTEGER NOT NULL,
+  amount REAL NOT NULL,
+  date TEXT NOT NULL,
+  notes TEXT,
+  is_archived INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (from_wallet_id) REFERENCES wallets(id) ON DELETE CASCADE,
+  FOREIGN KEY (to_wallet_id) REFERENCES wallets(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_wallets_user ON wallets (user_id, is_archived);
+CREATE INDEX IF NOT EXISTS idx_wallet_transfers_user ON wallet_transfers (user_id, date);
+CREATE INDEX IF NOT EXISTS idx_wallet_transfers_wallets ON wallet_transfers (from_wallet_id, to_wallet_id);
+
+ALTER TABLE income ADD COLUMN wallet_id INTEGER;
+ALTER TABLE expenses ADD COLUMN wallet_id INTEGER;
+ALTER TABLE debts ADD COLUMN wallet_id INTEGER;
+ALTER TABLE debt_payments ADD COLUMN wallet_id INTEGER;
+
+CREATE INDEX IF NOT EXISTS idx_income_wallet ON income (wallet_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_wallet ON expenses (wallet_id);
+CREATE INDEX IF NOT EXISTS idx_debts_wallet ON debts (wallet_id);
+CREATE INDEX IF NOT EXISTS idx_debt_payments_wallet ON debt_payments (wallet_id);
+
+INSERT INTO wallets (user_id, name, type, style, sort_order)
+SELECT id, 'Cash', 'cash', 'cash',
+       COALESCE((SELECT MAX(sort_order) + 1 FROM wallets w WHERE w.user_id = users.id), 0)
+FROM users
+WHERE NOT EXISTS (SELECT 1 FROM wallets w WHERE w.user_id = users.id AND w.name = 'Cash');
+
+UPDATE income SET wallet_id = (SELECT w.id FROM wallets w WHERE w.user_id = income.user_id AND w.name = 'Cash')
+WHERE wallet_id IS NULL;
+
+UPDATE expenses SET wallet_id = (SELECT w.id FROM wallets w WHERE w.user_id = expenses.user_id AND w.name = 'Cash')
+WHERE wallet_id IS NULL;
+
+UPDATE debts SET wallet_id = (SELECT w.id FROM wallets w WHERE w.user_id = debts.user_id AND w.name = 'Cash')
+WHERE wallet_id IS NULL;
+
+UPDATE debt_payments
+SET wallet_id = (
+  SELECT w.id FROM wallets w
+  JOIN debts d ON d.user_id = w.user_id
+  WHERE d.id = debt_payments.debt_id AND w.name = 'Cash'
+)
+WHERE wallet_id IS NULL;
+`
+
+export const MIGRATIONS = [V1, V2, V3, V4, V5, V6]
 export const SCHEMA_VERSION = MIGRATIONS.length

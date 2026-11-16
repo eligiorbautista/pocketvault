@@ -327,7 +327,7 @@ export default function Settings() {
             </Button>
           </SettingRow>
 
-          <div className="mt-2 border-t border-slate-100 pb-6 pt-5 dark:border-gray-800">
+          <div className="mt-2 border-t border-slate-100 pb-6 pt-5 dark:border-dark-rule">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
               <div className="flex min-w-0 flex-1 items-start gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-900 dark:text-red-300">
@@ -335,7 +335,7 @@ export default function Settings() {
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-red-700 dark:text-red-400">Delete all data</p>
-                  <p className="mt-0.5 text-sm text-slate-500 dark:text-gray-400">
+                  <p className="mt-0.5 text-sm text-slate-500 dark:text-dark-faint">
                     Permanently delete every record and receipt in this account. Your account and
                     password are kept.
                   </p>
@@ -361,7 +361,7 @@ export default function Settings() {
           <CardTitle>About</CardTitle>
         </CardHeader>
         <CardBody className="space-y-4">
-          <p className="max-w-2xl text-sm text-slate-600 dark:text-gray-300">
+          <p className="max-w-2xl text-sm text-slate-600 dark:text-dark-muted">
             PocketVault keeps your money organized in one place so you always know what came in,
             where it went, and what you are working toward.
           </p>
@@ -375,8 +375,8 @@ export default function Settings() {
               </li>
             ))}
           </ul>
-          <div className="border-t border-slate-100 pt-4 dark:border-gray-700">
-            <p className="text-sm text-slate-600 dark:text-gray-300">
+          <div className="border-t border-slate-100 pt-4 dark:border-dark-border">
+            <p className="text-sm text-slate-600 dark:text-dark-muted">
               Built by{' '}
               <span className="font-medium text-slate-900 dark:text-gray-100">Eli Dev</span>, a
               developer from the Philippines.
@@ -386,7 +386,7 @@ export default function Settings() {
                 href="https://www.facebook.com/elirbautista"
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-gray-600 dark:bg-[#3a3a3a] dark:text-gray-200 dark:hover:bg-[#454545] dark:focus-visible:outline-accent-400"
+                className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-dark-border dark:bg-dark-surface-2 dark:text-gray-200 dark:hover:bg-[#454545] dark:focus-visible:outline-accent-400"
               >
                 <ExternalLink size={15} aria-hidden="true" />
                 Facebook
@@ -395,14 +395,14 @@ export default function Settings() {
                 href="https://github.com/eligiorbautista"
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-gray-600 dark:bg-[#3a3a3a] dark:text-gray-200 dark:hover:bg-[#454545] dark:focus-visible:outline-accent-400"
+                className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-dark-border dark:bg-dark-surface-2 dark:text-gray-200 dark:hover:bg-[#454545] dark:focus-visible:outline-accent-400"
               >
                 <ExternalLink size={15} aria-hidden="true" />
                 GitHub
               </a>
             </div>
           </div>
-          <p className="border-t border-slate-100 pt-4 text-xs text-slate-400 dark:border-gray-700 dark:text-gray-500">
+          <p className="border-t border-slate-100 pt-4 text-xs text-slate-400 dark:border-dark-border dark:text-dark-faint">
             PocketVault v{VERSION}
           </p>
         </CardBody>

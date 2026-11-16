@@ -1,4 +1,5 @@
 import { registerAuthHandlers } from './auth.ipc.js'
+import { registerWalletsHandlers } from './wallets.ipc.js'
 import { registerIncomeHandlers } from './income.ipc.js'
 import { registerExpensesHandlers } from './expenses.ipc.js'
 import { registerDebtsHandlers } from './debts.ipc.js'
@@ -13,6 +14,7 @@ import { registerNotificationsHandlers } from './notifications.ipc.js'
 
 export function registerIpcHandlers() {
   registerAuthHandlers()
+  registerWalletsHandlers()
   registerIncomeHandlers()
   registerExpensesHandlers()
   registerDebtsHandlers()

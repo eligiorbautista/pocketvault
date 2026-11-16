@@ -14,9 +14,11 @@ import {
   validateAmount,
   validateCategory,
   validateDate,
+  validateId,
   validateInt,
   validateText
 } from './validate.js'
+import { validateTransferInput, validateWalletInput } from './wallets.js'
 
 function receiptOf(value, field) {
   if (value === undefined || value === null || value === '') return null
@@ -30,7 +32,23 @@ function asArray(value) {
 
 // Throws a ValidationError on the first invalid row. Returns nothing.
 export function validateBackupData(data) {
+  for (const row of asArray(data.wallets)) {
+    if (row.id != null) validateId(row.id, 'wallet id')
+    validateWalletInput(row)
+    if (row.sort_order !== undefined && row.sort_order !== null) {
+      validateInt(row.sort_order, 'wallet sort order', { min: 0, max: 1_000_000 })
+    }
+  }
+
+  for (const row of asArray(data.wallet_transfers)) {
+    if (row.id != null) validateId(row.id, 'transfer id')
+    validateTransferInput(row)
+    validateId(row.from_wallet_id, 'from_wallet_id')
+    validateId(row.to_wallet_id, 'to_wallet_id')
+  }
+
   for (const row of asArray(data.income)) {
+    if (row.wallet_id != null) validateId(row.wallet_id, 'income wallet')
     validateAmount(row.amount, 'income amount')
     validateDate(row.date, 'income date')
     validateText(row.source, 'income source', { max: INCOME_SOURCE_IMPORT_MAX_LEN })
@@ -39,6 +57,7 @@ export function validateBackupData(data) {
   }
 
   for (const row of asArray(data.expenses)) {
+    if (row.wallet_id != null) validateId(row.wallet_id, 'expense wallet')
     validateCategory(row.category)
     validateAmount(row.amount, 'expense amount')
     validateDate(row.date, 'expense date')
@@ -46,6 +65,7 @@ export function validateBackupData(data) {
   }
 
   for (const row of asArray(data.debts)) {
+    if (row.wallet_id != null) validateId(row.wallet_id, 'debt wallet')
     validateText(row.creditor, 'creditor', { required: true, max: 120 })
     validateAmount(row.total_amount, 'total amount')
     validateAmount(row.paid_amount, 'paid amount', { allowZero: true })
@@ -69,6 +89,7 @@ export function validateBackupData(data) {
   }
 
   for (const row of asArray(data.debt_payments)) {
+    if (row.wallet_id != null) validateId(row.wallet_id, 'payment wallet')
     validateAmount(row.amount, 'payment amount')
     validateDate(row.date, 'payment date')
     assert(
@@ -108,7 +129,9 @@ export function backupRowCounts(data) {
     debtPayments: asArray(data.debt_payments).length,
     budgets: asArray(data.budgets).length,
     savingsGoals: asArray(data.savings_goals).length,
-    savingsContributions: asArray(data.savings_contributions).length
+    savingsContributions: asArray(data.savings_contributions).length,
+    wallets: asArray(data.wallets).length,
+    walletTransfers: asArray(data.wallet_transfers).length
   }
 }
 

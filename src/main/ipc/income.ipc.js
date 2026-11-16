@@ -9,6 +9,7 @@ import {
   validateText
 } from '../db/validate.js'
 import { INCOME_SOURCE_MAX_LEN, RECEIPT_FILE_PATTERN } from '../../shared/constants.js'
+import { validateWalletId } from '../../shared/wallets.js'
 
 function normalizeReceipt(value) {
   if (value === undefined || value === null || value === '') return null
@@ -20,6 +21,7 @@ function normalizeReceipt(value) {
 
 function normalize(payload) {
   return {
+    wallet_id: validateWalletId(payload.wallet_id),
     amount: validateAmount(payload.amount, 'amount'),
     date: validateDate(payload.date, 'date'),
     source: validateText(payload.source, 'source', { max: INCOME_SOURCE_MAX_LEN }),
@@ -36,6 +38,7 @@ export function registerIncomeHandlers() {
       search: payload.search ? String(payload.search).trim() : undefined,
       from: payload.from || undefined,
       to: payload.to || undefined,
+      walletId: payload.walletId ? validateWalletId(payload.walletId) : undefined,
       order: payload.order
     })
   )

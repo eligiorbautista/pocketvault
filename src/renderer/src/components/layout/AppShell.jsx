@@ -5,11 +5,11 @@ import { MobileDrawer } from './MobileDrawer.jsx'
 
 export function AppShell() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-dark-bg">
+    <div className="min-h-dvh bg-slate-50 dark:bg-dark-bg">
       <Sidebar />
       <div className="lg:pl-64">
         <Topbar />
-        <main className="mx-auto w-full max-w-[90rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main className="mx-auto w-full max-w-[90rem] px-4 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8 lg:pt-8 lg:pb-[calc(2rem+env(safe-area-inset-bottom))]">
           <Outlet />
         </main>
       </div>

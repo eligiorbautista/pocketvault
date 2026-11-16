@@ -70,29 +70,29 @@ export function Modal({ open, onClose, title, description, size = 'md', footer, 
         aria-modal="true"
         aria-label={title}
         className={cn(
-          'relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-xl outline-none dark:bg-[#333333] sm:rounded-2xl',
+          'relative z-10 flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-xl outline-none dark:bg-dark-surface sm:rounded-2xl sm:pb-0',
           SIZES[size]
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-4 dark:border-gray-700 sm:p-5">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-4 dark:border-dark-border sm:p-5">
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-slate-900 dark:text-gray-100">{title}</h2>
             {description ? (
-              <p className="mt-0.5 text-sm text-slate-500 dark:text-gray-400">{description}</p>
+              <p className="mt-0.5 text-sm text-slate-500 dark:text-dark-faint">{description}</p>
             ) : null}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-2 focus-visible:outline-accent-600 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-200 dark:focus-visible:outline-accent-400"
+            className="-mr-1 -mt-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-2 focus-visible:outline-accent-600 dark:text-dark-faint dark:hover:bg-dark-surface-2 dark:hover:text-gray-200 dark:focus-visible:outline-accent-400"
           >
             <X size={18} aria-hidden="true" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">{children}</div>
         {footer ? (
-          <div className="border-t border-slate-100 p-4 dark:border-gray-700 sm:p-5">{footer}</div>
+          <div className="border-t border-slate-100 p-4 dark:border-dark-border sm:p-5">{footer}</div>
         ) : null}
       </div>
     </div>,

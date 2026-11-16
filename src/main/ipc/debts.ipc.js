@@ -11,6 +11,7 @@ import {
   validateText
 } from '../db/validate.js'
 import { DEBT_PAYMENT_TYPE_VALUES, DEBT_STATUSES, RECEIPT_FILE_PATTERN } from '../../shared/constants.js'
+import { validateWalletId } from '../../shared/wallets.js'
 
 function normalizeReceipt(value) {
   if (value === undefined || value === null || value === '') return null
@@ -50,6 +51,7 @@ function normalize(payload) {
   }
 
   return {
+    wallet_id: validateWalletId(payload.wallet_id),
     creditor: validateText(payload.creditor, 'creditor', { required: true, max: 120 }),
     total_amount: validateAmount(payload.total_amount, 'total_amount'),
     due_date,
@@ -116,6 +118,7 @@ export function registerDebtsHandlers() {
       userId,
       validateId(payload.debtId, 'debtId'),
       {
+        wallet_id: validateWalletId(payload.wallet_id),
         amount: validateAmount(payload.amount, 'amount'),
         date: validateDate(payload.date, 'date'),
         notes: validateText(payload.notes, 'notes', { max: 500 }),

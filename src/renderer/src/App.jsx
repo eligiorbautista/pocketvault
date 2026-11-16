@@ -12,6 +12,7 @@ import { SplashScreen } from '@renderer/components/layout/SplashScreen.jsx'
 import Login from '@renderer/pages/Login.jsx'
 import Register from '@renderer/pages/Register.jsx'
 import Dashboard from '@renderer/pages/Dashboard.jsx'
+import Wallet from '@renderer/pages/Wallet.jsx'
 import Income from '@renderer/pages/Income.jsx'
 import Expenses from '@renderer/pages/Expenses.jsx'
 import Debts from '@renderer/pages/Debts.jsx'
@@ -77,6 +78,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell />}>
               <Route index element={<Dashboard />} />
+              <Route path="/wallet" element={<Wallet />} />
               <Route path="/income" element={<Income />} />
               <Route path="/expenses" element={<Expenses />} />
               <Route path="/debts" element={<Debts />} />

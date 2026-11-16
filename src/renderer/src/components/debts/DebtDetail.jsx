@@ -7,7 +7,7 @@ import { Modal } from '@renderer/components/ui/Modal.jsx'
 import { Card, CardBody, CardHeader, CardIcon, CardTitle } from '@renderer/components/ui/Card.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
 import { Field } from '@renderer/components/ui/Field.jsx'
-import { Input } from '@renderer/components/ui/Input.jsx'
+import { Input, Select } from '@renderer/components/ui/Input.jsx'
 import { Badge, statusVariant } from '@renderer/components/ui/Badge.jsx'
 import { ProgressBar } from '@renderer/components/ui/ProgressBar.jsx'
 import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
@@ -31,19 +31,23 @@ const SCHEDULE_VARIANT = {
 const SCHEDULE_LABEL = { paid: 'Paid', partial: 'Partial', overdue: 'Overdue', upcoming: 'Upcoming' }
 
 // Records one payment (a free-form payment, or one tied to a schedule row).
-function LedgerForm({ idPrefix, debtId, installment, defaultAmount, onDone }) {
+function LedgerForm({ idPrefix, debtId, installment, defaultAmount, wallets = [], onDone }) {
   const [receiptPath, setReceiptPath] = useState(null)
   const suggested = defaultAmount != null ? String(defaultAmount) : ''
+  const cashId = wallets.find((wallet) => wallet.name === 'Cash')?.id ?? wallets[0]?.id ?? ''
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting }
-  } = useForm({ defaultValues: { amount: suggested, date: todayInput(), notes: '' } })
+  } = useForm({
+    defaultValues: { wallet_id: String(cashId), amount: suggested, date: todayInput(), notes: '' }
+  })
 
   const onSubmit = async (values) => {
     try {
       await api.debts.addPayment(debtId, {
+        wallet_id: Number(values.wallet_id),
         amount: Number(values.amount),
         date: values.date,
         notes: values.notes,
@@ -51,7 +55,7 @@ function LedgerForm({ idPrefix, debtId, installment, defaultAmount, onDone }) {
         receipt_path: receiptPath
       })
       toast('Payment recorded', 'success')
-      reset({ amount: suggested, date: todayInput(), notes: '' })
+      reset({ wallet_id: String(cashId), amount: suggested, date: todayInput(), notes: '' })
       setReceiptPath(null)
       onDone()
     } catch (error) {
@@ -84,6 +88,19 @@ function LedgerForm({ idPrefix, debtId, installment, defaultAmount, onDone }) {
           {...register('date', { required: 'Date is required' })}
         />
       </Field>
+      <Field label="Paid from wallet" htmlFor={`${idPrefix}-wallet`} error={errors.wallet_id?.message}>
+        <Select
+          id={`${idPrefix}-wallet`}
+          hasError={Boolean(errors.wallet_id)}
+          {...register('wallet_id', { required: 'Wallet is required' })}
+        >
+          {wallets.map((wallet) => (
+            <option key={wallet.id} value={wallet.id}>
+              {wallet.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
       <Field label="Proof" htmlFor={`${idPrefix}-receipt`}>
         <ReceiptField id={`${idPrefix}-receipt`} value={receiptPath} onChange={setReceiptPath} />
       </Field>
@@ -97,7 +114,7 @@ function LedgerForm({ idPrefix, debtId, installment, defaultAmount, onDone }) {
   )
 }
 
-function DebtSchedule({ debt, payments, onChanged, onViewProof }) {
+function DebtSchedule({ debt, payments, wallets, onChanged, onViewProof }) {
   const today = todayInput()
   const installments = buildInstallments(debt)
   const [payTarget, setPayTarget] = useState(null)
@@ -144,7 +161,7 @@ function DebtSchedule({ debt, payments, onChanged, onViewProof }) {
             description="Set a monthly amount and a first payment date to generate the installments."
           />
         ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-gray-800">
+          <ul className="divide-y divide-slate-100 dark:divide-dark-rule">
             {installments.map((installment) => {
               const linked = byDue.get(installment.due_date) ?? []
               const paidCents = linked.reduce((sum, payment) => sum + toCents(payment.amount), 0)
@@ -161,7 +178,7 @@ function DebtSchedule({ debt, payments, onChanged, onViewProof }) {
                     <p className="text-sm font-medium text-slate-800 dark:text-gray-100">
                       {installment.due_date ? formatDate(installment.due_date) : 'No date'}
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-500 dark:text-gray-400">
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-dark-faint">
                       {formatCurrency(installment.amount)}
                       {status === 'partial' ? ` · ${formatCurrency(remainingPesos)} left` : ''}
                     </p>
@@ -219,6 +236,7 @@ function DebtSchedule({ debt, payments, onChanged, onViewProof }) {
             idPrefix={`sched-${payTarget.index}`}
             debtId={debt.id}
             installment={payTarget}
+            wallets={wallets}
             defaultAmount={Math.max(0, toCents(payTarget.amount) - payTarget.paid) / 100}
             onDone={() => {
               setPayTarget(null)
@@ -274,7 +292,7 @@ function TransactionLedger({ payments, onViewProof, onRemove }) {
                     {formatCurrency(payment.amount)}
                   </span>
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-gray-400">
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-dark-faint">
                   {formatDate(payment.date)}
                   {payment.notes ? ` · ${payment.notes}` : ''}
                 </p>
@@ -307,7 +325,7 @@ function TransactionLedger({ payments, onViewProof, onRemove }) {
   )
 }
 
-export function DebtDetail({ debtId, open, onClose, onChanged }) {
+export function DebtDetail({ debtId, open, wallets = [], onClose, onChanged }) {
   const [viewReceipt, setViewReceipt] = useState(null)
   const [pendingRemove, setPendingRemove] = useState(null)
   const [removing, setRemoving] = useState(false)
@@ -362,13 +380,13 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
         <ErrorState message="This debt could not be found." />
       ) : (
         <div className="space-y-5">
-          <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-gray-700 dark:bg-[#2f2f2f] sm:p-5">
+          <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-dark-border dark:bg-dark-surface-2 sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-lg font-semibold text-slate-900 dark:text-gray-100">
                   {debt.creditor}
                 </p>
-                <p className="text-xs text-slate-500 dark:text-gray-400">
+                <p className="text-xs text-slate-500 dark:text-dark-faint">
                   {paymentTypeLabel(debt.payment_type)}
                 </p>
               </div>
@@ -387,25 +405,25 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500">Total</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-dark-faint">Total</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">
                   {formatCurrency(debt.total_amount)}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500">Paid</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-dark-faint">Paid</p>
                 <p className="text-sm font-semibold text-accent-700 dark:text-green-400">
                   {formatCurrency(debt.paid_amount)}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500">Remaining</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-dark-faint">Remaining</p>
                 <p className="text-sm font-semibold text-red-600 dark:text-red-400">
                   {formatCurrency(debt.remaining_amount)}
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500">
+                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-dark-faint">
                   {isMonthly ? 'First payment' : 'Due date'}
                 </p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">
@@ -416,7 +434,7 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
 
             <div>
               <ProgressBar percent={paidPercent} />
-              <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
+              <p className="mt-1 text-xs text-slate-500 dark:text-dark-faint">
                 {Math.round(paidPercent)}% paid
                 {isMonthly && debt.monthly_amount
                   ? ` · ${formatCurrency(debt.monthly_amount)} / month for ${Math.max(1, Math.ceil(debt.total_amount / debt.monthly_amount))} months`
@@ -429,6 +447,7 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
             <DebtSchedule
               debt={debt}
               payments={payments}
+              wallets={wallets}
               onChanged={refresh}
               onViewProof={setViewReceipt}
             />
@@ -456,7 +475,7 @@ export function DebtDetail({ debtId, open, onClose, onChanged }) {
                     <CardTitle>Make a payment</CardTitle>
                   </CardHeader>
                   <CardBody>
-                    <LedgerForm idPrefix="ledger" debtId={debt.id} onDone={refresh} />
+                    <LedgerForm idPrefix="ledger" debtId={debt.id} wallets={wallets} onDone={refresh} />
                   </CardBody>
                 </Card>
               </aside>

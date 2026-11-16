@@ -128,7 +128,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardBody className="space-y-4">
             {period.mode !== 'month' && data?.budgetMonth ? (
-              <p className="text-xs text-slate-500 dark:text-gray-400">
+              <p className="text-xs text-slate-500 dark:text-dark-faint">
                 Budgets are monthly — showing {formatMonth(data.budgetMonth)}.
               </p>
             ) : null}
@@ -147,7 +147,7 @@ export default function Dashboard() {
                     <span className="truncate text-sm font-medium text-slate-700 dark:text-gray-200">
                       {categoryLabel(budget.category)}
                     </span>
-                    <span className="text-xs text-slate-500 dark:text-gray-400">
+                    <span className="text-xs text-slate-500 dark:text-dark-faint">
                       {formatCurrency(budget.spent)} / {formatCurrency(budget.monthly_limit)}
                     </span>
                   </div>
@@ -179,7 +179,7 @@ export default function Dashboard() {
                 <div key={goal.id} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate text-sm font-medium text-slate-700 dark:text-gray-200">{goal.goal_name}</span>
-                    <span className="text-xs text-slate-500 dark:text-gray-400">
+                    <span className="text-xs text-slate-500 dark:text-dark-faint">
                       {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}
                     </span>
                   </div>
@@ -203,14 +203,14 @@ export default function Dashboard() {
             ) : recentIncome.length === 0 ? (
               <EmptyState icon={TrendingUp} title="No income yet" />
             ) : (
-              <ul className="divide-y divide-slate-100 dark:divide-gray-800">
+              <ul className="divide-y divide-slate-100 dark:divide-dark-rule">
                 {recentIncome.map((item) => (
                   <li key={item.id} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-slate-800 dark:text-gray-200">
                         {item.source || 'Income'}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-gray-400">{formatDate(item.date)}</p>
+                      <p className="text-xs text-slate-500 dark:text-dark-faint">{formatDate(item.date)}</p>
                     </div>
                     <span className="inline-flex items-center gap-1 text-sm font-semibold text-accent-700 dark:text-accent-400">
                       <ArrowUpRight size={14} aria-hidden="true" />
@@ -236,14 +236,14 @@ export default function Dashboard() {
             ) : recentExpenses.length === 0 ? (
               <EmptyState icon={TrendingDown} title="No expenses yet" />
             ) : (
-              <ul className="divide-y divide-slate-100 dark:divide-gray-800">
+              <ul className="divide-y divide-slate-100 dark:divide-dark-rule">
                 {recentExpenses.map((item) => (
                   <li key={item.id} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-slate-800 dark:text-gray-200">
                         {categoryLabel(item.category)}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-gray-400">{formatDate(item.date)}</p>
+                      <p className="text-xs text-slate-500 dark:text-dark-faint">{formatDate(item.date)}</p>
                     </div>
                     <span className="inline-flex items-center gap-1 text-sm font-semibold text-slate-900 dark:text-gray-100">
                       <ArrowDownRight size={14} aria-hidden="true" />
@@ -260,7 +260,7 @@ export default function Dashboard() {
       <div className="flex justify-center">
         <Link
           to="/reports"
-          className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-gray-600 dark:bg-[#3a3a3a] dark:text-gray-200 dark:hover:bg-[#454545] dark:focus-visible:outline-accent-400"
+          className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-dark-border dark:bg-dark-surface-2 dark:text-gray-200 dark:hover:bg-[#454545] dark:focus-visible:outline-accent-400"
         >
           Open full reports
         </Link>

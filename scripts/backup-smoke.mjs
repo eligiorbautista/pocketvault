@@ -9,9 +9,12 @@ import * as users from '../src/main/db/repositories/users.js'
 import * as incomeRepo from '../src/main/db/repositories/income.js'
 import * as expensesRepo from '../src/main/db/repositories/expenses.js'
 import * as debtsRepo from '../src/main/db/repositories/debts.js'
+import * as walletsRepo from '../src/main/db/repositories/wallets.js'
 import * as budgetsRepo from '../src/main/db/repositories/budgets.js'
 import * as savingsRepo from '../src/main/db/repositories/savings.js'
 import { buildUserBackup, parseUserBackup, applyUserBackup } from '../src/main/services/backup.js'
+
+const cashId = (db, userId) => walletsRepo.list(db, userId)[0].id
 
 let passed = 0
 function check(label, condition, detail) {
@@ -28,22 +31,22 @@ const receiptName = '11111111-1111-1111-1111-111111111111.png'
 
 function seedAlice(db, receipts) {
   const alice = users.createUser(db, { username: 'alice', passwordHash: 'x' })
-  const i1 = incomeRepo.create(db, alice.id, {
+  const i1 = incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
     amount: 25000,
     date: '2026-03-01',
     source: 'Salary',
     notes: null,
     receipt_path: receiptName
   })
-  incomeRepo.create(db, alice.id, {
+  incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
     amount: 5000,
     date: '2026-03-15',
     source: 'Freelance',
     notes: null,
     receipt_path: null
   })
-  expensesRepo.create(db, alice.id, { category: 'food', amount: 1500, date: '2026-03-05', notes: null })
-  const debt = debtsRepo.create(db, alice.id, {
+  expensesRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), category: 'food', amount: 1500, date: '2026-03-05', notes: null })
+  const debt = debtsRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id),
     creditor: 'Landlord',
     total_amount: 10000,
     due_date: '2026-12-31',
@@ -52,7 +55,7 @@ function seedAlice(db, receipts) {
     payment_day: null,
     notes: null
   })
-  debtsRepo.addPayment(db, alice.id, debt.id, { amount: 4000, date: '2026-03-06', notes: null })
+  debtsRepo.addPayment(db, alice.id, debt.id, { wallet_id: cashId(db, alice.id), amount: 4000, date: '2026-03-06', notes: null })
   budgetsRepo.upsert(db, alice.id, { category: 'food', monthly_limit: 2000 })
   const goal = savingsRepo.create(db, alice.id, {
     goal_name: 'Emergency fund',
@@ -74,14 +77,14 @@ function seedAlice(db, receipts) {
 
 function seedBob(db) {
   const bob = users.createUser(db, { username: 'bob', passwordHash: 'y' })
-  incomeRepo.create(db, bob.id, {
+  incomeRepo.create(db, bob.id, { wallet_id: cashId(db, bob.id),
     amount: 9999,
     date: '2026-03-10',
     source: 'BobBiz',
     notes: 'private',
     receipt_path: null
   })
-  expensesRepo.create(db, bob.id, { category: 'shopping', amount: 777, date: '2026-03-11', notes: null })
+  expensesRepo.create(db, bob.id, { wallet_id: cashId(db, bob.id), category: 'shopping', amount: 777, date: '2026-03-11', notes: null })
   return bob.id
 }
 
@@ -97,6 +100,7 @@ const bobId = seedBob(dbA)
 const { buffer, username, counts } = await buildUserBackup(dbA, aliceId, sourceReceipts)
 check('backup filename username is alice', username === 'alice')
 check('backup counts alice income = 2', counts.income === 2, counts)
+check('backup counts alice wallets = 1', counts.wallets === 1, counts)
 check('backup counts alice expenses = 1', counts.expenses === 1)
 check('backup counts alice debts = 1', counts.debts === 1)
 check('backup counts alice debt payments = 1', counts.debtPayments === 1)
@@ -108,6 +112,8 @@ closeDatabase()
 
 const parsed = await parseUserBackup(buffer)
 check('parsed username is alice', parsed.account.username === 'alice')
+check('parsed data includes wallets', parsed.data.wallets.length === 1)
+check('parsed income carries wallet_id', parsed.data.income.every((row) => row.wallet_id != null))
 check('parsed income has no user_id column leak', !('user_id' in parsed.data.income[0]))
 check(
   'parsed income contains only alice sources',
@@ -124,8 +130,8 @@ check('manifest reports the receipt count', parsed.manifest.counts.receipts === 
 const destReceipts = join(dir, 'receipts-dest')
 const dbB = createDatabase(join(dir, 'b.db'))
 const aliceB = users.createUser(dbB, { username: 'alice', passwordHash: 'z' })
-incomeRepo.create(dbB, aliceB.id, { amount: 1, date: '2026-01-01', source: 'Junk', notes: null, receipt_path: null })
-expensesRepo.create(dbB, aliceB.id, { category: 'misc', amount: 2, date: '2026-01-01', notes: null })
+incomeRepo.create(dbB, aliceB.id, { wallet_id: cashId(dbB, aliceB.id), amount: 1, date: '2026-01-01', source: 'Junk', notes: null, receipt_path: null })
+expensesRepo.create(dbB, aliceB.id, { wallet_id: cashId(dbB, aliceB.id), category: 'misc', amount: 2, date: '2026-01-01', notes: null })
 const bobB = seedBob(dbB)
 const bobIncomeBefore = incomeRepo.list(dbB, bobB, {}).total
 const bobExpensesBefore = expensesRepo.list(dbB, bobB, {}).total
@@ -177,6 +183,69 @@ check('import guard would reject a different account', parsed.account.username !
 applyUserBackup(dbB, aliceB.id, parsed, destReceipts, 'alice')
 check('second import is idempotent for alice income', incomeRepo.list(dbB, aliceB.id, {}).total === 2)
 check('second import still leaves bob intact', incomeRepo.list(dbB, bobB, {}).total === bobIncomeBefore)
+
+// --- v3: transfers round-trip ---
+const extraWallet = walletsRepo.create(dbB, aliceB.id, {
+  name: 'BDO extra',
+  type: 'bank',
+  style: 'bdo',
+  opening_balance: 0,
+  last4: null
+})
+walletsRepo.transfer(dbB, aliceB.id, {
+  from_wallet_id: cashId(dbB, aliceB.id),
+  to_wallet_id: extraWallet.id,
+  amount: 5,
+  date: '2026-03-12',
+  notes: 'move'
+})
+const full = await buildUserBackup(dbB, aliceB.id, destReceipts)
+check('v3 backup counts wallets', full.counts.wallets === 2, full.counts)
+check('v3 backup counts transfers', full.counts.walletTransfers === 1, full.counts)
+const fullParsed = await parseUserBackup(full.buffer)
+check(
+  'v3 parsed transfer is preserved',
+  fullParsed.data.wallet_transfers.length === 1 && fullParsed.data.wallet_transfers[0].amount === 5
+)
+applyUserBackup(dbB, aliceB.id, fullParsed, destReceipts, 'alice')
+const reimportedExtra = walletsRepo.list(dbB, aliceB.id).find((wallet) => wallet.name === 'BDO extra')
+check(
+  'transfer survives the import',
+  reimportedExtra &&
+    walletsRepo.activity(dbB, aliceB.id, reimportedExtra.id).some((row) => row.kind === 'transfer')
+)
+
+// --- v2: no wallets -> Cash is created and rows are assigned to it ---
+const aliceC = users.createUser(dbB, { username: 'aliceC', passwordHash: 'z' })
+const withoutWallet = (rows) => rows.map((row) => ({ ...row, wallet_id: null }))
+applyUserBackup(
+  dbB,
+  aliceC.id,
+  {
+    account: { username: 'aliceC' },
+    data: {
+      income: withoutWallet(fullParsed.data.income),
+      expenses: withoutWallet(fullParsed.data.expenses),
+      debts: withoutWallet(fullParsed.data.debts),
+      debt_payments: withoutWallet(fullParsed.data.debt_payments),
+      budgets: fullParsed.data.budgets,
+      savings_goals: fullParsed.data.savings_goals,
+      savings_contributions: fullParsed.data.savings_contributions,
+      wallets: [],
+      wallet_transfers: []
+    },
+    receipts: []
+  },
+  destReceipts,
+  'aliceC'
+)
+const cWallets = walletsRepo.list(dbB, aliceC.id)
+check('v2 import creates Cash', cWallets.length === 1 && cWallets[0].name === 'Cash')
+const cIncome = incomeRepo.list(dbB, aliceC.id, {})
+check(
+  'v2 rows are assigned to the created Cash wallet',
+  cIncome.total === 2 && cIncome.rows.every((row) => row.wallet_id === cWallets[0].id)
+)
 closeDatabase()
 
 rmSync(dir, { recursive: true, force: true })

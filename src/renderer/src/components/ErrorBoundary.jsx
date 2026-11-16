@@ -25,12 +25,12 @@ export class ErrorBoundary extends Component {
   render() {
     if (this.state.error) {
       return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-dark-bg">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-gray-700 dark:bg-[#333333]">
+        <div className="flex min-h-dvh items-center justify-center bg-slate-50 p-6 dark:bg-dark-bg">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-dark-border dark:bg-dark-surface">
             <h1 className="text-lg font-semibold text-slate-900 dark:text-gray-100">
               Something went wrong
             </h1>
-            <p className="mt-2 text-sm text-slate-600 dark:text-gray-400">
+            <p className="mt-2 text-sm text-slate-600 dark:text-dark-faint">
               {this.props.message ??
                 'An unexpected error occurred while displaying this screen.'}
             </p>
@@ -45,7 +45,7 @@ export class ErrorBoundary extends Component {
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-[#3d3d3d]"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-dark-border dark:text-gray-200 dark:hover:bg-[#3d3d3d]"
               >
                 Reload app
               </button>

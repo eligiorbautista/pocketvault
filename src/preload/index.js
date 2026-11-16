@@ -26,9 +26,25 @@ const api = {
       call('auth:changePassword', { currentPassword, newPassword })
   },
 
+  wallets: {
+    list: () => call('wallets:list'),
+    get: (id) => call('wallets:get', { id }),
+    create: (data) => call('wallets:create', data),
+    update: (id, data) => call('wallets:update', { id, ...data }),
+    remove: (id) => call('wallets:remove', { id }),
+    restore: (id) => call('wallets:restore', { id }),
+    archived: () => call('wallets:archived'),
+    move: (id, direction) => call('wallets:move', { id, direction }),
+    summary: () => call('wallets:summary'),
+    activity: (walletId, limit) => call('wallets:activity', { walletId, limit }),
+    transfer: (data) => call('wallets:transfer', data),
+    removeTransfer: (id) => call('wallets:removeTransfer', { id }),
+    restoreTransfer: (id) => call('wallets:restoreTransfer', { id }),
+    archivedTransfers: () => call('wallets:archivedTransfers')
+  },
+
   income: {
-    list: (params) => call('income:list', params),
-    get: (id) => call('income:get', { id }),
+    list: (params) => call('income:list', params),    get: (id) => call('income:get', { id }),
     create: (data) => call('income:create', data),
     update: (id, data) => call('income:update', { id, ...data }),
     remove: (id) => call('income:remove', { id }),

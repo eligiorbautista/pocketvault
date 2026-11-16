@@ -6,7 +6,7 @@ import { cn } from '@renderer/lib/cn.js'
 // Ellipsis "row actions" menu for desktop tables. Items are text-only. Rendered
 // in a portal so the dropdown is never clipped by the table's overflow container.
 // `actions`: [{ key, label, tone?: 'danger', onSelect }]
-export function RowActionsMenu({ actions, label = 'Row actions' }) {
+export function RowActionsMenu({ actions, label = 'Row actions', triggerClassName }) {
   const items = (actions ?? []).filter(Boolean)
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState({ top: 0, left: 0 })
@@ -15,7 +15,13 @@ export function RowActionsMenu({ actions, label = 'Row actions' }) {
 
   const openMenu = () => {
     const rect = buttonRef.current.getBoundingClientRect()
-    setPosition({ top: rect.bottom + 6, left: rect.right })
+    // Flip above the trigger when the menu would fall off the bottom of a phone/tablet.
+    const menuHeight = items.length * 44 + 8
+    const top =
+      window.innerHeight - rect.bottom < menuHeight + 8
+        ? Math.max(8, rect.top - menuHeight - 6)
+        : rect.bottom + 6
+    setPosition({ top, left: Math.min(rect.right, window.innerWidth - 8) })
     setOpen(true)
   }
 
@@ -72,11 +78,12 @@ export function RowActionsMenu({ actions, label = 'Row actions' }) {
         aria-expanded={open}
         onClick={() => (open ? setOpen(false) : openMenu())}
         className={cn(
-          'inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg transition-colors',
+          'inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg transition-colors',
           'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
           open
             ? 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-gray-100'
-            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100'
+            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-dark-faint dark:hover:bg-dark-surface-2 dark:hover:text-gray-100',
+          triggerClassName
         )}
       >
         <MoreVertical size={18} aria-hidden="true" />
@@ -89,7 +96,7 @@ export function RowActionsMenu({ actions, label = 'Row actions' }) {
               role="menu"
               aria-label={label}
               style={{ position: 'fixed', top: position.top, left: position.left, transform: 'translateX(-100%)' }}
-              className="z-[60] min-w-[10rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-[#333333]"
+              className="z-[60] min-w-[10rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-dark-border dark:bg-dark-surface"
             >
               {items.map((action) => (
                 <button
@@ -101,10 +108,10 @@ export function RowActionsMenu({ actions, label = 'Row actions' }) {
                     action.onSelect?.()
                   }}
                   className={cn(
-                    'block w-full cursor-pointer px-3 py-2 text-left text-sm transition-colors',
+                    'block min-h-11 w-full cursor-pointer px-3 py-2 text-left text-sm transition-colors',
                     action.tone === 'danger'
                       ? 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40'
-                      : 'text-slate-700 hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-white/10'
+                      : 'text-slate-700 hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-dark-surface-2'
                   )}
                 >
                   {action.label}

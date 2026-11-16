@@ -69,13 +69,13 @@ export function ReceiptViewer({ filename, open, onClose }) {
           <iframe
             title="Receipt PDF"
             src={receipt.dataUrl}
-            className="h-[60vh] w-full rounded-lg border border-slate-200 dark:border-gray-700"
+            className="h-[60dvh] w-full rounded-lg border border-slate-200 dark:border-dark-border"
           />
         ) : (
           <img
             src={receipt.dataUrl}
             alt="Receipt"
-            className="mx-auto max-h-[60vh] w-auto rounded-lg border border-slate-200 object-contain dark:border-gray-700"
+            className="mx-auto max-h-[60dvh] w-auto rounded-lg border border-slate-200 object-contain dark:border-dark-border"
           />
         )
       ) : null}

@@ -20,9 +20,14 @@ import { toast } from '@renderer/store/uiStore.js'
 
 const EMPTY_FILTERS = { search: '', from: '', to: '', order: 'newest' }
 
-function IncomeForm({ open, initial, onClose, onSaved }) {
+function IncomeForm({ open, initial, wallets, onClose, onSaved }) {
   const [receiptPath, setReceiptPath] = useState(null)
   const [attaching, setAttaching] = useState(false)
+  const cashId = wallets.find((wallet) => wallet.name === 'Cash')?.id ?? wallets[0]?.id ?? ''
+  const options =
+    initial?.wallet_id && !wallets.some((wallet) => wallet.id === initial.wallet_id)
+      ? [...wallets, { id: initial.wallet_id, name: 'Archived wallet' }]
+      : wallets
   const {
     register,
     handleSubmit,
@@ -33,6 +38,7 @@ function IncomeForm({ open, initial, onClose, onSaved }) {
   useEffect(() => {
     if (open) {
       reset({
+        wallet_id: String(initial?.wallet_id ?? cashId),
         amount: initial?.amount ?? '',
         date: initial?.date ?? todayInput(),
         source: initial?.source ?? '',
@@ -40,7 +46,7 @@ function IncomeForm({ open, initial, onClose, onSaved }) {
       })
       setReceiptPath(initial?.receipt_path ?? null)
     }
-  }, [open, initial, reset])
+  }, [open, initial, reset, cashId])
 
   const attachReceipt = async () => {
     setAttaching(true)
@@ -56,6 +62,7 @@ function IncomeForm({ open, initial, onClose, onSaved }) {
 
   const onSubmit = async (values) => {
     const payload = {
+      wallet_id: Number(values.wallet_id),
       amount: Number(values.amount),
       date: values.date,
       source: values.source,
@@ -127,6 +134,20 @@ function IncomeForm({ open, initial, onClose, onSaved }) {
           </Field>
         </div>
 
+        <Field label="Wallet" htmlFor="income-wallet" error={errors.wallet_id?.message}>
+          <Select
+            id="income-wallet"
+            hasError={Boolean(errors.wallet_id)}
+            {...register('wallet_id', { required: 'Wallet is required' })}
+          >
+            {options.map((wallet) => (
+              <option key={wallet.id} value={wallet.id}>
+                {wallet.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
         <Field label="Source" htmlFor="source" hint="Optional. e.g. Salary, Freelance.">
           <Input
             id="source"
@@ -145,11 +166,11 @@ function IncomeForm({ open, initial, onClose, onSaved }) {
           <Textarea id="notes" placeholder="Optional details" {...register('notes')} />
         </Field>
 
-        <div className="rounded-lg border border-slate-200 p-3 dark:border-gray-700">
+        <div className="rounded-lg border border-slate-200 p-3 dark:border-dark-border">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="text-sm font-medium text-slate-700 dark:text-gray-200">Receipt</p>
-              <p className="truncate text-xs text-slate-500 dark:text-gray-400">
+              <p className="truncate text-xs text-slate-500 dark:text-dark-faint">
                 {receiptPath ? receiptPath : 'No file attached (image or PDF)'}
               </p>
             </div>
@@ -191,8 +212,11 @@ export default function Income() {
     () => api.income.list({ page, ...filters }),
     [page, filters]
   )
+  const walletsQuery = useApiData(() => api.wallets.list(), [])
 
   const rows = data?.rows ?? []
+  const wallets = walletsQuery.data ?? []
+  const walletName = (id) => wallets.find((wallet) => wallet.id === id)?.name ?? 'Archived wallet'
 
   const applyFilters = (event) => {
     event.preventDefault()
@@ -224,6 +248,7 @@ export default function Income() {
 
   const columns = [
     { key: 'date', header: 'Date', render: (row) => formatDate(row.date) },
+    { key: 'wallet', header: 'Wallet', render: (row) => walletName(row.wallet_id) },
     { key: 'source', header: 'Source', render: (row) => row.source || '\u2014' },
     {
       key: 'amount',
@@ -236,7 +261,7 @@ export default function Income() {
       header: 'Notes',
       mobile: false,
       className: 'max-w-xs',
-      render: (row) => <span className="line-clamp-1 text-slate-500 dark:text-gray-400">{row.notes || '\u2014'}</span>
+      render: (row) => <span className="line-clamp-1 text-slate-500 dark:text-dark-faint">{row.notes || '\u2014'}</span>
     }
   ]
 
@@ -370,6 +395,7 @@ export default function Income() {
       <IncomeForm
         open={formOpen}
         initial={editing}
+        wallets={wallets}
         onClose={() => setFormOpen(false)}
         onSaved={reload}
       />

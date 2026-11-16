@@ -63,15 +63,15 @@ export function MobileDrawer() {
         aria-modal="true"
         aria-label="Navigation menu"
         tabIndex={-1}
-        className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white shadow-xl outline-none dark:bg-[#333333]"
+        className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white shadow-xl outline-none dark:bg-dark-surface sm:max-w-xs"
       >
-        <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4 dark:border-gray-700">
+        <div className="flex min-h-16 items-center justify-between border-b border-slate-100 px-4 pt-[env(safe-area-inset-top)] dark:border-dark-border">
           <BrandLockup size={30} />
           <button
             type="button"
             onClick={closeDrawer}
             aria-label="Close navigation menu"
-            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-accent-600 dark:text-gray-400 dark:hover:bg-white/10 dark:focus-visible:outline-accent-400"
+            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-accent-600 dark:text-dark-faint dark:hover:bg-dark-surface-2 dark:focus-visible:outline-accent-400"
           >
             <X size={18} aria-hidden="true" />
           </button>
@@ -79,7 +79,7 @@ export function MobileDrawer() {
 
         <NavList onNavigate={closeDrawer} />
 
-        <div className="border-t border-slate-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-gray-700">
+        <div className="border-t border-slate-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-dark-border">
           <UserSummary className="px-1" />
         </div>
       </div>

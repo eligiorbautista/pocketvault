@@ -36,6 +36,15 @@ export function deleteUserData(db, userId, receiptsDir) {
     counts.income = db.prepare('DELETE FROM income WHERE user_id = ?').run(userId).changes
     counts.expenses = db.prepare('DELETE FROM expenses WHERE user_id = ?').run(userId).changes
     counts.budgets = db.prepare('DELETE FROM budgets WHERE user_id = ?').run(userId).changes
+    counts.walletTransfers = db
+      .prepare('DELETE FROM wallet_transfers WHERE user_id = ?')
+      .run(userId).changes
+    counts.wallets = db.prepare('DELETE FROM wallets WHERE user_id = ?').run(userId).changes
+    // Every account must keep a wallet, otherwise the income/expense/debt
+    // forms have nothing to select.
+    db.prepare(
+      "INSERT INTO wallets (user_id, name, type, style, opening_balance, sort_order) VALUES (?, 'Cash', 'cash', 'cash', 0, 0)"
+    ).run(userId)
   })
   run()
 

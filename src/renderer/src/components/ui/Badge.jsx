@@ -1,7 +1,7 @@
 import { cn } from '@renderer/lib/cn.js'
 
 const VARIANTS = {
-  neutral: 'bg-slate-100 text-slate-600 dark:border-gray-600 dark:bg-gray-700/40 dark:text-gray-300',
+  neutral: 'bg-slate-100 text-slate-600 dark:border-dark-border dark:bg-gray-700/40 dark:text-dark-muted',
   success: 'bg-accent-50 text-accent-700 dark:border-accent-800 dark:bg-accent-900/30 dark:text-accent-300',
   warning: 'bg-amber-100 text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
   danger: 'bg-red-100 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300',

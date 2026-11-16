@@ -10,8 +10,13 @@ import { ReceiptField } from '@renderer/components/ui/ReceiptField.jsx'
 import { todayInput } from '@renderer/lib/format.js'
 import { toast } from '@renderer/store/uiStore.js'
 
-export function DebtForm({ open, initial, onClose, onSaved }) {
+export function DebtForm({ open, initial, wallets = [], onClose, onSaved }) {
   const [receiptPath, setReceiptPath] = useState(null)
+  const cashId = wallets.find((wallet) => wallet.name === 'Cash')?.id ?? wallets[0]?.id ?? ''
+  const options =
+    initial?.wallet_id && !wallets.some((wallet) => wallet.id === initial.wallet_id)
+      ? [...wallets, { id: initial.wallet_id, name: 'Archived wallet' }]
+      : wallets
   const {
     register,
     handleSubmit,
@@ -23,6 +28,7 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
   useEffect(() => {
     if (open) {
       reset({
+        wallet_id: String(initial?.wallet_id ?? cashId),
         creditor: initial?.creditor ?? '',
         total_amount: initial?.total_amount ?? '',
         payment_type: initial?.payment_type ?? 'no-schedule',
@@ -33,12 +39,13 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
       })
       setReceiptPath(initial?.receipt_path ?? null)
     }
-  }, [open, initial, reset])
+  }, [open, initial, reset, cashId])
 
   const paymentType = watch('payment_type')
 
   const onSubmit = async (values) => {
     const payload = {
+      wallet_id: Number(values.wallet_id),
       creditor: values.creditor,
       total_amount: Number(values.total_amount),
       payment_type: values.payment_type,
@@ -122,6 +129,20 @@ export function DebtForm({ open, initial, onClose, onSaved }) {
             </Select>
           </Field>
         </div>
+
+        <Field label="Received into wallet" htmlFor="debt-wallet" error={errors.wallet_id?.message}>
+          <Select
+            id="debt-wallet"
+            hasError={Boolean(errors.wallet_id)}
+            {...register('wallet_id', { required: 'Wallet is required' })}
+          >
+            {options.map((wallet) => (
+              <option key={wallet.id} value={wallet.id}>
+                {wallet.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
         {paymentType === 'fixed-date' ? (
           <Field label="Due date" htmlFor="due_date" error={errors.due_date?.message}>

@@ -10,11 +10,11 @@ export function Pagination({ page, totalPages, total, pageSize, onChange, classN
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 dark:border-gray-800 sm:flex-row',
+        'flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 dark:border-dark-rule sm:flex-row',
         className
       )}
     >
-      <p className="text-xs text-slate-500 dark:text-gray-400">
+      <p className="text-xs text-slate-500 dark:text-dark-faint">
         Showing <span className="font-medium text-slate-700 dark:text-gray-200">{start}</span>&ndash;
         <span className="font-medium text-slate-700 dark:text-gray-200">{end}</span> of{' '}
         <span className="font-medium text-slate-700 dark:text-gray-200">{total}</span>
@@ -30,7 +30,7 @@ export function Pagination({ page, totalPages, total, pageSize, onChange, classN
           <ChevronLeft size={16} aria-hidden="true" />
           <span className="hidden sm:inline">Prev</span>
         </Button>
-        <span className="px-1 text-xs text-slate-500 dark:text-gray-400">
+        <span className="px-1 text-xs text-slate-500 dark:text-dark-faint">
           Page {page} of {totalPages}
         </span>
         <Button

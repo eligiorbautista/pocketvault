@@ -20,7 +20,12 @@ import { toast } from '@renderer/store/uiStore.js'
 
 const EMPTY_FILTERS = { search: '', category: '', from: '', to: '', order: 'newest' }
 
-function ExpenseForm({ open, initial, onClose, onSaved }) {
+function ExpenseForm({ open, initial, wallets, onClose, onSaved }) {
+  const cashId = wallets.find((wallet) => wallet.name === 'Cash')?.id ?? wallets[0]?.id ?? ''
+  const options =
+    initial?.wallet_id && !wallets.some((wallet) => wallet.id === initial.wallet_id)
+      ? [...wallets, { id: initial.wallet_id, name: 'Archived wallet' }]
+      : wallets
   const {
     register,
     handleSubmit,
@@ -34,6 +39,7 @@ function ExpenseForm({ open, initial, onClose, onSaved }) {
     if (open) {
       const known = EXPENSE_CATEGORIES.some((c) => c.value === initial?.category)
       reset({
+        wallet_id: String(initial?.wallet_id ?? cashId),
         category: !initial ? 'food' : known ? initial.category : '__custom__',
         customCategory: initial && !known ? initial.category : '',
         amount: initial?.amount ?? '',
@@ -41,12 +47,13 @@ function ExpenseForm({ open, initial, onClose, onSaved }) {
         notes: initial?.notes ?? ''
       })
     }
-  }, [open, initial, reset])
+  }, [open, initial, reset, cashId])
 
   const onSubmit = async (values) => {
     const resolvedCategory =
       values.category === '__custom__' ? values.customCategory.trim() : values.category
     const payload = {
+      wallet_id: Number(values.wallet_id),
       category: resolvedCategory,
       amount: Number(values.amount),
       date: values.date,
@@ -134,6 +141,20 @@ function ExpenseForm({ open, initial, onClose, onSaved }) {
           />
         </Field>
 
+        <Field label="Wallet" htmlFor="expense-wallet" error={errors.wallet_id?.message}>
+          <Select
+            id="expense-wallet"
+            hasError={Boolean(errors.wallet_id)}
+            {...register('wallet_id', { required: 'Wallet is required' })}
+          >
+            {options.map((wallet) => (
+              <option key={wallet.id} value={wallet.id}>
+                {wallet.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
         <Field label="Notes" htmlFor="notes">
           <Textarea id="notes" placeholder="Optional details" {...register('notes')} />
         </Field>
@@ -156,8 +177,11 @@ export default function Expenses() {
     [page, filters]
   )
   const categoriesQuery = useApiData(() => api.expenses.categories(), [])
+  const walletsQuery = useApiData(() => api.wallets.list(), [])
 
   const rows = data?.rows ?? []
+  const wallets = walletsQuery.data ?? []
+  const walletName = (id) => wallets.find((wallet) => wallet.id === id)?.name ?? 'Archived wallet'
 
   // Built-in categories plus any custom categories already in use, so the
   // filter dropdown can select them too.
@@ -199,6 +223,7 @@ export default function Expenses() {
 
   const columns = [
     { key: 'date', header: 'Date', render: (row) => formatDate(row.date) },
+    { key: 'wallet', header: 'Wallet', render: (row) => walletName(row.wallet_id) },
     {
       key: 'category',
       header: 'Category',
@@ -215,7 +240,7 @@ export default function Expenses() {
       header: 'Notes',
       mobile: false,
       className: 'max-w-xs',
-      render: (row) => <span className="line-clamp-1 text-slate-500 dark:text-gray-400">{row.notes || '\u2014'}</span>
+      render: (row) => <span className="line-clamp-1 text-slate-500 dark:text-dark-faint">{row.notes || '\u2014'}</span>
     }
   ]
 
@@ -356,6 +381,7 @@ export default function Expenses() {
       <ExpenseForm
         open={formOpen}
         initial={editing}
+        wallets={wallets}
         onClose={() => setFormOpen(false)}
         onSaved={() => {
           reload()

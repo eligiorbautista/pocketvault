@@ -1,8 +1,10 @@
 import { PAGE_SIZE } from '../../../shared/constants.js'
 import { fromCents, toCents } from '../../../shared/money.js'
 import { runPaginated, todayISO } from './helpers.js'
+import { validateWalletId } from '../../../shared/wallets.js'
+import { ensureWallet } from './wallets.js'
 
-const COLUMNS = `id, user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
+const COLUMNS = `id, user_id, wallet_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
   payment_type, monthly_amount, payment_day, first_payment_date, receipt_path, status, notes,
   is_archived, created_at, updated_at`
 
@@ -64,16 +66,19 @@ export function getById(db, userId, id) {
 }
 
 export function create(db, userId, data) {
+  const walletId = validateWalletId(data.wallet_id)
+  ensureWallet(db, userId, walletId)
   const remaining = fromCents(toCents(data.total_amount))
   const info = db
     .prepare(
       `INSERT INTO debts
-        (user_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
+        (user_id, wallet_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
          payment_type, monthly_amount, payment_day, first_payment_date, receipt_path, status, notes, updated_at)
-       VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 'unpaid', ?, CURRENT_TIMESTAMP)`
+       VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 'unpaid', ?, CURRENT_TIMESTAMP)`
     )
     .run(
       userId,
+      walletId,
       data.creditor,
       data.total_amount,
       remaining,
@@ -91,17 +96,20 @@ export function create(db, userId, data) {
 export function update(db, userId, id, data) {
   const current = db.prepare('SELECT * FROM debts WHERE id = ? AND user_id = ?').get(id, userId)
   if (!current) return null
+  const walletId = validateWalletId(data.wallet_id)
+  ensureWallet(db, userId, walletId)
   const paid = toCents(current.paid_amount)
   const remaining = fromCents(Math.max(0, toCents(data.total_amount) - paid))
   const info = db
     .prepare(
       `UPDATE debts
-       SET creditor = ?, total_amount = ?, remaining_amount = ?, due_date = ?,
+       SET wallet_id = ?, creditor = ?, total_amount = ?, remaining_amount = ?, due_date = ?,
            payment_type = ?, monthly_amount = ?, payment_day = ?, first_payment_date = ?,
            receipt_path = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND user_id = ?`
     )
     .run(
+      walletId,
       data.creditor,
       data.total_amount,
       remaining,
@@ -154,7 +162,7 @@ export function listPayments(db, userId, debtId) {
   if (!debt) return null
   return db
     .prepare(
-      `SELECT id, debt_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
+      `SELECT id, debt_id, wallet_id, amount, date, notes, payment_type, installment_due, receipt_path, created_at
        FROM debt_payments WHERE debt_id = ? ORDER BY date DESC, id DESC`
     )
     .all(debtId)
@@ -163,12 +171,14 @@ export function listPayments(db, userId, debtId) {
 export function addPayment(db, userId, debtId, data) {
   const debt = db.prepare('SELECT * FROM debts WHERE id = ? AND user_id = ?').get(debtId, userId)
   if (!debt) return null
+  const walletId = validateWalletId(data.wallet_id)
+  ensureWallet(db, userId, walletId)
 
   const run = db.transaction(() => {
     db.prepare(
-      `INSERT INTO debt_payments (debt_id, amount, date, notes, payment_type, installment_due, receipt_path)
-       VALUES (?, ?, ?, ?, 'payment', ?, ?)`
-    ).run(debtId, data.amount, data.date, data.notes, data.installment_due ?? null, data.receipt_path ?? null)
+      `INSERT INTO debt_payments (debt_id, wallet_id, amount, date, notes, payment_type, installment_due, receipt_path)
+       VALUES (?, ?, ?, ?, ?, 'payment', ?, ?)`
+    ).run(debtId, walletId, data.amount, data.date, data.notes, data.installment_due ?? null, data.receipt_path ?? null)
     syncStatus(db, debtId, userId)
   })
   run()

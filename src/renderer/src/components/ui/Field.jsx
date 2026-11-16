@@ -17,7 +17,7 @@ export function Field({ label, htmlFor, error, hint, className, children }) {
           {error}
         </p>
       ) : hint ? (
-        <p className="text-xs text-slate-500 dark:text-gray-400">{hint}</p>
+        <p className="text-xs text-slate-500 dark:text-dark-faint">{hint}</p>
       ) : null}
     </div>
   )
@@ -29,7 +29,7 @@ export function SettingRow({ title, description, htmlFor, children, className, l
     <div
       className={cn(
         'flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6',
-        !last && 'border-b border-slate-100 dark:border-gray-800',
+        !last && 'border-b border-slate-100 dark:border-dark-rule',
         className
       )}
     >
@@ -44,7 +44,7 @@ export function SettingRow({ title, description, htmlFor, children, className, l
           )
         ) : null}
         {description ? (
-          <p className="mt-0.5 text-sm text-slate-500 dark:text-gray-400">{description}</p>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-dark-faint">{description}</p>
         ) : null}
       </div>
       {children ? <div className="shrink-0 sm:text-right">{children}</div> : null}

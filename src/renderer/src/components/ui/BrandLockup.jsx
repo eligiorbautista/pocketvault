@@ -9,7 +9,7 @@ export function BrandLockup({ size = 34 }) {
         <span className="text-lg font-semibold tracking-tight text-slate-900 dark:text-gray-100">
           PocketVault
         </span>
-        <span className="mt-0.5 text-xs text-slate-500 dark:text-gray-400">
+        <span className="mt-0.5 text-xs text-slate-500 dark:text-dark-faint">
           by <span className="font-semibold text-accent-600 dark:text-accent-400">Eli Dev</span>
         </span>
       </div>

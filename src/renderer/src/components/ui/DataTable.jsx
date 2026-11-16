@@ -36,13 +36,13 @@ export function DataTable({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-200 dark:border-gray-700">
+            <tr className="border-b border-slate-200 dark:border-dark-border">
               {columns.map((column) => (
                 <th
                   key={column.key}
                   scope="col"
                   className={cn(
-                    'px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-400',
+                    'px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-dark-faint',
                     column.align === 'right' && 'text-right',
                     column.className
                   )}
@@ -61,7 +61,7 @@ export function DataTable({
             {rows.map((row) => (
               <tr
                 key={getRowKey(row)}
-                className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50 dark:border-gray-800 dark:hover:bg-white/5"
+                className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50 dark:border-dark-rule dark:hover:bg-white/5"
               >
                 {columns.map((column) => (
                   <td
@@ -96,7 +96,7 @@ export function DataTable({
           return (
             <div
               key={getRowKey(row)}
-              className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-gray-700 dark:bg-[#333333]"
+              className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-dark-border dark:bg-dark-surface"
             >
               <div
                 role={clickable ? 'button' : undefined}
@@ -122,7 +122,7 @@ export function DataTable({
                 <dl className="space-y-2.5">
                   {mobileColumns.map((column) => (
                     <div key={column.key} className="flex items-start justify-between gap-4">
-                      <dt className="shrink-0 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">
+                      <dt className="shrink-0 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-dark-faint">
                         {column.header}
                       </dt>
                       <dd className="min-w-0 text-right text-sm text-slate-700 dark:text-gray-200">
@@ -134,7 +134,7 @@ export function DataTable({
               </div>
 
               {mobileActions.length ? (
-                <div className="flex items-center justify-end gap-1 border-t border-gray-100 px-2 py-1.5 dark:border-gray-700">
+                <div className="flex items-center justify-end gap-1 border-t border-gray-100 px-2 py-1.5 dark:border-dark-border">
                   {mobileActions.map((action) => (
                     <button
                       key={action.key}
@@ -145,7 +145,7 @@ export function DataTable({
                         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
                         action.tone === 'danger'
                           ? 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40'
-                          : 'text-slate-600 hover:bg-slate-100 dark:text-gray-300 dark:hover:bg-white/10'
+                          : 'text-slate-600 hover:bg-slate-100 dark:text-dark-muted dark:hover:bg-dark-surface-2'
                       )}
                     >
                       {action.label}

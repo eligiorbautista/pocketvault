@@ -9,6 +9,11 @@ are required.
 
 - **Multi-user, local** — register/login per device; passwords hashed with bcrypt.
 - **Income** — manual entry, optional receipt (image/PDF) attach, view, edit, delete.
+- **Wallet** — cash, bank debit cards and e-wallets with recognisable card faces.
+  Balances are **derived** from every income, expense, debt and transfer, never stored.
+  Move money with transfers, archive/restore, store an optional last 4, or design an
+  "Other" wallet with a colour or your own card image. Every money record requires a
+  wallet; **Cash** is the catch-all and is created automatically.
 - **Expenses** — categorised, editable, filter by category/date/keyword.
 - **Debts** — no-schedule / fixed-date / **monthly installment** plans, with an optional
   proof at the debt level and on every payment. Monthly debts show a generated
@@ -33,8 +38,8 @@ are required.
 - **Light / dark theme** — pick Light, Dark, or match your system; the choice is
   remembered and follows the OS preference live.
 - **Archive (soft delete)** — deleting a record moves it to the Archive instead of
-  erasing it; restore anything from the Archive page. Only Settings → Danger Zone
-  ("Delete all data") truly deletes.
+  erasing it; restore anything (including archived wallets and transfers) from the
+  Archive page. Only Settings → Danger Zone ("Delete all data") truly deletes.
 
 ## Platforms
 

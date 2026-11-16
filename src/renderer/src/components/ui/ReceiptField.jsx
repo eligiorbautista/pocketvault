@@ -31,7 +31,7 @@ export function ReceiptField({ id, value, onChange }) {
           Remove
         </Button>
       ) : (
-        <span className="text-xs text-slate-500 dark:text-gray-400">Optional</span>
+        <span className="text-xs text-slate-500 dark:text-dark-faint">Optional</span>
       )}
     </div>
   )

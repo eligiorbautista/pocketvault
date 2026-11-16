@@ -9,6 +9,7 @@ import { ErrorState } from '@renderer/components/ui/ErrorState.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
 import { cn } from '@renderer/lib/cn.js'
 import { categoryLabel, formatCurrency, formatDate } from '@renderer/lib/format.js'
+import { WALLET_TYPE_LABELS } from '@shared/wallets.js'
 import { syncDebtReminders } from '@renderer/lib/notifications.js'
 import { toast } from '@renderer/store/uiStore.js'
 
@@ -63,6 +64,26 @@ const SECTIONS = [
     render: (row) => ({
       title: row.goal_name,
       meta: `${formatCurrency(row.current_amount)} of ${formatCurrency(row.target_amount)}`
+    })
+  },
+  {
+    key: 'wallets',
+    label: 'Wallets',
+    load: () => api.wallets.archived(),
+    restore: (id) => api.wallets.restore(id),
+    render: (row) => ({
+      title: row.name,
+      meta: `${WALLET_TYPE_LABELS[row.type] ?? 'Wallet'}${row.last4 ? ` · ${row.last4}` : ''}`
+    })
+  },
+  {
+    key: 'transfers',
+    label: 'Transfers',
+    load: () => api.wallets.archivedTransfers(),
+    restore: (id) => api.wallets.restoreTransfer(id),
+    render: (row) => ({
+      title: `${row.from_name} → ${row.to_name}`,
+      meta: `${formatDate(row.date)} · ${formatCurrency(row.amount)}`
     })
   }
 ]
@@ -142,7 +163,7 @@ export default function Archive() {
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
                 selected
                   ? 'bg-accent-600 text-white'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-[#333333] dark:text-gray-300 dark:hover:bg-white/10'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-dark-surface dark:text-dark-muted dark:hover:bg-dark-surface-2'
               )}
             >
               {section.label}
@@ -151,7 +172,7 @@ export default function Archive() {
                   'rounded-full px-1.5 text-xs',
                   selected
                     ? 'bg-white/20 text-white'
-                    : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-gray-400'
+                    : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-dark-faint'
                 )}
               >
                 {count}
@@ -175,12 +196,12 @@ export default function Archive() {
               title={total === 0 ? 'Nothing archived' : `No archived ${activeSection.label.toLowerCase()}`}
               description={
                 total === 0
-                  ? 'Records you archive from Income, Expenses, Debts, Budgets or Savings will appear here.'
+                  ? 'Records you archive from Income, Expenses, Debts, Budgets, Savings or Wallets will appear here.'
                   : 'This category has no archived records.'
               }
             />
           ) : (
-            <ul className="divide-y divide-slate-100 dark:divide-gray-800">
+            <ul className="divide-y divide-slate-100 dark:divide-dark-rule">
               {rows.map((row) => {
                 const { title, meta, badge } = activeSection.render(row)
                 const key = `${activeSection.key}:${row.id}`
@@ -193,7 +214,7 @@ export default function Archive() {
                       <p className="truncate text-sm font-medium text-slate-800 dark:text-gray-100">
                         {title}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500 dark:text-gray-400">{meta}</p>
+                      <p className="mt-0.5 text-xs text-slate-500 dark:text-dark-faint">{meta}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
                       {badge ? <Badge variant={badge.variant}>{badge.label}</Badge> : null}
@@ -201,7 +222,7 @@ export default function Archive() {
                         type="button"
                         onClick={() => restore(activeSection, row)}
                         disabled={busyId === key}
-                        className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-[#3a3a3a] dark:text-gray-200 dark:hover:bg-[#454545] dark:focus-visible:outline-accent-400"
+                        className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 disabled:cursor-not-allowed disabled:opacity-60 dark:border-dark-border dark:bg-dark-surface-2 dark:text-gray-200 dark:hover:bg-[#454545] dark:focus-visible:outline-accent-400"
                       >
                         <RotateCcw size={16} aria-hidden="true" />
                         {busyId === key ? 'Restoring…' : 'Restore'}

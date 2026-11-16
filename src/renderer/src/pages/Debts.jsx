@@ -36,8 +36,10 @@ export default function Debts() {
     [page, filters]
   )
   const summary = useApiData(() => api.reports.debtSummary(), [])
+  const walletsQuery = useApiData(() => api.wallets.list(), [])
 
   const rows = data?.rows ?? []
+  const wallets = walletsQuery.data ?? []
 
   const applyFilters = (event) => {
     event.preventDefault()
@@ -240,6 +242,7 @@ export default function Debts() {
       <DebtForm
         open={formOpen}
         initial={editing}
+        wallets={wallets}
         onClose={() => setFormOpen(false)}
         onSaved={() => {
           reload()
@@ -251,6 +254,7 @@ export default function Debts() {
       <DebtDetail
         debtId={detailId}
         open={Boolean(detailId)}
+        wallets={wallets}
         onClose={() => setDetailId(null)}
         onChanged={() => {
           reload()

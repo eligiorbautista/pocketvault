@@ -26,6 +26,7 @@ import { ErrorState } from '@renderer/components/ui/ErrorState.jsx'
 import { categoryLabel, formatCompactCurrency, formatCurrency, formatMonth } from '@renderer/lib/format.js'
 import { exportCsv, exportPdf } from '@renderer/lib/export.js'
 import { useApiData } from '@renderer/hooks/useApiData.js'
+import { CHART_DARK, CHART_LIGHT } from '@renderer/lib/themeColors.js'
 import { useThemeStore } from '@renderer/store/themeStore.js'
 import { toast } from '@renderer/store/uiStore.js'
 
@@ -38,15 +39,16 @@ export default function Reports() {
   const validYear = /^\d{4}$/.test(year)
   const range = { from: `${year}-01-01`, to: `${year}-12-31` }
 
-  const gridStroke = dark ? '#3f3f46' : '#e2e8f0'
-  const tickFill = dark ? '#9ca3af' : '#64748b'
+  const chart = dark ? CHART_DARK : CHART_LIGHT
+  const gridStroke = chart.grid
+  const tickFill = chart.tick
   const tooltipContentStyle = {
-    backgroundColor: dark ? '#333333' : '#ffffff',
-    border: `1px solid ${dark ? '#4b5563' : '#e2e8f0'}`,
+    backgroundColor: chart.surface,
+    border: `1px solid ${chart.border}`,
     borderRadius: 8,
-    color: dark ? '#f3f4f6' : '#0f172a'
+    color: chart.text
   }
-  const legendStyle = { color: dark ? '#e5e7eb' : '#334155' }
+  const legendStyle = { color: chart.text }
 
   const monthlyQuery = useApiData(
     () => (validYear ? api.reports.monthlyTotals(year) : Promise.resolve([])),
@@ -227,11 +229,11 @@ export default function Reports() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={months} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: tickFill }} />
+                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: tickFill }} interval="preserveStartEnd" minTickGap={12} />
                   <YAxis
                     tick={{ fontSize: 12, fill: tickFill }}
                     tickFormatter={(value) => formatCompactCurrency(value)}
-                    width={64}
+                    width={56}
                   />
                   <Tooltip
                     formatter={(value) => formatCurrency(value)}
@@ -302,12 +304,12 @@ export default function Reports() {
             ) : sources.length === 0 ? (
               <EmptyState icon={TrendingUp} title="No income recorded" />
             ) : (
-              <ul className="divide-y divide-slate-100 dark:divide-gray-800">
+              <ul className="divide-y divide-slate-100 dark:divide-dark-rule">
                 {sources.map((source) => (
                   <li key={source.source} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-slate-800 dark:text-gray-200">{source.source}</p>
-                      <p className="text-xs text-slate-500 dark:text-gray-400">{source.count} record(s)</p>
+                      <p className="text-xs text-slate-500 dark:text-dark-faint">{source.count} record(s)</p>
                     </div>
                     <span className="text-sm font-semibold text-accent-700 dark:text-accent-400">
                       {formatCurrency(source.total)}
