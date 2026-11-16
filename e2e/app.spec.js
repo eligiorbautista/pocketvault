@@ -6,7 +6,7 @@ const { join } = require('node:path')
 // Full desktop flow through the real preload bridge, IPC, SQLite, and renderer.
 // The app is launched with an isolated userData directory and without the
 // single-instance lock (see src/main/index.js).
-test('register, add a wallet, record income, and see the balance', async () => {
+test('register, add a wallet, record income, spend, transfer, and open activity', async () => {
   const userData = mkdtempSync(join(tmpdir(), 'pocketvault-e2e-'))
   const app = await electron.launch({
     args: ['.'],
@@ -22,6 +22,7 @@ test('register, add a wallet, record income, and see the balance', async () => {
     await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible()
 
     await page.getByRole('link', { name: 'Create one' }).click()
+    await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
     await page.getByLabel('Username').fill('e2euser')
     await page.getByLabel('Password', { exact: true }).fill('secret123')
     await page.getByLabel('Confirm password').fill('secret123')
@@ -52,8 +53,33 @@ test('register, add a wallet, record income, and see the balance', async () => {
     await incomeDialog.getByRole('button', { name: 'Add income' }).click()
     await expect(incomeDialog).toBeHidden()
 
+    // Spend from the same wallet, then move money out of it.
+    await page.getByRole('link', { name: 'Expenses' }).click()
+    await page.getByRole('button', { name: 'Add expense' }).first().click()
+    const expenseDialog = page.getByRole('dialog')
+    await expect(expenseDialog).toBeVisible()
+    await expenseDialog.getByLabel('Amount').fill('200')
+    await expenseDialog.getByLabel('Wallet').selectOption({ label: 'BDO' })
+    await expenseDialog.getByRole('button', { name: 'Add expense' }).click()
+    await expect(expenseDialog).toBeHidden()
+
     await page.getByRole('link', { name: 'Wallet' }).click()
-    await expect(page.getByRole('button', { name: /BDO, balance.*1,500\.00/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /BDO, balance.*1,300\.00/ })).toBeVisible()
+
+    await page.getByRole('button', { name: 'BDO actions' }).click()
+    await page.getByRole('menuitem', { name: 'Transfer' }).click()
+    const transferDialog = page.getByRole('dialog')
+    await expect(transferDialog).toBeVisible()
+    await transferDialog.getByLabel('Amount').fill('300')
+    await transferDialog.getByRole('button', { name: 'Transfer' }).click()
+    await expect(transferDialog).toBeHidden()
+
+    await expect(page.getByRole('button', { name: /BDO, balance.*1,000\.00/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Cash, balance.*300\.00/ })).toBeVisible()
+
+    await page.getByRole('button', { name: /^BDO, balance/ }).click()
+    const activity = page.getByRole('dialog')
+    await expect(activity.getByText('Transfer out')).toBeVisible()
   } finally {
     await app.close()
     rmSync(userData, { recursive: true, force: true })

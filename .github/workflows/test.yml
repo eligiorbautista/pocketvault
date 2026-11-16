@@ -9,11 +9,17 @@ on:
 
 permissions:
   contents: read
+  actions: write
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   data-and-unit:
     name: Data, unit, perf
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,6 +37,7 @@ jobs:
   e2e:
     name: Electron E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,10 +49,19 @@ jobs:
       - run: npx playwright install-deps
       - run: npm run build
       - run: xvfb-run -a npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-artifacts
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
 
   android:
     name: Android debug build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -65,3 +81,9 @@ jobs:
         working-directory: android
       - run: ./gradlew assembleDebug
         working-directory: android
+      - run: test -f app/build/outputs/apk/debug/app-debug.apk
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pocketvault-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk

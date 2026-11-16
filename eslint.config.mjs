@@ -44,7 +44,7 @@ export default [
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/incompatible-library': 'off',
       'no-unused-vars': [
-        'warn',
+        'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }
       ],
       'no-empty': ['error', { allowEmptyCatch: true }]

@@ -18,11 +18,15 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary'],
+      // Focused on the wallet math and wallet UI. Repositories/services are
+      // covered by the smoke suites; this gate catches regressions in the
+      // modules that unit tests can exercise quickly.
       include: [
         'src/shared/wallets.js',
         'src/shared/money.js',
         'src/renderer/src/components/wallets/WalletForm.jsx',
-        'src/renderer/src/components/wallets/WalletActivity.jsx'
+        'src/renderer/src/components/wallets/WalletActivity.jsx',
+        'src/renderer/src/components/wallets/TransferForm.jsx'
       ],
       thresholds: {
         lines: 55,
