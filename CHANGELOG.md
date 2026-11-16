@@ -4,6 +4,30 @@ All notable changes to PocketVault are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-11-17
+
+### Fixed
+
+- Wallet form now opens an unrecognised stored face as **Other/custom** instead of
+  leaving an inconsistent preset style.
+- `useApiData` no longer keeps a stale loader after its dependencies change, so a
+  reload cannot show data from a previous filter/wallet.
+- Transfer form resets correctly when the wallet list changes.
+- Category validation no longer over-escapes the hyphen.
+- WCAG AA contrast for primary buttons and light-mode toasts (success, error,
+  warning and info).
+
+### Added
+
+- Unit and component tests (Vitest + Testing Library), Electron E2E with axe
+  accessibility checks, stress-test performance budgets, ESLint, CI test
+  workflows and Dependabot. Coverage is 100% statements/lines/functions and
+  99.79% branches for shared logic and the wallet UI.
+
+### Notes
+
+- No schema or backup-format changes; backups remain **format 3**.
+
 ## [1.1.0] - 2026-11-17
 
 ### Added
@@ -53,5 +77,6 @@ First public release: local multi-user income, expenses, debts, budgets,
 savings goals, reports, receipts, per-account backups, light/dark themes,
 multi-currency support, CSV/PDF export, and Windows/Android installers.
 
+[1.1.1]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.1
 [1.1.0]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.0
 [1.0.0]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.0.0
