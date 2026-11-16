@@ -19,6 +19,7 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
   `npx esbuild scripts/audit-smoke.mjs --bundle --platform=node --format=cjs --external:better-sqlite3 --outfile=".pv-audit.cjs"; node .pv-audit.cjs`
 - Capacitor (Android data layer) smoke test: `node scripts/capacitor-smoke.mjs` — bundles `src/renderer/src/lib/capacitor/api.js` with its sqlite module swapped for a better-sqlite3 shim and exercises the whole adapter (no device/emulator needed).
 - All tests at once: `npm test` (runs `scripts/run-tests.mjs`: db + backup + audit + capacitor).
+- Large-data stress test: `npm run test:stress` (seeds ~70k rows into a temp DB and prints query timings; not part of `npm test`).
 - No ESLint/typecheck is configured.
 
 ## Architecture

@@ -22,6 +22,7 @@
     "assets": "capacitor-assets generate --android",
     "icons": "node scripts/generate-icon.mjs",
     "test": "node scripts/run-tests.mjs",
+    "test:stress": "node scripts/run-stress.mjs",
     "postinstall": "electron-builder install-app-deps && node node_modules/electron/install.js",
     "build:win": "npm run build && electron-builder --win --publish never --config electron-builder.yml --config.directories.output=installers/windows"
   },

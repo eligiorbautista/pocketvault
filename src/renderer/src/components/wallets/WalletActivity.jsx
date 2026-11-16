@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { ArrowLeftRight, Banknote, HandCoins, TrendingDown, TrendingUp } from 'lucide-react'
 import { api } from '@renderer/lib/api.js'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
@@ -17,10 +18,15 @@ const ICONS = {
 }
 
 export function WalletActivity({ wallet, open, hidden, onClose, onTransfer }) {
+  const [limit, setLimit] = useState(100)
   const { data, loading, error, reload } = useApiData(
-    () => (open && wallet ? api.wallets.activity(wallet.id) : Promise.resolve([])),
-    [open, wallet?.id]
+    () => (open && wallet ? api.wallets.activity(wallet.id, limit) : Promise.resolve([])),
+    [open, wallet?.id, limit]
   )
+
+  useEffect(() => {
+    setLimit(100)
+  }, [wallet?.id])
 
   const rows = data ?? []
 
@@ -35,7 +41,16 @@ export function WalletActivity({ wallet, open, hidden, onClose, onTransfer }) {
           : 'Every movement in this wallet.'
       }
       footer={
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-3">
+          {rows.length >= limit && limit < 500 ? (
+            <Button variant="ghost" onClick={() => setLimit((value) => Math.min(500, value + 100))}>
+              Show more
+            </Button>
+          ) : rows.length >= 500 ? (
+            <span className="text-xs text-slate-500 dark:text-dark-faint">Showing the latest 500 movements</span>
+          ) : (
+            <span />
+          )}
           <Button
             variant="secondary"
             onClick={() => {
