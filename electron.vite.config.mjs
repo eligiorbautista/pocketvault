@@ -1,7 +1,12 @@
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+
+// package.json is the single source of the app version; the renderer reads it
+// through __APP_VERSION__ so Settings can never drift from the build.
+const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
 
 // Strict Content-Security-Policy injected into the production index.html only.
 // It is intentionally omitted in dev so Vite's HMR / React Refresh preamble can
@@ -44,6 +49,9 @@ export default defineConfig({
   },
   renderer: {
     root: 'src/renderer',
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version)
+    },
     server: {
       host: '127.0.0.1',
       port: 4321,

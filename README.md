@@ -91,6 +91,7 @@ taken, change `server.port` in that file.
 | `npm run build` | Build main / preload / renderer bundles into `out/` |
 | `npm run start` | Preview the production build |
 | `npm test` | All smoke tests (db + backup + audit + capacitor) |
+| `npm run test:stress` | Seed ~70k rows and report query timings |
 | `npm run icons` | Render the "PV" monogram logo (desktop icons + favicon + Android source layers) |
 | `npm run build:desktop` | Package the desktop app with electron-builder |
 | `npm run build:win` | Package the Windows installers → `installers/windows/` |
@@ -102,6 +103,14 @@ taken, change `server.port` in that file.
 | `./build-capacitor.sh [debug\|release]` | Build a **signed** APK → `installers/android/PocketVault.apk` |
 
 Prebuilt installers are Windows (NSIS `.exe` + `.msi`); the Android app ships as a signed APK/AAB.
+
+## Versioning
+
+PocketVault follows [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`).
+`package.json` is the single source of truth: the Android build derives `versionCode` /
+`versionName` from it, and the renderer receives it as `__APP_VERSION__`. Every release gets
+a `CHANGELOG.md` entry and a `vX.Y.Z` tag. Schema changes that cannot be rolled back are
+called out in the release notes.
 
 ## Windows build
 
