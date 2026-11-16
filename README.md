@@ -93,7 +93,7 @@ taken, change `server.port` in that file.
 | `npm test` | All smoke tests (db + backup + audit + capacitor) |
 | `npm run test:stress` | Seed ~70k rows and report query timings |
 | `npm run test:unit` | Vitest unit/component tests |
-| `npm run test:coverage` | Unit tests with coverage thresholds |
+| `npm run test:coverage` | Unit tests with coverage thresholds (shared logic + wallet UI) |
 | `npm run test:e2e` | Build + Playwright Electron E2E (includes axe a11y) |
 | `npm run lint` | ESLint (flat config) |
 | `npm run icons` | Render the "PV" monogram logo (desktop icons + favicon + Android source layers) |

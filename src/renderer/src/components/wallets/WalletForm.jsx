@@ -15,7 +15,6 @@ import { fileToCardImage } from '@renderer/lib/cardImage.js'
 import { toast } from '@renderer/store/uiStore.js'
 
 function providerFor(wallet) {
-  if (!wallet) return 'cash'
   if (wallet.style === 'custom') return 'other'
   return Object.values(WALLET_PROVIDERS).find((provider) => provider.style === wallet.style)?.id ?? 'other'
 }
@@ -38,13 +37,14 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
   useEffect(() => {
     if (!open) return
     if (initial) {
-      setProvider(providerFor(initial))
+      const provider = providerFor(initial)
+      setProvider(provider)
       setName(initial.name)
       setType(initial.type)
-      setStyle(initial.style)
+      setStyle(provider === 'other' ? 'custom' : initial.style)
       setColor(initial.color || '#3b3b40')
       setImage(initial.card_image || null)
-      setMode(initial.style === 'custom' && initial.card_image ? 'image' : 'color')
+      setMode(provider === 'other' && initial.card_image ? 'image' : 'color')
       setLast4(initial.last4 || '')
       setOpening(String(initial.opening_balance ?? 0))
     } else {
@@ -64,7 +64,6 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
   const chooseProvider = (value) => {
     const option = WALLET_PROVIDERS[value]
     setProvider(value)
-    if (!option) return
     if (option.id === 'other') {
       setName('')
       setType('other')
@@ -265,7 +264,7 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
             </div>
 
             {mode === 'color' ? (
-              <div className="flex items-center gap-3">
+              <div key="color" className="flex items-center gap-3">
                 <input
                   type="color"
                   value={color}
@@ -276,7 +275,7 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
                 <span className="font-mono text-sm text-slate-500 dark:text-dark-faint">{color}</span>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div key="image" className="space-y-2">
                 <input
                   ref={fileRef}
                   type="file"

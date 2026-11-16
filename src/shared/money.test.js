@@ -5,6 +5,9 @@ import { validateAmount, validateDate } from './validate.js'
 describe('money', () => {
   it('keeps arithmetic in integer centavos', () => {
     expect(toCents(19.99)).toBe(1999)
+    expect(toCents('12.34')).toBe(1234)
+    expect(toCents('nope')).toBe(0)
+    expect(toCents(undefined)).toBe(0)
     expect(toCents(0.1) + toCents(0.2)).toBe(30)
     expect(fromCents(30)).toBe(0.3)
     expect(round2(1.006)).toBe(1.01)

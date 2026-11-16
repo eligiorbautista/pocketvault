@@ -66,4 +66,58 @@ describe('TransferForm', () => {
     expect(await screen.findByText('Choose two different wallets')).toBeInTheDocument()
     expect(mocks.transfer).not.toHaveBeenCalled()
   })
+
+  it('rejects a zero amount', async () => {
+    render(<TransferForm open wallets={wallets} onClose={vi.fn()} onSaved={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Transfer' }))
+    expect(await screen.findByText('Enter an amount greater than zero')).toBeInTheDocument()
+    expect(mocks.transfer).not.toHaveBeenCalled()
+  })
+
+  it('sends the date and notes with the transfer', async () => {
+    render(<TransferForm open wallets={wallets} onClose={vi.fn()} onSaved={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '25' } })
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-02-01' } })
+    fireEvent.change(screen.getByLabelText('Notes'), { target: { value: ' rent ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Transfer' }))
+
+    await waitFor(() =>
+      expect(mocks.transfer).toHaveBeenCalledWith({
+        from_wallet_id: 1,
+        to_wallet_id: 2,
+        amount: 25,
+        date: '2026-02-01',
+        notes: ' rent '
+      })
+    )
+  })
+
+  it('keeps the form open and toasts when the API fails', async () => {
+    mocks.transfer.mockRejectedValueOnce(new Error('nope'))
+    const onClose = vi.fn()
+    render(<TransferForm open wallets={wallets} onClose={onClose} onSaved={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Transfer' }))
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith('nope', 'error'))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('does nothing while closed and handles an empty wallet list', () => {
+    const { rerender } = render(<TransferForm open={false} wallets={wallets} onClose={vi.fn()} onSaved={vi.fn()} />)
+    rerender(<TransferForm open wallets={[]} onClose={vi.fn()} onSaved={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Transfer' }))
+    expect(screen.getByText('Choose two different wallets')).toBeInTheDocument()
+    expect(mocks.transfer).not.toHaveBeenCalled()
+  })
+
+  it('switches the source wallet and previews the new balances', () => {
+    render(<TransferForm open initialFrom={wallets[1]} wallets={wallets} onClose={vi.fn()} onSaved={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '25' } })
+    expect(screen.getByText('Cash: ₱75.00')).toBeInTheDocument()
+    expect(screen.getByText('BDO: ₱225.00')).toBeInTheDocument()
+  })
 })

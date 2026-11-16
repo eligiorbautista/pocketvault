@@ -6,6 +6,7 @@ import {
   validateCardImage,
   validateColor,
   validateTransferInput,
+  validateWalletId,
   validateWalletInput,
   WALLET_PROVIDERS,
   WALLET_STYLE_PRESETS
@@ -37,14 +38,33 @@ describe('wallet validation', () => {
   it('normalises a colour and rejects malformed values', () => {
     expect(validateColor('#AABBCC')).toBe('#aabbcc')
     expect(() => validateColor('blue')).toThrow('colour')
+    expect(() => validateColor(null)).toThrow('colour')
     expect(() => validateColor('#abcd')).toThrow('colour')
   })
 
   it('accepts PNG/JPEG/WebP data URLs only', () => {
     expect(validateCardImage(PNG_DATA_URL)).toBe(PNG_DATA_URL)
+    expect(validateCardImage(null)).toBeNull()
+    expect(validateCardImage('')).toBeNull()
     expect(() => validateCardImage('data:image/svg+xml;base64,AAA')).toThrow('PNG, JPEG or WebP')
     expect(() => validateCardImage('https://example.com/card.png')).toThrow('PNG, JPEG or WebP')
     expect(() => validateCardImage('data:image/png;base64,' + 'A'.repeat(400_001))).toThrow('too large')
+  })
+
+  it('defaults missing fields and rejects unknown types/styles', () => {
+    expect(validateWalletInput({ name: 'Pocket' })).toEqual({
+      name: 'Pocket',
+      type: 'cash',
+      style: 'generic',
+      opening_balance: 0,
+      last4: null,
+      color: null,
+      card_image: null
+    })
+    expect(() => validateWalletInput({ name: 'X', type: 'nope' })).toThrow('type')
+    expect(() => validateWalletInput({ name: 'X', style: 'nope' })).toThrow('style')
+    expect(() => validateWalletInput({ name: 'X', style: 'custom', color: 'red' })).toThrow('colour')
+    expect(() => validateWalletId(0)).toThrow('wallet_id')
   })
 
   it('requires a name and formats last4/opening balance', () => {
@@ -155,6 +175,29 @@ describe('balance math', () => {
       income: [{ wallet_id: 99, amount: 500 }]
     })
     expect(result.total).toBe(100)
+  })
+
+  it('ignores rows with no wallet id and empty images', () => {
+    const result = computeWalletBalances({
+      wallets,
+      income: [{ wallet_id: null, amount: 500 }]
+    })
+    expect(result.total).toBe(100)
+    expect(validateCardImage('')).toBeNull()
+  })
+
+  it('ignores null wallet ids and transfers from missing wallets', () => {
+    const result = computeWalletBalances({
+      wallets,
+      income: [{ wallet_id: null, amount: 500 }],
+      transfers: [{ from_wallet_id: 99, to_wallet_id: 1, amount: 5 }]
+    })
+    expect(result.byId[1].balance).toBe(105)
+    expect(result.total).toBe(105)
+  })
+
+  it('summarises empty input', () => {
+    expect(summarizeWallets()).toEqual({ netBalance: 0, liabilities: 0, netWorth: 0 })
   })
 
   it('summarises net worth against outstanding debt', () => {
