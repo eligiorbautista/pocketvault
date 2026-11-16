@@ -10,11 +10,18 @@ import { log } from './services/logger.js'
 
 const isDev = !app.isPackaged
 
+// Test hook: Playwright launches the app with an isolated profile and without
+// the single-instance lock so E2E runs never touch real user data.
+if (process.env.POCKETVAULT_USER_DATA) {
+  app.setPath('userData', process.env.POCKETVAULT_USER_DATA)
+}
+const isE2E = process.env.POCKETVAULT_E2E === '1'
+
 // Required for Windows to show notifications under the right app identity.
 app.setAppUserModelId('com.pocketvault.app')
 
 // Only one instance may own the SQLite database at a time.
-const gotLock = app.requestSingleInstanceLock()
+const gotLock = isE2E ? true : app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
 } else {

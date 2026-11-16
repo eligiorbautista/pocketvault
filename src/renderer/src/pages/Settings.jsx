@@ -15,7 +15,6 @@ import {
   LogOut,
   PiggyBank,
   Receipt,
-  ShieldCheck,
   Trash2,
   TrendingUp,
   Upload,
@@ -25,7 +24,7 @@ import {
 import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
 import { Card, CardBody, CardHeader, CardIcon, CardTitle } from '@renderer/components/ui/Card.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
-import { Field, SettingRow } from '@renderer/components/ui/Field.jsx'
+import { SettingRow } from '@renderer/components/ui/Field.jsx'
 import { Input, Select, Switch } from '@renderer/components/ui/Input.jsx'
 import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
 import { ChangePasswordForm } from '@renderer/components/settings/ChangePasswordForm.jsx'

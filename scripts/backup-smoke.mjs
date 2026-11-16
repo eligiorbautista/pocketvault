@@ -95,7 +95,7 @@ async function main() {
   // --- Source database: alice + bob ---
   const dbA = createDatabase(join(dir, 'a.db'))
 const aliceId = seedAlice(dbA, sourceReceipts)
-const bobId = seedBob(dbA)
+seedBob(dbA)
 
 const { buffer, username, counts } = await buildUserBackup(dbA, aliceId, sourceReceipts)
 check('backup filename username is alice', username === 'alice')

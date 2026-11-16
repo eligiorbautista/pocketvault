@@ -26,7 +26,7 @@ export function TransferForm({ open, initialFrom, wallets, onClose, onSaved }) {
     setDate(todayInput())
     setNotes('')
     setError(null)
-  }, [open, initialFrom])
+  }, [open, initialFrom, wallets])
 
   const fromWallet = wallets.find((wallet) => wallet.id === Number(from))
   const toWallet = wallets.find((wallet) => wallet.id === Number(to))

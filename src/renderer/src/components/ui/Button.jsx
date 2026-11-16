@@ -4,7 +4,7 @@ import { cn } from '@renderer/lib/cn.js'
 
 const VARIANTS = {
   primary:
-    'bg-accent-600 text-white hover:bg-accent-700 active:bg-accent-800 disabled:bg-accent-300',
+    'bg-accent-700 text-white hover:bg-accent-800 active:bg-accent-900 disabled:bg-accent-300',
   secondary:
     'border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 active:bg-slate-100 disabled:text-slate-400 dark:border-dark-border dark:bg-dark-surface-2 dark:text-gray-200 dark:hover:bg-[#454545] dark:active:bg-[#4f4f4f] dark:disabled:text-gray-500',
   ghost:

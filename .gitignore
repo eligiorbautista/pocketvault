@@ -10,6 +10,13 @@ Thumbs.db
 .env
 .env.*
 .pv-*
+coverage/
+test-results/
+playwright-report/
+
+# Local design/AI artifacts (never committed)
+docs/superpowers/
+.taste-skill/
 
 # Android signing (never commit keys)
 *.keystore

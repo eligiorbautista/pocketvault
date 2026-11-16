@@ -65,7 +65,7 @@ export function validateText(value, field, { required = false, max = 500 } = {})
   return text.length ? text : null
 }
 
-const CUSTOM_CATEGORY_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} &_'.\-]{0,39}$/u
+const CUSTOM_CATEGORY_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} &_'.-]{0,39}$/u
 
 export function validateCategory(value) {
   const text = typeof value === 'string' ? value.trim() : ''

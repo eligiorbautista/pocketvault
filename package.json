@@ -23,6 +23,10 @@
     "icons": "node scripts/generate-icon.mjs",
     "test": "node scripts/run-tests.mjs",
     "test:stress": "node scripts/run-stress.mjs",
+    "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "npm run build && playwright test",
+    "lint": "eslint .",
     "postinstall": "electron-builder install-app-deps && node node_modules/electron/install.js",
     "build:win": "npm run build && electron-builder --win --publish never --config electron-builder.yml --config.directories.output=installers/windows"
   },
@@ -30,6 +34,7 @@
     "better-sqlite3": "^13.0.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@capacitor-community/sqlite": "^8.1.1",
     "@capacitor/android": "^8.5.2",
     "@capacitor/assets": "^3.0.5",
@@ -38,14 +43,26 @@
     "@capacitor/filesystem": "^8.1.3",
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/share": "^8.0.2",
+    "@eslint/js": "^9.39.5",
     "@fontsource-variable/inter": "^5.3.0",
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/vite": "^4.3.3",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.12",
     "@vitejs/plugin-react": "^5.2.0",
+    "@vitest/coverage-v8": "^5.1.0",
+    "axe-core": "^4.14.1",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.4.0",
     "electron": "^44.4.5",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "jsdom": "^31.0.1",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.2",
     "lucide-react": "^1.48.0",
@@ -58,6 +75,7 @@
     "sonner": "^2.0.8",
     "tailwindcss": "^4.3.3",
     "vite": "^7.3.6",
+    "vitest": "^5.1.0",
     "zustand": "^5.0.15"
   }
 }

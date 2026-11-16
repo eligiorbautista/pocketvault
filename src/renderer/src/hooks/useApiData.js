@@ -5,9 +5,12 @@ export function useApiData(loader, deps = [], { immediate = true } = {}) {
   const [loading, setLoading] = useState(immediate)
   const [error, setError] = useState(null)
   const loaderRef = useRef(loader)
-  loaderRef.current = loader
   const requestIdRef = useRef(0)
   const mountedRef = useRef(true)
+
+  useEffect(() => {
+    loaderRef.current = loader
+  }, [loader])
 
   useEffect(() => {
     mountedRef.current = true

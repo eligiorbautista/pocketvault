@@ -12,7 +12,7 @@ import * as budgetsRepo from '../src/main/db/repositories/budgets.js'
 import * as savingsRepo from '../src/main/db/repositories/savings.js'
 import * as reportsRepo from '../src/main/db/repositories/reports.js'
 import * as dashboardRepo from '../src/main/db/repositories/dashboard.js'
-import { fromCents, toCents } from '../src/shared/money.js'
+import { toCents } from '../src/shared/money.js'
 import { PAGE_SIZE } from '../src/shared/constants.js'
 
 const DB_PATH = '.pv-stress.db'
@@ -218,6 +218,27 @@ measure('wallets.activity after archive', () => walletsRepo.activity(db, user.id
 
 console.log(`\nSeeded ${INCOME + EXPENSES + DEBTS + DEBTS * PAYMENTS + TRANSFERS + ARCHIVED_INCOME + GOALS + CONTRIBUTIONS + 12} rows in ${seedMs.toFixed(0)} ms`)
 for (const timing of timings) console.log(`  ${timing.name.padEnd(34)} ${timing.ms.toFixed(1)} ms`)
+
+// Generous budgets: catch algorithmic regressions without flaking on CI disks.
+const perfBudgets = {
+  'wallets.summary (all rows)': 1500,
+  'income page 1': 1000,
+  'income search': 1000,
+  'expenses page 1': 1000,
+  'debts page 1': 1000,
+  'wallet activity 100': 1000,
+  'wallet activity 500': 1000,
+  'reports.monthlyTotals 2026': 1500,
+  'dashboard getSummary': 1000
+}
+for (const timing of timings) {
+  const budget = perfBudgets[timing.name]
+  if (budget && timing.ms > budget) {
+    failures += 1
+    console.error(`FAIL  ${timing.name} took ${timing.ms.toFixed(0)} ms (budget ${budget} ms)`)
+  }
+}
+
 console.log(`\n${checks} checks, ${failures} failed`)
 
 closeDatabase()

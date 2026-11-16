@@ -14,7 +14,6 @@ import {
 } from 'lucide-react'
 import { PageHeader, StatCard } from '@renderer/components/ui/PageHeader.jsx'
 import { Card, CardBody, CardHeader, CardTitle } from '@renderer/components/ui/Card.jsx'
-import { Badge } from '@renderer/components/ui/Badge.jsx'
 import { ProgressBar } from '@renderer/components/ui/ProgressBar.jsx'
 import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
 import { ErrorState } from '@renderer/components/ui/ErrorState.jsx'

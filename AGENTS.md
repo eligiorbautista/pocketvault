@@ -20,7 +20,10 @@ Offline-first Electron + React + SQLite finance tracker. See `README.md` for use
 - Capacitor (Android data layer) smoke test: `node scripts/capacitor-smoke.mjs` — bundles `src/renderer/src/lib/capacitor/api.js` with its sqlite module swapped for a better-sqlite3 shim and exercises the whole adapter (no device/emulator needed).
 - All tests at once: `npm test` (runs `scripts/run-tests.mjs`: db + backup + audit + capacitor).
 - Large-data stress test: `npm run test:stress` (seeds ~70k rows into a temp DB and prints query timings; not part of `npm test`).
-- No ESLint/typecheck is configured.
+- Unit/component tests: `npm run test:unit` (Vitest + Testing Library, jsdom); coverage with `npm run test:coverage` (thresholds in `vitest.config.mjs`).
+- Electron E2E: `npm run test:e2e` (builds, then Playwright launches Electron with an isolated `POCKETVAULT_USER_DATA`; includes axe accessibility checks).
+- Lint: `npm run lint` (ESLint 9 flat config in `eslint.config.mjs`).
+- CI: `.github/workflows/test.yml` runs lint, data/unit/coverage/stress/build/audit, Electron E2E on Xvfb, and an Android debug build. `build.yml` gates installers on lint + smoke + unit tests.
 
 ## Architecture
 

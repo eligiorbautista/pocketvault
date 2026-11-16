@@ -627,7 +627,6 @@ export function createCapacitorApi() {
       const record = await getOne('SELECT * FROM users WHERE id = ?', [userId])
       if (!record) throw new Error('Account not found')
       const currentPassword = String(currentPasswordRaw ?? '')
-      const newPassword = String(newPasswordRaw ?? '')
       if (!bcrypt.compareSync(currentPassword, record.password_hash)) {
         throw new Error('Current password is incorrect')
       }

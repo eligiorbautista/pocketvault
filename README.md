@@ -92,6 +92,10 @@ taken, change `server.port` in that file.
 | `npm run start` | Preview the production build |
 | `npm test` | All smoke tests (db + backup + audit + capacitor) |
 | `npm run test:stress` | Seed ~70k rows and report query timings |
+| `npm run test:unit` | Vitest unit/component tests |
+| `npm run test:coverage` | Unit tests with coverage thresholds |
+| `npm run test:e2e` | Build + Playwright Electron E2E (includes axe a11y) |
+| `npm run lint` | ESLint (flat config) |
 | `npm run icons` | Render the "PV" monogram logo (desktop icons + favicon + Android source layers) |
 | `npm run build:desktop` | Package the desktop app with electron-builder |
 | `npm run build:win` | Package the Windows installers → `installers/windows/` |
@@ -165,7 +169,9 @@ assets/              master app logo used to generate Android icons/splash
 scripts/
   db-smoke.mjs / backup-smoke.mjs / audit-smoke.mjs   repository + service tests
   capacitor-smoke.mjs  runs the Android adapter against a real SQLite engine
+  stress-smoke.mjs    ~70k-row performance/correctness suite
   generate-icon.mjs    "PV" monogram logo / icon generator (sharp)
+e2e/                 Playwright Electron E2E + axe accessibility
 build/               app icons for electron-builder
 capacitor.config.json
 ```
