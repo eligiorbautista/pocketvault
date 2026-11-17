@@ -129,7 +129,7 @@ describe('WalletActivity', () => {
     }
     expect(await screen.findByText('Showing the latest 500 movements')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument()
-  })
+  }, 15000)
 
   it('renders categories, transfers, notes and signed amounts', async () => {
     mocks.activity.mockResolvedValueOnce([

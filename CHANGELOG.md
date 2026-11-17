@@ -4,6 +4,38 @@ All notable changes to PocketVault are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] - 2026-11-17
+
+### Fixed
+
+- Wallet transfers can now be archived from Wallet Activity and restored from the
+  Archive page; the Archive → Transfers section is populated.
+- Archive restore surfaces real errors instead of reporting every failure as
+  "already restored" (desktop and Android).
+- Hidden balances no longer leak through transfer pickers, the after-transfer
+  preview, the activity archive confirmation, or the wallet archive confirmation.
+- Archived wallets keep their real name in income/expense rows and in the edit
+  pickers for those records, including the debt form.
+- Transfer is unavailable when only one active wallet exists instead of opening an
+  unusable form.
+- Wallet and transfer forms attach validation errors to the correct field; the
+  wallet archive message now describes negative balances accurately.
+- Unknown legacy card styles fall back to the generic face.
+- Moving wallets works when an imported backup contains tied sort orders.
+- Transfers cannot target an archived wallet.
+- Savings contributions cannot expose or link another account's income.
+- Delete-all clears scheduled debt reminders.
+- The wallet percentage finding is hidden when a balance is negative.
+
+### Tests
+
+- Regression coverage for the audit fixes: 119 unit tests, 360 smoke checks,
+  23 large-data stress checks and 3 Electron E2E/axe checks.
+
+### Notes
+
+- No schema or backup-format changes; backups remain **format 3**.
+
 ## [1.1.1] - 2026-11-17
 
 ### Fixed
@@ -77,6 +109,7 @@ First public release: local multi-user income, expenses, debts, budgets,
 savings goals, reports, receipts, per-account backups, light/dark themes,
 multi-currency support, CSV/PDF export, and Windows/Android installers.
 
+[1.1.2]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.2
 [1.1.1]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.1
 [1.1.0]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.0
 [1.0.0]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.0.0

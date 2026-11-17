@@ -1,6 +1,6 @@
 {
   "name": "pocketvault",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "PocketVault - offline-first personal finance tracker (Electron + React + SQLite)",
   "author": "PocketVault",
   "license": "MIT",
