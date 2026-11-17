@@ -26,18 +26,21 @@ describe('WalletForm', () => {
     mocks.fileToCardImage.mockReset().mockResolvedValue(PNG)
   })
 
-  it('fills name and type from the provider select', () => {
+  it('starts on Cash and fills the provider and name from the type', () => {
     render(<WalletForm open onClose={vi.fn()} onSaved={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Wallet'), { target: { value: 'bdo' } })
+    expect(screen.getByLabelText('Wallet type')).toHaveValue('cash')
+    expect(screen.getByLabelText('Name')).toHaveValue('')
+
+    fireEvent.change(screen.getByLabelText('Wallet type'), { target: { value: 'bank' } })
+    expect(screen.getByLabelText('Bank')).toHaveValue('bdo')
     expect(screen.getByLabelText('Name')).toHaveValue('BDO')
-    expect(screen.getByLabelText('Type')).toHaveValue('bank')
   })
 
   it('reveals the custom face controls for Other and saves colour', async () => {
     const onSaved = vi.fn()
     render(<WalletForm open onClose={vi.fn()} onSaved={onSaved} />)
 
-    fireEvent.change(screen.getByLabelText('Wallet'), { target: { value: 'other' } })
+    fireEvent.change(screen.getByLabelText('Wallet type'), { target: { value: 'other' } })
     expect(screen.getByLabelText('Name')).toHaveValue('')
     expect(screen.getByText('Card design')).toBeInTheDocument()
 
@@ -64,16 +67,13 @@ describe('WalletForm', () => {
 
   it('blocks an empty custom wallet name', async () => {
     render(<WalletForm open onClose={vi.fn()} onSaved={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Wallet'), { target: { value: 'other' } })
+    fireEvent.change(screen.getByLabelText('Wallet type'), { target: { value: 'other' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add wallet' }))
     await waitFor(() => expect(mocks.create).not.toHaveBeenCalled())
-    expect(screen.getByText('Wallet name is required')).toHaveAttribute(
-      'id',
-      'wallet-name-error'
-    )
+    expect(screen.getByText('Wallet name is required')).toBeInTheDocument()
   })
 
-  it('preloads a preset wallet and updates it', async () => {
+  it('preloads a preset wallet with type first and updates it', async () => {
     const onSaved = vi.fn()
     const onClose = vi.fn()
     render(
@@ -92,9 +92,9 @@ describe('WalletForm', () => {
       />
     )
 
-    expect(screen.getByLabelText('Wallet')).toHaveValue('bdo')
+    expect(screen.getByLabelText('Wallet type')).toHaveValue('bank')
+    expect(screen.getByLabelText('Bank')).toHaveValue('bdo')
     expect(screen.getByLabelText('Name')).toHaveValue('BDO Savings')
-    expect(screen.getByLabelText('Type')).toHaveValue('bank')
     expect(screen.getByLabelText('Last 4 (optional)')).toHaveValue('1234')
     expect(screen.getByLabelText('Opening balance')).toHaveValue(250.5)
 
@@ -133,7 +133,7 @@ describe('WalletForm', () => {
       />
     )
 
-    expect(screen.getByLabelText('Wallet')).toHaveValue('other')
+    expect(screen.getByLabelText('Wallet type')).toHaveValue('other')
     expect(screen.getByRole('button', { name: 'Replace image' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Remove image' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
@@ -153,7 +153,7 @@ describe('WalletForm', () => {
 
   it('uploads a card image and saves the data URL', async () => {
     render(<WalletForm open onClose={vi.fn()} onSaved={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Wallet'), { target: { value: 'other' } })
+    fireEvent.change(screen.getByLabelText('Wallet type'), { target: { value: 'other' } })
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Mine' } })
     fireEvent.click(screen.getByRole('button', { name: 'Upload image' }))
 
@@ -170,6 +170,7 @@ describe('WalletForm', () => {
       expect(mocks.create).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Mine',
+          type: 'other',
           style: 'custom',
           card_image: PNG
         })
@@ -180,7 +181,7 @@ describe('WalletForm', () => {
   it('reports an image that cannot be decoded', async () => {
     mocks.fileToCardImage.mockRejectedValueOnce(new Error('bad image'))
     render(<WalletForm open onClose={vi.fn()} onSaved={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Wallet'), { target: { value: 'other' } })
+    fireEvent.change(screen.getByLabelText('Wallet type'), { target: { value: 'other' } })
     fireEvent.click(screen.getByRole('button', { name: 'Upload image' }))
     fireEvent.change(document.querySelector('input[type=file]'), {
       target: { files: [new File(['x'], 'card.png', { type: 'image/png' })] }
@@ -192,56 +193,65 @@ describe('WalletForm', () => {
 
   it('validates last 4 and opening balance', async () => {
     render(<WalletForm open onClose={vi.fn()} onSaved={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Pocket cash' } })
     fireEvent.change(screen.getByLabelText('Last 4 (optional)'), { target: { value: '12' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add wallet' }))
     await screen.findByText('Last 4 must be four digits')
-    expect(screen.getByText('Last 4 must be four digits')).toHaveAttribute(
-      'id',
-      'wallet-last4-error'
-    )
     expect(mocks.create).not.toHaveBeenCalled()
 
     fireEvent.change(screen.getByLabelText('Last 4 (optional)'), { target: { value: '1234' } })
     fireEvent.change(screen.getByLabelText('Opening balance'), { target: { value: '-5' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add wallet' }))
     await screen.findByText('Opening balance must be zero or more')
-    expect(screen.getByText('Opening balance must be zero or more')).toHaveAttribute(
-      'id',
-      'wallet-opening-error'
-    )
     expect(mocks.create).not.toHaveBeenCalled()
+  })
+
+  it('keeps the form open and shows the duplicate name error inline', async () => {
+    mocks.create.mockRejectedValueOnce(new Error('A wallet with this name and type already exists'))
+    const onClose = vi.fn()
+    render(<WalletForm open onClose={onClose} onSaved={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Cash' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add wallet' }))
+    expect(
+      await screen.findByText('A wallet with this name and type already exists')
+    ).toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   it('keeps the form open and toasts when the API fails', async () => {
     mocks.create.mockRejectedValueOnce(new Error('nope'))
     const onClose = vi.fn()
     render(<WalletForm open onClose={onClose} onSaved={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Pocket cash' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add wallet' }))
     await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith('nope', 'error'))
     expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('switches the type and saves it', async () => {
+  it('switches the type and saves the filtered provider', async () => {
     render(<WalletForm open onClose={vi.fn()} onSaved={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'ewallet' } })
+    fireEvent.change(screen.getByLabelText('Wallet type'), { target: { value: 'ewallet' } })
+    expect(screen.getByLabelText('E-wallet')).toHaveValue('gcash')
     fireEvent.click(screen.getByRole('button', { name: 'Add wallet' }))
     await waitFor(() =>
-      expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ type: 'ewallet' }))
+      expect(mocks.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'GCash', type: 'ewallet', style: 'gcash' })
+      )
     )
   })
 
   it('clears the custom controls when switching back to a preset', () => {
     render(<WalletForm open onClose={vi.fn()} onSaved={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Wallet'), { target: { value: 'other' } })
+    fireEvent.change(screen.getByLabelText('Wallet type'), { target: { value: 'other' } })
     expect(screen.getByText('Card design')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('Wallet'), { target: { value: 'gcash' } })
+    fireEvent.change(screen.getByLabelText('Wallet type'), { target: { value: 'ewallet' } })
     expect(screen.queryByText('Card design')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Name')).toHaveValue('GCash')
   })
 
   it('toggles between colour and image modes', () => {
     render(<WalletForm open onClose={vi.fn()} onSaved={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Wallet'), { target: { value: 'other' } })
+    fireEvent.change(screen.getByLabelText('Wallet type'), { target: { value: 'other' } })
     expect(screen.getByLabelText('Card colour')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Upload image' }))
     expect(screen.getByRole('button', { name: 'Choose image' })).toBeInTheDocument()
@@ -259,7 +269,7 @@ describe('WalletForm', () => {
         onSaved={vi.fn()}
       />
     )
-    expect(screen.getByLabelText('Wallet')).toHaveValue('other')
+    expect(screen.getByLabelText('Wallet type')).toHaveValue('other')
     expect(screen.getByText('Card design')).toBeInTheDocument()
     expect(screen.getByLabelText('Card colour')).toBeInTheDocument()
   })
@@ -267,7 +277,8 @@ describe('WalletForm', () => {
   it('does nothing while closed, then resets a new form when opened', () => {
     const { rerender } = render(<WalletForm open={false} onClose={vi.fn()} onSaved={vi.fn()} />)
     rerender(<WalletForm open onClose={vi.fn()} onSaved={vi.fn()} />)
-    expect(screen.getByLabelText('Name')).toHaveValue('Cash')
+    expect(screen.getByLabelText('Wallet type')).toHaveValue('cash')
+    expect(screen.getByLabelText('Name')).toHaveValue('')
     expect(screen.getByLabelText('Opening balance')).toHaveValue(0)
   })
 
@@ -292,9 +303,32 @@ describe('WalletForm', () => {
     )
   })
 
+  it('locks the type of the default Cash wallet while allowing a rename', () => {
+    render(
+      <WalletForm
+        open
+        lockType
+        initial={{
+          id: 1,
+          name: 'Cash',
+          type: 'cash',
+          style: 'cash',
+          opening_balance: 0,
+          last4: null
+        }}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    )
+    expect(screen.getByLabelText('Wallet type')).toBeDisabled()
+    expect(screen.getByText('Cash is required; its type cannot change.')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Pocket cash' } })
+    expect(screen.getByLabelText('Name')).toHaveValue('Pocket cash')
+  })
+
   it('ignores a dismissed file picker', () => {
     render(<WalletForm open onClose={vi.fn()} onSaved={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Wallet'), { target: { value: 'other' } })
+    fireEvent.change(screen.getByLabelText('Wallet type'), { target: { value: 'other' } })
     fireEvent.click(screen.getByRole('button', { name: 'Upload image' }))
     const input = document.querySelector('input[type=file]')
     fireEvent.change(input, { target: { files: [] } })

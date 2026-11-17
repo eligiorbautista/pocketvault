@@ -4,6 +4,42 @@ All notable changes to PocketVault are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.3] - 2026-11-17
+
+### Added
+
+- **Monogram wallet cards** — each bank/e-wallet preset carries a large, low-alpha
+  initials watermark; Cash uses ₱ and a custom colour uses the wallet's initials.
+- **Grouped sidebar navigation** — Overview, Money, Review and System sections on
+  desktop and in the mobile drawer, with Settings separated at the bottom.
+- **Type-first Add wallet** — Wallet type is chosen first; Bank offers only banks,
+  E-wallet only e-wallets, and Other exposes the colour/image controls.
+- **Fullscreen Android shell** — the status bar is hidden by default on launch and
+  resumes, and can be revealed temporarily with an edge swipe.
+- **Versioned installers** — Windows artifacts are `PocketVault-<version>.exe` /
+  `.msi`; Android artifacts are `PocketVault-<version>.apk` /
+  `PocketVault-<version>-debug.apk`.
+
+### Changed
+
+- **Blackout dark palette** — true-black page, near-black surfaces, and quieter
+  rules/borders across the shell, cards, modals and charts.
+- **Required Cash wallet** — the default Cash wallet cannot be archived and its
+  type cannot change. New wallets default to the Cash type with a blank name.
+- **Duplicate wallet guard** — wallet name + type must be unique
+  (case-insensitive, trimmed), enforced on create, update and restore on desktop
+  and Android.
+
+### Tests
+
+- 123 unit tests, 366 smoke checks (61 db, 41 backup, 202 audit, 62 Capacitor),
+  23 stress checks and 3 Electron E2E/axe checks.
+
+### Notes
+
+- No schema or backup-format changes; backups remain **format 3**.
+- The hidden status bar and fullscreen layout still need a device/emulator check.
+
 ## [1.1.2] - 2026-11-17
 
 ### Fixed
@@ -109,6 +145,7 @@ First public release: local multi-user income, expenses, debts, budgets,
 savings goals, reports, receipts, per-account backups, light/dark themes,
 multi-currency support, CSV/PDF export, and Windows/Android installers.
 
+[1.1.3]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.3
 [1.1.2]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.2
 [1.1.1]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.1
 [1.1.0]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.0

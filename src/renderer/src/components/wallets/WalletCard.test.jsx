@@ -35,7 +35,7 @@ function setup(overrides = {}, props = {}) {
 describe('WalletCard', () => {
   it('renders name, balance, masked last4 and opens activity', () => {
     const { callbacks } = setup()
-    expect(screen.getByText('BDO')).toBeInTheDocument()
+    expect(screen.getByText('BDO', { selector: '.wallet-name' })).toBeInTheDocument()
     expect(screen.getByText('₱1,500.00')).toBeInTheDocument()
     expect(screen.getByText('Debit · 1234')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'BDO, balance ₱1,500.00' }))
@@ -135,5 +135,16 @@ describe('WalletCard', () => {
     setup({}, { onTransfer: undefined })
     fireEvent.click(screen.getByRole('button', { name: 'BDO actions' }))
     expect(screen.queryByRole('menuitem', { name: 'Transfer' })).not.toBeInTheDocument()
+  })
+
+  it('omits Archive for the required Cash wallet', () => {
+    setup({}, { canArchive: false })
+    fireEvent.click(screen.getByRole('button', { name: 'BDO actions' }))
+    expect(screen.queryByRole('menuitem', { name: 'Archive' })).not.toBeInTheDocument()
+  })
+
+  it('renders the monogram watermark', () => {
+    const { container } = setup()
+    expect(container.querySelector('.wallet-monogram')).toHaveTextContent('BDO')
   })
 })

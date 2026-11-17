@@ -104,7 +104,7 @@ taken, change `server.port` in that file.
 | `npm run build:mobile` | Build + sync the Android project |
 | `npm run cap:sync` / `npm run cap:open` | Sync / open the native Android project |
 | `npm run assets` | Regenerate Android icons + splash from `assets/icon.png` |
-| `./build-capacitor.sh [debug\|release]` | Build a **signed** APK → `installers/android/PocketVault.apk` |
+| `./build-capacitor.sh [debug\|release]` | Build a **signed** APK → `installers/android/PocketVault-<version>.apk` |
 
 Prebuilt installers are Windows (NSIS `.exe` + `.msi`); the Android app ships as a signed APK/AAB.
 
@@ -126,8 +126,8 @@ npm run build:win          # build bundles + package the installers
 This builds the main/preload/renderer bundles and packages the Windows installers
 into `installers/windows/`:
 
-- `PocketVault Setup <version>.exe` — NSIS installer (custom install folder, desktop shortcut).
-- `PocketVault <version>.msi` — MSI installer (x64).
+- `PocketVault-<version>.exe` — NSIS installer (custom install folder, desktop shortcut).
+- `PocketVault-<version>.msi` — MSI installer (x64).
 
 `npm run build:desktop` does the same packaging but writes to the default output dir
 (`dist/`). Both pass `--publish never`, so packaging a tagged build never tries to
@@ -143,8 +143,9 @@ sh build-capacitor.sh debug      # debug APK (signed with the debug key)
 The script builds the web app, regenerates icons/splash, runs `cap sync`, compiles with
 Gradle, copies the APK to `installers/android/`, and verifies its signature.
 
-- The app is read from `capacitor.config.json`, so the release artifact is
-  `installers/android/PocketVault.apk` (debug: `PocketVault-debug.apk`).
+- The app name and version are read from `capacitor.config.json` and `package.json`, so
+  the release artifact is `installers/android/PocketVault-<version>.apk`
+  (debug: `PocketVault-<version>-debug.apk`).
 - Release builds are signed with `release.keystore` (generated on first run, **gitignored**).
   **Keep that file safe** — Android needs the same key to update an installed app.
 - To use your own signing details, add a gitignored `keystore.properties` at the repo root
@@ -220,6 +221,6 @@ capacitor.config.json
 9. Register a second user and confirm you cannot see the first user's data; also confirm a backup from the first account is refused when signed in as the second.
 10. Switch the dashboard period between By month, Custom range, and All records.
 11. Resize the window from 320px to 1920px and confirm the layout stays usable.
-12. Run `sh build-capacitor.sh`, install `installers/android/PocketVault.apk` on a device/emulator, register, add records, and confirm data survives an app restart.
+12. Run `sh build-capacitor.sh`, install `installers/android/PocketVault-<version>.apk` on a device/emulator, register, add records, and confirm data survives an app restart.
 13. In Settings → Reminders, enable reminders and set the lead time; confirm a debt with an
     upcoming due date schedules a notification (desktop: while running; Android: also when closed).

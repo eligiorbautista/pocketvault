@@ -313,7 +313,11 @@ try {
 } catch (error) {
   guard = error
 }
-check('last active wallet cannot be archived', guard?.message === 'At least one wallet must stay active', guard?.message)
+check(
+  'default Cash cannot be archived',
+  guard?.message === 'The default Cash wallet cannot be archived',
+  guard?.message
+)
 walletsRepo.restore(db, alice.id, bdo.id)
 
 check('move up reorders wallets', walletsRepo.move(db, alice.id, bdo.id, 'up') === true && walletsRepo.list(db, alice.id)[0].id === bdo.id)

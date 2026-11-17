@@ -27,9 +27,41 @@ function CashArt() {
       <rect x="16" y="56" width="324" height="156" rx="12" fill="none" stroke="#e9dfd0" strokeOpacity=".15" strokeWidth="1.2" strokeDasharray="4 6" />
       <path d="M0 104 C 92 96 264 96 356 104" stroke="#000" strokeOpacity=".28" strokeWidth="7" />
       <path d="M10 107 C 98 99 258 99 346 107" fill="none" stroke="#e9dfd0" strokeOpacity=".14" strokeWidth="1.2" strokeDasharray="4 6" />
-      <text x="330" y="156" textAnchor="end" fontFamily="Inter, sans-serif" fontSize="44" fontWeight="800" letterSpacing="-2" fill="#e9dfd0" fillOpacity=".05">PV</text>
     </svg>
   )
+}
+
+const MONOGRAMS = {
+  cash: '₱',
+  bdo: 'BDO',
+  bpi: 'BPI',
+  metrobank: 'MB',
+  unionbank: 'UB',
+  securitybank: 'SB',
+  rcbc: 'RCBC',
+  landbank: 'L',
+  pnb: 'PNB',
+  psbank: 'PS',
+  gcash: 'GC',
+  maya: 'M',
+  gotyme: 'GT',
+  maribank: 'MB',
+  cimb: 'CIMB',
+  generic: 'PV'
+}
+
+function monogramFor(wallet, style) {
+  if (style === 'custom') {
+    if (wallet.card_image) return ''
+    return String(wallet.name || 'PV')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 3)
+      .toUpperCase() || 'PV'
+  }
+  return MONOGRAMS[style] ?? 'PV'
 }
 
 export function WalletFace({ wallet, className, children }) {
@@ -37,6 +69,7 @@ export function WalletFace({ wallet, className, children }) {
   const style = rawStyle === 'custom' || WALLET_STYLE_IDS.includes(rawStyle) ? rawStyle : 'generic'
   const custom = style === 'custom'
   const image = custom && wallet.card_image
+  const monogram = monogramFor(wallet, style)
   const inline = custom
     ? image
       ? {
@@ -55,6 +88,7 @@ export function WalletFace({ wallet, className, children }) {
     >
       {style === 'cash' ? <CashArt /> : null}
       {image ? <span className="wallet-scrim" /> : null}
+      {monogram ? <span className="wallet-monogram" aria-hidden="true">{monogram}</span> : null}
       {children}
     </div>
   )
@@ -65,6 +99,7 @@ export function WalletCard({
   hidden,
   canMoveUp,
   canMoveDown,
+  canArchive = true,
   onOpen,
   onEdit,
   onTransfer,
@@ -72,7 +107,9 @@ export function WalletCard({
   onArchive
 }) {
   const typeLabel = WALLET_TYPE_LABELS[wallet.type] ?? 'Wallet'
-  const meta = wallet.last4 ? `Debit · ${wallet.last4}` : typeLabel
+  const meta = wallet.last4
+    ? `${wallet.type === 'bank' ? 'Debit' : typeLabel} · ${wallet.last4}`
+    : typeLabel
   const amount = hidden ? '••••' : formatCurrency(wallet.balance)
   const actions = [
     { key: 'edit', label: 'Edit', onSelect: () => onEdit(wallet) },
@@ -80,7 +117,7 @@ export function WalletCard({
     { key: 'activity', label: 'Activity', onSelect: () => onOpen(wallet) },
     canMoveUp ? { key: 'up', label: 'Move up', onSelect: () => onMove(wallet, 'up') } : null,
     canMoveDown ? { key: 'down', label: 'Move down', onSelect: () => onMove(wallet, 'down') } : null,
-    { key: 'archive', label: 'Archive', tone: 'danger', onSelect: () => onArchive(wallet) }
+    canArchive ? { key: 'archive', label: 'Archive', tone: 'danger', onSelect: () => onArchive(wallet) } : null
   ].filter(Boolean)
 
   return (
@@ -105,11 +142,13 @@ export function WalletCard({
 
       <div className="relative z-10 wallet-mid pointer-events-none">
         {styleHasChip(wallet) ? <span className="wallet-chip" aria-hidden="true" /> : null}
-        <svg className="wallet-contactless" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-          <path d="M8.5 8.5a5 5 0 0 0 0 7" />
-          <path d="M11.5 6a8.5 8.5 0 0 0 0 12" />
-          <path d="M14.5 3.5a12 12 0 0 0 0 17" />
-        </svg>
+        {wallet.style !== 'cash' ? (
+          <svg className="wallet-contactless" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+            <path d="M8.5 8.5a5 5 0 0 0 0 7" />
+            <path d="M11.5 6a8.5 8.5 0 0 0 0 12" />
+            <path d="M14.5 3.5a12 12 0 0 0 0 17" />
+          </svg>
+        ) : null}
       </div>
 
       <div className="relative z-10 wallet-bottom pointer-events-none">

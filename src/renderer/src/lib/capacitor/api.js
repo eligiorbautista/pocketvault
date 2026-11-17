@@ -1141,6 +1141,16 @@ export function createCapacitorApi() {
     }
   }
 
+  async function ensureUniqueWallet(userId, name, type, excludeId = 0) {
+    const duplicate = await getOne(
+      `SELECT id FROM wallets
+       WHERE user_id = ? AND type = ? AND lower(trim(name)) = lower(trim(?)) AND id <> ?
+       LIMIT 1`,
+      [userId, type, name, excludeId]
+    )
+    if (duplicate) throw new Error('A wallet with this name and type already exists')
+  }
+
   const wallets = {
     list: async () => {
       const userId = requireUserId()
@@ -1162,6 +1172,7 @@ export function createCapacitorApi() {
     create: async (data) => {
       const userId = requireUserId()
       const row = validateWalletInput(data)
+      await ensureUniqueWallet(userId, row.name, row.type)
       const next = await getOne(
         'SELECT COALESCE(MAX(sort_order) + 1, 0) AS next FROM wallets WHERE user_id = ?',
         [userId]
@@ -1196,6 +1207,14 @@ export function createCapacitorApi() {
       ])
       if (!current) return null
       const row = validateWalletInput(data)
+      const cash = await getOne(
+        "SELECT id FROM wallets WHERE user_id = ? AND type = 'cash' ORDER BY sort_order ASC, id ASC LIMIT 1",
+        [userId]
+      )
+      if (cash?.id === Number(id) && row.type !== 'cash') {
+        throw new Error('The default Cash wallet must stay a cash wallet')
+      }
+      await ensureUniqueWallet(userId, row.name, row.type, Number(id))
       await run(
         `UPDATE wallets
          SET name = ?, type = ?, style = ?, opening_balance = ?, last4 = ?, color = ?, card_image = ?,
@@ -1221,6 +1240,12 @@ export function createCapacitorApi() {
 
     remove: async (id) => {
       const userId = requireUserId()
+      const walletId = validateId(id)
+      const cash = await getOne(
+        "SELECT id FROM wallets WHERE user_id = ? AND type = 'cash' ORDER BY sort_order ASC, id ASC LIMIT 1",
+        [userId]
+      )
+      if (cash?.id === walletId) throw new Error('The default Cash wallet cannot be archived')
       const active = await getOne(
         'SELECT COUNT(*) AS count FROM wallets WHERE user_id = ? AND is_archived = 0',
         [userId]
@@ -1228,16 +1253,23 @@ export function createCapacitorApi() {
       if ((active?.count ?? 0) <= 1) throw new Error('At least one wallet must stay active')
       const info = await run(
         'UPDATE wallets SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0',
-        [validateId(id), userId]
+        [walletId, userId]
       )
       return info.changes > 0
     },
 
     restore: async (id) => {
       const userId = requireUserId()
+      const walletId = validateId(id)
+      const archived = await getOne(
+        'SELECT name, type FROM wallets WHERE id = ? AND user_id = ? AND is_archived = 1',
+        [walletId, userId]
+      )
+      if (!archived) return false
+      await ensureUniqueWallet(userId, archived.name, archived.type, walletId)
       const info = await run(
         'UPDATE wallets SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1',
-        [validateId(id), userId]
+        [walletId, userId]
       )
       return info.changes > 0
     },

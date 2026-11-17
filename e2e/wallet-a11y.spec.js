@@ -45,7 +45,8 @@ test('wallet page and add-wallet dialog have no serious accessibility violations
 
     await page.getByRole('button', { name: 'Add wallet' }).first().click()
     const dialog = page.getByRole('dialog')
-    await dialog.getByLabel('Wallet').selectOption('bdo')
+    await dialog.getByLabel('Wallet type').selectOption('bank')
+    await dialog.getByLabel('Bank').selectOption('bdo')
     await dialog.getByLabel('Opening balance').fill('1000')
     await dialog.getByRole('button', { name: 'Add wallet' }).click()
     await expect(dialog).toBeHidden()

@@ -9,9 +9,9 @@ export const CHART_LIGHT = {
 }
 
 export const CHART_DARK = {
-  surface: '#1a1a1b',
-  border: '#2a2a2b',
-  grid: '#2b2b2b',
-  tick: '#949494',
-  text: '#f4f4f5'
+  surface: '#0a0a0b',
+  border: '#242427',
+  grid: '#242427',
+  tick: '#8e8e91',
+  text: '#f5f5f5'
 }

@@ -5,12 +5,7 @@ import { Button } from '@renderer/components/ui/Button.jsx'
 import { Field } from '@renderer/components/ui/Field.jsx'
 import { Input, Select } from '@renderer/components/ui/Input.jsx'
 import { WalletFace } from './WalletCard.jsx'
-import {
-  WALLET_PROVIDERS,
-  WALLET_PROVIDER_GROUPS,
-  WALLET_TYPES,
-  WALLET_TYPE_LABELS
-} from '@shared/wallets.js'
+import { WALLET_PROVIDERS, WALLET_TYPES, WALLET_TYPE_LABELS } from '@shared/wallets.js'
 import { fileToCardImage } from '@renderer/lib/cardImage.js'
 import { toast } from '@renderer/store/uiStore.js'
 
@@ -19,10 +14,14 @@ function providerFor(wallet) {
   return Object.values(WALLET_PROVIDERS).find((provider) => provider.style === wallet.style)?.id ?? 'other'
 }
 
-export function WalletForm({ open, initial, onClose, onSaved }) {
+function typeForProvider(provider) {
+  return provider === 'other' ? 'other' : (WALLET_PROVIDERS[provider]?.type ?? 'cash')
+}
+
+export function WalletForm({ open, initial, lockType = false, onClose, onSaved }) {
+  const [walletType, setWalletType] = useState('cash')
   const [provider, setProvider] = useState('cash')
-  const [name, setName] = useState('Cash')
-  const [type, setType] = useState('cash')
+  const [name, setName] = useState('')
   const [style, setStyle] = useState('cash')
   const [color, setColor] = useState('#3b3b40')
   const [image, setImage] = useState(null)
@@ -37,20 +36,24 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
   useEffect(() => {
     if (!open) return
     if (initial) {
-      const provider = providerFor(initial)
-      setProvider(provider)
+      const initialProvider = providerFor(initial)
+      const initialType = typeForProvider(initialProvider)
+      setWalletType(initialType)
+      setProvider(initialProvider)
       setName(initial.name)
-      setType(initial.type)
-      setStyle(provider === 'other' ? 'custom' : initial.style)
+      setStyle(initialProvider === 'other' ? 'custom' : initial.style)
       setColor(initial.color || '#3b3b40')
       setImage(initial.card_image || null)
-      setMode(provider === 'other' && initial.card_image ? 'image' : 'color')
+      setMode(initialProvider === 'other' && initial.card_image ? 'image' : 'color')
       setLast4(initial.last4 || '')
       setOpening(String(initial.opening_balance ?? 0))
     } else {
+      // Cash is the required default. The name is intentionally blank because
+      // the account already has a Cash wallet; the name+type guard prevents a
+      // duplicate.
+      setWalletType('cash')
       setProvider('cash')
-      setName('Cash')
-      setType('cash')
+      setName('')
       setStyle('cash')
       setColor('#3b3b40')
       setImage(null)
@@ -61,19 +64,39 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
     setFieldErrors({})
   }, [open, initial])
 
-  const chooseProvider = (value) => {
-    const option = WALLET_PROVIDERS[value]
-    setProvider(value)
-    if (option.id === 'other') {
+  const providerOptions = Object.values(WALLET_PROVIDERS).filter(
+    (option) => option.type === walletType && option.id !== 'other'
+  )
+
+  const chooseType = (value) => {
+    setWalletType(value)
+    setImage(null)
+    setMode('color')
+    if (value === 'cash') {
+      setProvider('cash')
       setName('')
-      setType('other')
-      setStyle('custom')
-      setImage(null)
-      setMode('color')
+      setStyle('cash')
       return
     }
+    if (value === 'other') {
+      setProvider('other')
+      setName('')
+      setStyle('custom')
+      return
+    }
+    const first = Object.values(WALLET_PROVIDERS).find((option) => option.type === value)
+    if (first) {
+      setProvider(first.id)
+      setName(first.label)
+      setStyle(first.style)
+    }
+  }
+
+  const chooseProvider = (value) => {
+    const option = WALLET_PROVIDERS[value]
+    if (!option) return
+    setProvider(value)
     setName(option.label)
-    setType(option.type)
     setStyle(option.style)
     setImage(null)
     setMode('color')
@@ -111,7 +134,7 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
 
     const payload = {
       name: trimmed,
-      type,
+      type: walletType,
       style,
       opening_balance: openingValue,
       last4: last4.trim() || null,
@@ -127,7 +150,8 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
       onSaved()
       onClose()
     } catch (err) {
-      toast(err.message, 'error')
+      if (/name and type/i.test(err.message)) setFieldErrors({ name: err.message })
+      else toast(err.message, 'error')
     } finally {
       setSaving(false)
     }
@@ -140,6 +164,14 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
     color,
     card_image: custom && mode === 'image' ? image : null
   }
+  const providerLabel =
+    walletType === 'bank' ? 'Bank' : walletType === 'ewallet' ? 'E-wallet' : null
+  const providerHint =
+    walletType === 'bank'
+      ? 'Only debit-card banks are listed.'
+      : walletType === 'ewallet'
+        ? 'Only e-wallets are listed.'
+        : null
 
   return (
     <Modal
@@ -159,47 +191,67 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
       }
     >
       <form id="wallet-form" onSubmit={save} className="space-y-4" noValidate>
-        <Field label="Wallet" htmlFor="wallet-provider">
+        <Field
+          label="Wallet type"
+          htmlFor="wallet-type"
+          hint={lockType ? 'Cash is required; its type cannot change.' : undefined}
+        >
           <Select
-            id="wallet-provider"
-            value={provider}
-            onChange={(event) => chooseProvider(event.target.value)}
+            id="wallet-type"
+            value={walletType}
+            onChange={(event) => chooseType(event.target.value)}
+            disabled={lockType}
           >
-            {WALLET_PROVIDER_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.options.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </optgroup>
+            {WALLET_TYPES.map((value) => (
+              <option key={value} value={value}>
+                {WALLET_TYPE_LABELS[value]}
+              </option>
             ))}
           </Select>
         </Field>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Name" htmlFor="wallet-name" error={fieldErrors.name}>
-            <Input
-              id="wallet-name"
-              value={name}
-              placeholder="Wallet name"
-              onChange={(event) => setName(event.target.value)}
-              hasError={Boolean(fieldErrors.name)}
-            />
-          </Field>
-          <Field label="Type" htmlFor="wallet-type">
-            <Select id="wallet-type" value={type} onChange={(event) => setType(event.target.value)}>
-              {WALLET_TYPES.map((value) => (
-                <option key={value} value={value}>
-                  {WALLET_TYPE_LABELS[value]}
+        {providerLabel ? (
+          <Field label={providerLabel} htmlFor="wallet-provider" hint={providerHint}>
+            <Select
+              id="wallet-provider"
+              value={provider}
+              onChange={(event) => chooseProvider(event.target.value)}
+            >
+              {providerOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
                 </option>
               ))}
             </Select>
           </Field>
-        </div>
+        ) : null}
+
+        <Field
+          label="Name"
+          htmlFor="wallet-name"
+          error={fieldErrors.name}
+          hint={
+            !initial && walletType === 'cash'
+              ? 'The default Cash wallet is required. Give this cash wallet a different name.'
+              : undefined
+          }
+        >
+          <Input
+            id="wallet-name"
+            value={name}
+            placeholder={walletType === 'cash' ? 'e.g. Pocket cash' : 'Wallet name'}
+            onChange={(event) => setName(event.target.value)}
+            hasError={Boolean(fieldErrors.name)}
+          />
+        </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Last 4 (optional)" htmlFor="wallet-last4" error={fieldErrors.last4} hint="Digits shown on the card.">
+          <Field
+            label="Last 4 (optional)"
+            htmlFor="wallet-last4"
+            error={fieldErrors.last4}
+            hint="Digits shown on the card."
+          >
             <Input
               id="wallet-last4"
               value={last4}
@@ -210,7 +262,12 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
               hasError={Boolean(fieldErrors.last4)}
             />
           </Field>
-          <Field label="Opening balance" htmlFor="wallet-opening" error={fieldErrors.opening} hint="What it holds today.">
+          <Field
+            label="Opening balance"
+            htmlFor="wallet-opening"
+            error={fieldErrors.opening}
+            hint="What it holds today."
+          >
             <Input
               id="wallet-opening"
               type="number"
@@ -231,13 +288,17 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
           <p className="text-xs text-slate-500 dark:text-dark-faint">
             {custom
               ? 'Choose a colour or upload a card image.'
-              : 'The card face is set by the wallet. Renaming it will not change the face.'}
+              : walletType === 'cash'
+                ? 'Cash is the required catch-all wallet; its face stays Cash.'
+                : 'The card face follows the chosen bank or e-wallet. Renaming it will not change the face.'}
           </p>
         </div>
 
         {custom ? (
           <div className="space-y-3 border-t border-slate-100 pt-4 dark:border-dark-border">
-            <span className="block text-sm font-medium text-slate-900 dark:text-gray-100">Card design</span>
+            <span className="block text-sm font-medium text-slate-900 dark:text-gray-100">
+              Card design
+            </span>
             <div className="inline-flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-dark-surface-2">
               <button
                 type="button"

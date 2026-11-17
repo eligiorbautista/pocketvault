@@ -8,13 +8,13 @@
     sans-serif;
 
   /* App background in dark mode. */
-  --color-dark-bg: #0b0b0b;
-  --color-dark-surface: #1a1a1b;
-  --color-dark-surface-2: #232324;
-  --color-dark-border: #2a2a2b;
-  --color-dark-rule: #222223;
-  --color-dark-muted: #b4b4b4;
-  --color-dark-faint: #949494;
+  --color-dark-bg: #000000;
+  --color-dark-surface: #0a0a0b;
+  --color-dark-surface-2: #141416;
+  --color-dark-border: #242427;
+  --color-dark-rule: #1b1b1e;
+  --color-dark-muted: #b6b6b6;
+  --color-dark-faint: #8e8e91;
 
   --color-accent-50: #ecfdf5;
   --color-accent-100: #d1fae5;

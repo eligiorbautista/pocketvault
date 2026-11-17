@@ -431,6 +431,35 @@ await check('wallet archive and restore work', async () => {
   const restored = await api.wallets.restore(customWallet.id)
   return removed === true && archived.some((wallet) => wallet.id === customWallet.id) && restored === true
 })
+await expectThrow(
+  'the default Cash wallet cannot be archived',
+  () => api.wallets.remove(freshCashId),
+  'The default Cash wallet cannot be archived'
+)
+await expectThrow(
+  'duplicate wallet name and type are rejected',
+  () =>
+    api.wallets.create({
+      name: 'cash',
+      type: 'cash',
+      style: 'cash',
+      opening_balance: 0,
+      last4: null
+    }),
+  'A wallet with this name and type already exists'
+)
+await expectThrow(
+  'the default Cash type cannot change',
+  () =>
+    api.wallets.update(freshCashId, {
+      name: 'Cash',
+      type: 'bank',
+      style: 'bdo',
+      opening_balance: 0,
+      last4: null
+    }),
+  'The default Cash wallet must stay a cash wallet'
+)
 
 await expectThrow('deleteData rejects wrong password', () => api.account.deleteData('nope'), 'Password is incorrect')
 await check('deleteData wipes records but keeps account', async () => {

@@ -45,22 +45,23 @@ esac
 OUT_DIR="installers/android"
 KEYSTORE="release.keystore"
 KEYSTORE_PROPS="keystore.properties"
+VERSION="$(node -p "require('./package.json').version")"
 
 if [ "$ARTIFACT" = "aab" ]; then
   SEARCH_DIR="android/app/build/outputs/bundle/release"
   OUT_NAME="$(node -p "require('./capacitor.config.json').appName" 2>/dev/null || true)"
   [ -n "$OUT_NAME" ] || OUT_NAME="PocketVault"
-  OUT_NAME="${OUT_NAME// /}.aab"
+  OUT_NAME="${OUT_NAME// /}-${VERSION}.aab"
 elif [ "$BUILD_TYPE" = "debug" ]; then
   APP_NAME="$(node -p "require('./capacitor.config.json').appName" 2>/dev/null || true)"
   [ -n "$APP_NAME" ] || APP_NAME="PocketVault"
   SEARCH_DIR="android/app/build/outputs/apk/debug"
-  OUT_NAME="${APP_NAME// /}-debug.apk"
+  OUT_NAME="${APP_NAME// /}-${VERSION}-debug.apk"
 else
   APP_NAME="$(node -p "require('./capacitor.config.json').appName" 2>/dev/null || true)"
   [ -n "$APP_NAME" ] || APP_NAME="PocketVault"
   SEARCH_DIR="android/app/build/outputs/apk/release"
-  OUT_NAME="${APP_NAME// /}.apk"
+  OUT_NAME="${APP_NAME// /}-${VERSION}.apk"
 fi
 
 # ---------------------------------------------------------------------------

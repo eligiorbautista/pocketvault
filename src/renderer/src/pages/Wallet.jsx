@@ -37,6 +37,7 @@ export default function Wallet() {
 
   const wallets = data?.wallets ?? []
   const canTransfer = wallets.length > 1
+  const defaultCashId = wallets.find((wallet) => wallet.type === 'cash')?.id
   const netWorth = data?.netWorth ?? 0
   const netBalance = data?.netBalance ?? 0
   const liabilities = data?.liabilities ?? 0
@@ -171,6 +172,7 @@ export default function Wallet() {
                   hidden={hidden}
                   canMoveUp={index > 0}
                   canMoveDown={index < wallets.length - 1}
+                  canArchive={wallet.id !== defaultCashId}
                   onOpen={setActivityWallet}
                   onEdit={openEdit}
                   onTransfer={canTransfer ? openTransfer : undefined}
@@ -198,6 +200,7 @@ export default function Wallet() {
       <WalletForm
         open={formOpen}
         initial={editing}
+        lockType={Boolean(editing && editing.id === defaultCashId)}
         onClose={() => setFormOpen(false)}
         onSaved={reload}
       />

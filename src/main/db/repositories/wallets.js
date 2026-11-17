@@ -65,8 +65,32 @@ function ensureActiveWallet(db, userId, id) {
   return wallet
 }
 
+function defaultCash(db, userId) {
+  return (
+    db
+      .prepare(
+        "SELECT id FROM wallets WHERE user_id = ? AND type = 'cash' ORDER BY sort_order ASC, id ASC LIMIT 1"
+      )
+      .get(userId) ?? null
+  )
+}
+
+function ensureUniqueWallet(db, userId, name, type, excludeId = 0) {
+  const duplicate = db
+    .prepare(
+      `SELECT id FROM wallets
+       WHERE user_id = ? AND type = ? AND lower(trim(name)) = lower(trim(?)) AND id <> ?
+       LIMIT 1`
+    )
+    .get(userId, type, name, excludeId)
+  if (duplicate) {
+    throw new ValidationError('A wallet with this name and type already exists')
+  }
+}
+
 export function create(db, userId, payload) {
   const data = validateWalletInput(payload)
+  ensureUniqueWallet(db, userId, data.name, data.type)
   const next = db
     .prepare('SELECT COALESCE(MAX(sort_order) + 1, 0) AS next FROM wallets WHERE user_id = ?')
     .get(userId).next
@@ -94,6 +118,11 @@ export function update(db, userId, id, payload) {
   const current = getById(db, userId, id)
   if (!current) return null
   const data = validateWalletInput(payload)
+  const cash = defaultCash(db, userId)
+  if (cash?.id === id && data.type !== 'cash') {
+    throw new ValidationError('The default Cash wallet must stay a cash wallet')
+  }
+  ensureUniqueWallet(db, userId, data.name, data.type, id)
   db.prepare(
     `UPDATE wallets
      SET name = ?, type = ?, style = ?, opening_balance = ?, last4 = ?, color = ?, card_image = ?,
@@ -114,6 +143,9 @@ export function update(db, userId, id, payload) {
 }
 
 export function remove(db, userId, id) {
+  if (defaultCash(db, userId)?.id === id) {
+    throw new ValidationError('The default Cash wallet cannot be archived')
+  }
   const active = db
     .prepare('SELECT COUNT(*) AS count FROM wallets WHERE user_id = ? AND is_archived = 0')
     .get(userId).count
@@ -128,6 +160,11 @@ export function remove(db, userId, id) {
 }
 
 export function restore(db, userId, id) {
+  const archived = db
+    .prepare('SELECT name, type FROM wallets WHERE id = ? AND user_id = ? AND is_archived = 1')
+    .get(id, userId)
+  if (!archived) return false
+  ensureUniqueWallet(db, userId, archived.name, archived.type, id)
   return (
     db
       .prepare(

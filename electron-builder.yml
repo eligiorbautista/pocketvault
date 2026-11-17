@@ -2,6 +2,8 @@ appId: com.pocketvault.app
 productName: PocketVault
 copyright: Copyright (c) 2026 PocketVault
 
+artifactName: ${productName}-${version}.${ext}
+
 directories:
   buildResources: build
   output: dist

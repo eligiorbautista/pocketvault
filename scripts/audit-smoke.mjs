@@ -550,6 +550,55 @@ check(
   walletsRepo.list(db, alice.id).every((wallet) => !('card_image' in wallet))
 )
 
+const aliceCash = walletsRepo.list(db, alice.id).find((wallet) => wallet.type === 'cash')
+let defaultArchive = null
+try {
+  walletsRepo.remove(db, alice.id, aliceCash.id)
+} catch (error) {
+  defaultArchive = error
+}
+check(
+  'the default Cash wallet cannot be archived even with other wallets',
+  defaultArchive?.message === 'The default Cash wallet cannot be archived',
+  defaultArchive?.message
+)
+
+let duplicateWallet = null
+try {
+  walletsRepo.create(db, alice.id, {
+    name: 'cash',
+    type: 'cash',
+    style: 'cash',
+    opening_balance: 0,
+    last4: null
+  })
+} catch (error) {
+  duplicateWallet = error
+}
+check(
+  'duplicate name and type is rejected case-insensitively',
+  duplicateWallet?.message === 'A wallet with this name and type already exists',
+  duplicateWallet?.message
+)
+
+let defaultTypeChange = null
+try {
+  walletsRepo.update(db, alice.id, aliceCash.id, {
+    name: aliceCash.name,
+    type: 'bank',
+    style: 'bdo',
+    opening_balance: 0,
+    last4: null
+  })
+} catch (error) {
+  defaultTypeChange = error
+}
+check(
+  'the default Cash wallet must stay a cash wallet',
+  defaultTypeChange?.message === 'The default Cash wallet must stay a cash wallet',
+  defaultTypeChange?.message
+)
+
 let missingWallet = null
 try {
   incomeRepo.create(db, alice.id, {
@@ -599,7 +648,11 @@ try {
 } catch (error) {
   lastActive = error
 }
-check('the last active wallet cannot be archived', lastActive?.message === 'At least one wallet must stay active')
+check(
+  'the default Cash wallet cannot be archived even when it is the only wallet',
+  lastActive?.message === 'The default Cash wallet cannot be archived',
+  lastActive?.message
+)
 
 const tieList = walletsRepo.list(db, alice.id)
 db.prepare('UPDATE wallets SET sort_order = 5 WHERE user_id = ?').run(alice.id)

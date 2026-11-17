@@ -95,6 +95,23 @@
   color: #ef4444;
 }
 
+/* Monogram direction: the bank's initials sit behind the data at low alpha. */
+.wallet-monogram {
+  position: absolute;
+  right: -4px;
+  bottom: -18px;
+  z-index: 0;
+  color: currentColor;
+  opacity: 0.14;
+  font-size: clamp(56px, 38cqw, 124px);
+  font-weight: 850;
+  line-height: 0.8;
+  letter-spacing: -0.09em;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* BDO: royal blue, wave + halftone */
 .wallet-face--bdo { background: linear-gradient(155deg, #144fc0 0%, #0a3796 42%, #06205c 100%); }
 .wallet-face--bdo::after {
