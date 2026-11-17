@@ -226,8 +226,8 @@ export default function Wallet() {
         message={
           pendingArchive && pendingArchive.balance !== 0
             ? hidden
-              ? 'This wallet still holds money. Archiving it stops that balance counting toward net worth. You can restore it from the Archive.'
-              : `This wallet still holds ${formatCurrency(pendingArchive.balance)}. Archiving it stops that balance counting toward net worth. You can restore it from the Archive.`
+              ? 'This wallet has a non-zero balance. Archiving it stops that balance counting toward net worth. You can restore it from the Archive.'
+              : `This wallet has a balance of ${formatCurrency(pendingArchive.balance)}. Archiving it stops that balance counting toward net worth. You can restore it from the Archive.`
             : 'This moves the wallet to the Archive. Its history stays intact and you can restore it anytime.'
         }
         confirmLabel="Archive"
