@@ -67,7 +67,10 @@ describe('WalletForm', () => {
     fireEvent.change(screen.getByLabelText('Wallet'), { target: { value: 'other' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add wallet' }))
     await waitFor(() => expect(mocks.create).not.toHaveBeenCalled())
-    expect(screen.getByText('Wallet name is required')).toBeInTheDocument()
+    expect(screen.getByText('Wallet name is required')).toHaveAttribute(
+      'id',
+      'wallet-name-error'
+    )
   })
 
   it('preloads a preset wallet and updates it', async () => {
@@ -192,12 +195,20 @@ describe('WalletForm', () => {
     fireEvent.change(screen.getByLabelText('Last 4 (optional)'), { target: { value: '12' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add wallet' }))
     await screen.findByText('Last 4 must be four digits')
+    expect(screen.getByText('Last 4 must be four digits')).toHaveAttribute(
+      'id',
+      'wallet-last4-error'
+    )
     expect(mocks.create).not.toHaveBeenCalled()
 
     fireEvent.change(screen.getByLabelText('Last 4 (optional)'), { target: { value: '1234' } })
     fireEvent.change(screen.getByLabelText('Opening balance'), { target: { value: '-5' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add wallet' }))
     await screen.findByText('Opening balance must be zero or more')
+    expect(screen.getByText('Opening balance must be zero or more')).toHaveAttribute(
+      'id',
+      'wallet-opening-error'
+    )
     expect(mocks.create).not.toHaveBeenCalled()
   })
 
