@@ -112,6 +112,19 @@ describe('TransferForm', () => {
     expect(mocks.transfer).not.toHaveBeenCalled()
   })
 
+  it('hides balances in the pickers and preview when requested', () => {
+    render(
+      <TransferForm open hidden wallets={wallets} onClose={vi.fn()} onSaved={vi.fn()} />
+    )
+    const from = screen.getByLabelText('From')
+    expect(from.options[0].textContent).toBe('Cash')
+    expect(from.options[1].textContent).toBe('BDO')
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '50' } })
+    expect(screen.getByText('Balances hidden')).toBeInTheDocument()
+    expect(screen.queryByText('BDO: ₱150.00')).not.toBeInTheDocument()
+  })
+
   it('switches the source wallet and previews the new balances', () => {
     render(<TransferForm open initialFrom={wallets[1]} wallets={wallets} onClose={vi.fn()} onSaved={vi.fn()} />)
     fireEvent.change(screen.getByLabelText('From'), { target: { value: '1' } })

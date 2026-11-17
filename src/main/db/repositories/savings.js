@@ -100,15 +100,21 @@ export function listContributions(db, userId, goalId) {
       `SELECT c.id, c.goal_id, c.income_id, c.amount, c.date, c.notes, c.created_at,
               i.source AS income_source
        FROM savings_contributions c
-       LEFT JOIN income i ON i.id = c.income_id
+       LEFT JOIN income i ON i.id = c.income_id AND i.user_id = ?
        WHERE c.goal_id = ? ORDER BY c.date DESC, c.id DESC`
     )
-    .all(goalId)
+    .all(userId, goalId)
 }
 
 export function addContribution(db, userId, goalId, data) {
   const goal = db.prepare('SELECT id FROM savings_goals WHERE id = ? AND user_id = ?').get(goalId, userId)
   if (!goal) return null
+  if (data.income_id) {
+    const owned = db
+      .prepare('SELECT 1 FROM income WHERE id = ? AND user_id = ?')
+      .get(data.income_id, userId)
+    if (!owned) throw new Error('Linked income not found')
+  }
   const run = db.transaction(() => {
     db.prepare(
       `INSERT INTO savings_contributions (goal_id, income_id, amount, date, notes)

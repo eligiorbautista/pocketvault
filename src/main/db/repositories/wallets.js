@@ -59,6 +59,12 @@ export function ensureWallet(db, userId, id) {
   return wallet
 }
 
+function ensureActiveWallet(db, userId, id) {
+  const wallet = ensureWallet(db, userId, id)
+  if (wallet.is_archived) throw new ValidationError('Wallet is archived')
+  return wallet
+}
+
 export function create(db, userId, payload) {
   const data = validateWalletInput(payload)
   const next = db
@@ -141,11 +147,13 @@ export function move(db, userId, id, direction) {
   const target = direction === 'up' ? index - 1 : index + 1
   if (target < 0 || target >= rows.length) return false
 
+  // Rewrite the whole active order instead of swapping two sort_order values:
+  // backups can contain tied or sparse values, and a swap would then be a no-op.
+  const ordered = rows.map((wallet) => wallet.id)
+  ;[ordered[index], ordered[target]] = [ordered[target], ordered[index]]
+  const update = db.prepare('UPDATE wallets SET sort_order = ? WHERE id = ?')
   const run = db.transaction(() => {
-    const a = rows[index]
-    const b = rows[target]
-    db.prepare('UPDATE wallets SET sort_order = ? WHERE id = ?').run(b.sort_order, a.id)
-    db.prepare('UPDATE wallets SET sort_order = ? WHERE id = ?').run(a.sort_order, b.id)
+    ordered.forEach((walletId, position) => update.run(position, walletId))
   })
   run()
   return true
@@ -269,8 +277,8 @@ export function getTransfer(db, userId, id) {
 
 export function transfer(db, userId, payload) {
   const data = validateTransferInput(payload)
-  ensureWallet(db, userId, data.from_wallet_id)
-  ensureWallet(db, userId, data.to_wallet_id)
+  ensureActiveWallet(db, userId, data.from_wallet_id)
+  ensureActiveWallet(db, userId, data.to_wallet_id)
   const info = db
     .prepare(
       `INSERT INTO wallet_transfers

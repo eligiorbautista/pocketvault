@@ -1,5 +1,5 @@
 import { RowActionsMenu } from '@renderer/components/ui/RowActionsMenu.jsx'
-import { WALLET_TYPE_LABELS, contrastInk } from '@shared/wallets.js'
+import { WALLET_STYLE_IDS, WALLET_TYPE_LABELS, contrastInk } from '@shared/wallets.js'
 import { cn } from '@renderer/lib/cn.js'
 import { formatCurrency } from '@renderer/lib/format.js'
 
@@ -33,7 +33,8 @@ function CashArt() {
 }
 
 export function WalletFace({ wallet, className, children }) {
-  const style = wallet.style || 'generic'
+  const rawStyle = wallet.style || 'generic'
+  const style = rawStyle === 'custom' || WALLET_STYLE_IDS.includes(rawStyle) ? rawStyle : 'generic'
   const custom = style === 'custom'
   const image = custom && wallet.card_image
   const inline = custom

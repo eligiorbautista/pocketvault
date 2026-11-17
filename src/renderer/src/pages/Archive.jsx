@@ -119,18 +119,22 @@ export default function Archive() {
   const restore = async (section, row) => {
     setBusyId(`${section.key}:${row.id}`)
     try {
-      await section.restore(row.id)
+      const restored = await section.restore(row.id)
+      if (restored === false) throw new Error('Archived item not found')
       setData((prev) => ({
         ...prev,
         [section.key]: prev[section.key].filter((item) => item.id !== row.id)
       }))
       toast('Restored to active', 'success')
       if (section.key === 'debts') syncDebtReminders()
-    } catch {
-      // The row may have been reactivated elsewhere (e.g. re-adding a budget
-      // un-archives it). Re-sync instead of surfacing a raw error.
-      toast('That item was already restored', 'info')
-      loadAll()
+    } catch (error) {
+      const message = error?.message || 'Could not restore this item'
+      if (/not found/i.test(message)) {
+        toast('That item was already restored', 'info')
+        loadAll()
+      } else {
+        toast(message, 'error')
+      }
     } finally {
       setBusyId(null)
     }
@@ -196,7 +200,7 @@ export default function Archive() {
               title={total === 0 ? 'Nothing archived' : `No archived ${activeSection.label.toLowerCase()}`}
               description={
                 total === 0
-                  ? 'Records you archive from Income, Expenses, Debts, Budgets, Savings or Wallets will appear here.'
+                  ? 'Records you archive from Income, Expenses, Debts, Budgets, Savings, Wallets or Transfers will appear here.'
                   : 'This category has no archived records.'
               }
             />

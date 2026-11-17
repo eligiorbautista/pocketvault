@@ -6,6 +6,7 @@ import { Button } from '@renderer/components/ui/Button.jsx'
 import { Field } from '@renderer/components/ui/Field.jsx'
 import { Input, PasswordInput } from '@renderer/components/ui/Input.jsx'
 import { toast } from '@renderer/store/uiStore.js'
+import { syncDebtReminders } from '@renderer/lib/notifications.js'
 
 const CONFIRM_PHRASE = 'delete all my data'
 
@@ -31,6 +32,9 @@ export function DeleteDataForm({ open, onClose, onDeleted }) {
     setBusy(true)
     try {
       await api.account.deleteData(values.password)
+      // The deleted debts must not leave scheduled reminders behind (Android
+      // fires them even when the app is closed).
+      syncDebtReminders()
       toast('All data deleted', 'success', { description: 'Your account is still active.' })
       onDeleted?.()
       onClose()
@@ -65,8 +69,9 @@ export function DeleteDataForm({ open, onClose, onDeleted }) {
     >
       <form id="delete-data-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-          This permanently deletes all of your income, expenses, debts, budgets and savings records,
-          including their receipts. Your account and password stay the same. This cannot be undone.
+          This permanently deletes all of your wallets, transfers, income, expenses, debts, budgets
+          and savings records, including their receipts. Your account and password stay the same.
+          This cannot be undone.
         </div>
 
         <Field

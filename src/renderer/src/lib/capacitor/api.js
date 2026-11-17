@@ -505,6 +505,12 @@ async function ensureWallet(userId, value) {
   return row
 }
 
+async function ensureActiveWallet(userId, value) {
+  const row = await ensureWallet(userId, value)
+  if (row.is_archived) throw new Error('Wallet is archived')
+  return row
+}
+
 // Mirrors the desktop `normalize` in src/main/ipc/debts.ipc.js so both platforms
 // validate a debt the same way (first payment date required for monthly, etc.).
 function normalizeDebtWrite(data) {
@@ -1257,11 +1263,12 @@ export function createCapacitorApi() {
       const index = rows.findIndex((row) => row.id === walletId)
       const target = direction === 'up' ? index - 1 : index + 1
       if (index === -1 || target < 0 || target >= rows.length) return { moved: false }
-      const a = rows[index]
-      const b = rows[target]
+      const ordered = rows.map((row) => row.id)
+      ;[ordered[index], ordered[target]] = [ordered[target], ordered[index]]
       await transaction(async () => {
-        await run('UPDATE wallets SET sort_order = ? WHERE id = ?', [b.sort_order, a.id])
-        await run('UPDATE wallets SET sort_order = ? WHERE id = ?', [a.sort_order, b.id])
+        for (let position = 0; position < ordered.length; position += 1) {
+          await run('UPDATE wallets SET sort_order = ? WHERE id = ?', [position, ordered[position]])
+        }
       })
       return { moved: true }
     },
@@ -1367,8 +1374,8 @@ export function createCapacitorApi() {
     transfer: async (data) => {
       const userId = requireUserId()
       const row = validateTransferInput(data)
-      const from = await ensureWallet(userId, row.from_wallet_id)
-      const to = await ensureWallet(userId, row.to_wallet_id)
+      const from = await ensureActiveWallet(userId, row.from_wallet_id)
+      const to = await ensureActiveWallet(userId, row.to_wallet_id)
       const info = await run(
         `INSERT INTO wallet_transfers
           (user_id, from_wallet_id, to_wallet_id, amount, date, notes, updated_at)
@@ -1572,9 +1579,9 @@ export function createCapacitorApi() {
         `SELECT c.id, c.goal_id, c.income_id, c.amount, c.date, c.notes, c.created_at,
                 i.source AS income_source
          FROM savings_contributions c
-         LEFT JOIN income i ON i.id = c.income_id
+         LEFT JOIN income i ON i.id = c.income_id AND i.user_id = ?
          WHERE c.goal_id = ? ORDER BY c.date DESC, c.id DESC`,
-        [id]
+        [userId, id]
       )
     },
 

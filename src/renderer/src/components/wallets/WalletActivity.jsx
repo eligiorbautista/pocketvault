@@ -3,11 +3,13 @@ import { ArrowLeftRight, Banknote, HandCoins, TrendingDown, TrendingUp } from 'l
 import { api } from '@renderer/lib/api.js'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
+import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
 import { ErrorState } from '@renderer/components/ui/ErrorState.jsx'
 import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
 import { categoryLabel, formatCurrency, formatDate } from '@renderer/lib/format.js'
 import { useApiData } from '@renderer/hooks/useApiData.js'
+import { toast } from '@renderer/store/uiStore.js'
 
 const ICONS = {
   income: TrendingUp,
@@ -17,8 +19,10 @@ const ICONS = {
   transfer: ArrowLeftRight
 }
 
-export function WalletActivity({ wallet, open, hidden, onClose, onTransfer }) {
+export function WalletActivity({ wallet, open, hidden, onClose, onTransfer, onChanged }) {
   const [limit, setLimit] = useState(100)
+  const [pendingTransfer, setPendingTransfer] = useState(null)
+  const [archiving, setArchiving] = useState(false)
   const { data, loading, error, reload } = useApiData(
     () => (open && wallet ? api.wallets.activity(wallet.id, limit) : Promise.resolve([])),
     [open, wallet?.id, limit]
@@ -30,10 +34,32 @@ export function WalletActivity({ wallet, open, hidden, onClose, onTransfer }) {
 
   const rows = data ?? []
 
+  const close = () => {
+    setPendingTransfer(null)
+    onClose()
+  }
+
+  const archiveTransfer = async () => {
+    if (!pendingTransfer) return
+    setArchiving(true)
+    try {
+      const removed = await api.wallets.removeTransfer(pendingTransfer.id)
+      if (removed === false) throw new Error('Transfer not found')
+      toast('Transfer archived', 'success')
+      setPendingTransfer(null)
+      reload()
+      onChanged?.()
+    } catch (err) {
+      toast(err.message, 'error')
+    } finally {
+      setArchiving(false)
+    }
+  }
+
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={close}
       title={wallet?.name ?? 'Wallet activity'}
       description={
         wallet
@@ -54,7 +80,7 @@ export function WalletActivity({ wallet, open, hidden, onClose, onTransfer }) {
           <Button
             variant="secondary"
             onClick={() => {
-              onClose()
+              close()
               onTransfer(wallet)
             }}
           >
@@ -108,11 +134,35 @@ export function WalletActivity({ wallet, open, hidden, onClose, onTransfer }) {
                     ? '••••'
                     : `${incoming ? '+' : '−'}${formatCurrency(Math.abs(Number(row.amount)))}`}
                 </span>
+                {row.kind === 'transfer' ? (
+                  <button
+                    type="button"
+                    onClick={() => setPendingTransfer(row)}
+                    className="shrink-0 cursor-pointer text-xs font-medium text-slate-500 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:text-dark-faint dark:hover:text-red-400"
+                  >
+                    Archive
+                  </button>
+                ) : null}
               </li>
             )
           })}
         </ul>
       ) : null}
+      <ConfirmDialog
+        open={Boolean(pendingTransfer)}
+        title="Archive transfer?"
+        message={
+          pendingTransfer
+            ? hidden
+              ? `This removes the transfer between ${pendingTransfer.from_name} and ${pendingTransfer.to_name} from both wallet balances. You can restore it from the Archive.`
+              : `${formatCurrency(Math.abs(pendingTransfer.amount))} moved from ${pendingTransfer.from_name} to ${pendingTransfer.to_name}. Archiving removes it from both wallet balances; you can restore it from the Archive.`
+            : ''
+        }
+        confirmLabel="Archive"
+        loading={archiving}
+        onConfirm={archiveTransfer}
+        onCancel={() => setPendingTransfer(null)}
+      />
     </Modal>
   )
 }

@@ -1,8 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ activity: vi.fn() }))
-vi.mock('@renderer/lib/api.js', () => ({ api: { wallets: { activity: mocks.activity } } }))
+const mocks = vi.hoisted(() => ({
+  activity: vi.fn(),
+  removeTransfer: vi.fn(),
+  toast: vi.fn()
+}))
+vi.mock('@renderer/lib/api.js', () => ({
+  api: { wallets: { activity: mocks.activity, removeTransfer: mocks.removeTransfer } }
+}))
+vi.mock('@renderer/store/uiStore.js', () => ({ toast: mocks.toast }))
 
 import { WalletActivity } from './WalletActivity.jsx'
 
@@ -20,6 +27,8 @@ const rows = Array.from({ length: 100 }, (_, index) => ({
 describe('WalletActivity', () => {
   beforeEach(() => {
     mocks.activity.mockReset().mockResolvedValue(rows)
+    mocks.removeTransfer.mockReset().mockResolvedValue({ removed: true })
+    mocks.toast.mockReset()
   })
 
   it('loads the first 100 rows and requests 200 on Show more', async () => {
@@ -181,6 +190,68 @@ describe('WalletActivity', () => {
     expect(screen.getByText('−₱12.00')).toBeInTheDocument()
     expect(screen.getByText('+₱5.00')).toBeInTheDocument()
     expect(screen.getByText('Mystery')).toBeInTheDocument()
+  })
+
+  it('archives a transfer after confirming', async () => {
+    const transfer = {
+      kind: 'transfer',
+      id: 2,
+      date: '2026-01-03',
+      amount: -5,
+      label: 'Transfer out',
+      notes: null,
+      from_name: 'BDO',
+      to_name: 'Cash'
+    }
+    mocks.activity.mockResolvedValueOnce([transfer])
+    const onChanged = vi.fn()
+    render(
+      <WalletActivity
+        wallet={{ id: 7, name: 'BDO', balance: 100 }}
+        open
+        hidden={false}
+        onClose={vi.fn()}
+        onTransfer={vi.fn()}
+        onChanged={onChanged}
+      />
+    )
+
+    expect(await screen.findByText(/BDO → Cash/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Archive' }))
+    expect(await screen.findByText('Archive transfer?')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Archive' }).at(-1))
+
+    await waitFor(() => expect(mocks.removeTransfer).toHaveBeenCalledWith(2))
+    expect(mocks.toast).toHaveBeenCalledWith('Transfer archived', 'success')
+    expect(onChanged).toHaveBeenCalled()
+  })
+
+  it('does not reveal the amount in the archive confirmation when hidden', async () => {
+    mocks.activity.mockResolvedValueOnce([
+      {
+        kind: 'transfer',
+        id: 2,
+        date: '2026-01-03',
+        amount: -5,
+        label: 'Transfer out',
+        notes: null,
+        from_name: 'BDO',
+        to_name: 'Cash'
+      }
+    ])
+    render(
+      <WalletActivity
+        wallet={{ id: 7, name: 'BDO', balance: 100 }}
+        open
+        hidden
+        onClose={vi.fn()}
+        onTransfer={vi.fn()}
+      />
+    )
+    await screen.findByText(/BDO → Cash/)
+    fireEvent.click(screen.getByRole('button', { name: 'Archive' }))
+    expect(await screen.findByText(/This removes the transfer between BDO and Cash/)).toBeInTheDocument()
+    expect(screen.queryByText(/₱5\.00/)).not.toBeInTheDocument()
   })
 
   it('closes and opens the transfer form from the footer', async () => {

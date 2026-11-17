@@ -78,7 +78,8 @@ export default function Wallet() {
     if (!pendingArchive) return
     setArchiving(true)
     try {
-      await api.wallets.remove(pendingArchive.id)
+      const removed = await api.wallets.remove(pendingArchive.id)
+      if (removed === false) throw new Error('Wallet not found')
       toast('Wallet archived', 'success')
       setPendingArchive(null)
       reload()
@@ -204,6 +205,7 @@ export default function Wallet() {
         open={transferOpen}
         initialFrom={transferFrom}
         wallets={wallets}
+        hidden={hidden}
         onClose={() => setTransferOpen(false)}
         onSaved={reload}
       />
@@ -214,6 +216,7 @@ export default function Wallet() {
         hidden={hidden}
         onClose={() => setActivityWallet(null)}
         onTransfer={openTransfer}
+        onChanged={reload}
       />
 
       <ConfirmDialog
@@ -221,7 +224,9 @@ export default function Wallet() {
         title="Archive wallet?"
         message={
           pendingArchive && pendingArchive.balance !== 0
-            ? `This wallet still holds ${formatCurrency(pendingArchive.balance)}. Archiving it stops that balance counting toward net worth. You can restore it from the Archive.`
+            ? hidden
+              ? 'This wallet still holds money. Archiving it stops that balance counting toward net worth. You can restore it from the Archive.'
+              : `This wallet still holds ${formatCurrency(pendingArchive.balance)}. Archiving it stops that balance counting toward net worth. You can restore it from the Archive.`
             : 'This moves the wallet to the Archive. Its history stays intact and you can restore it anytime.'
         }
         confirmLabel="Archive"

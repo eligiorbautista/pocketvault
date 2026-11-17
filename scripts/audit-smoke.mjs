@@ -528,6 +528,10 @@ check(
   'custom wallet keeps colour and image',
   custom.color === '#3b3b40' && custom.card_image === pixel
 )
+const customSummary = walletsRepo
+  .summary(db, alice.id)
+  .wallets.find((wallet) => wallet.id === custom.id)
+check('wallet summary includes the card image', customSummary?.card_image === pixel)
 const preset = walletsRepo.update(db, alice.id, custom.id, {
   name: 'BDO again',
   type: 'bank',
@@ -596,6 +600,39 @@ try {
   lastActive = error
 }
 check('the last active wallet cannot be archived', lastActive?.message === 'At least one wallet must stay active')
+
+const tieList = walletsRepo.list(db, alice.id)
+db.prepare('UPDATE wallets SET sort_order = 5 WHERE user_id = ?').run(alice.id)
+const tied = walletsRepo.list(db, alice.id).map((wallet) => wallet.id)
+const moved = tieList.length >= 2 ? walletsRepo.move(db, alice.id, tied[1], 'up') : false
+const movedOrder = walletsRepo.list(db, alice.id).map((wallet) => wallet.id)
+check(
+  'wallet move rewrites a tied order',
+  moved && movedOrder[0] === tied[1] && movedOrder[1] === tied[0],
+  { tied, movedOrder }
+)
+
+const archivedTarget = walletsRepo.create(db, alice.id, {
+  name: 'Archived target',
+  type: 'bank',
+  style: 'bdo',
+  opening_balance: 0,
+  last4: null
+})
+walletsRepo.remove(db, alice.id, archivedTarget.id)
+let archivedTransfer = null
+try {
+  walletsRepo.transfer(db, alice.id, {
+    from_wallet_id: cashId(db, alice.id),
+    to_wallet_id: archivedTarget.id,
+    amount: 1,
+    date: '2026-09-02',
+    notes: null
+  })
+} catch (error) {
+  archivedTransfer = error
+}
+check('transfer to an archived wallet is rejected', archivedTransfer?.message === 'Wallet is archived')
 
 closeDatabase()
 rmSync(dir, { recursive: true, force: true })

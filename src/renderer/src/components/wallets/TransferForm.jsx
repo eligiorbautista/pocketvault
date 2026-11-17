@@ -7,7 +7,7 @@ import { Input, Select, Textarea } from '@renderer/components/ui/Input.jsx'
 import { formatCurrency, todayInput } from '@renderer/lib/format.js'
 import { toast } from '@renderer/store/uiStore.js'
 
-export function TransferForm({ open, initialFrom, wallets, onClose, onSaved }) {
+export function TransferForm({ open, initialFrom, wallets, hidden = false, onClose, onSaved }) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
@@ -81,7 +81,8 @@ export function TransferForm({ open, initialFrom, wallets, onClose, onSaved }) {
             <Select id="transfer-from" value={from} onChange={(event) => setFrom(event.target.value)}>
               {wallets.map((wallet) => (
                 <option key={wallet.id} value={wallet.id}>
-                  {wallet.name} · {formatCurrency(wallet.balance)}
+                  {wallet.name}
+                  {hidden ? '' : ` · ${formatCurrency(wallet.balance)}`}
                 </option>
               ))}
             </Select>
@@ -90,7 +91,8 @@ export function TransferForm({ open, initialFrom, wallets, onClose, onSaved }) {
             <Select id="transfer-to" value={to} onChange={(event) => setTo(event.target.value)}>
               {wallets.map((wallet) => (
                 <option key={wallet.id} value={wallet.id}>
-                  {wallet.name} · {formatCurrency(wallet.balance)}
+                  {wallet.name}
+                  {hidden ? '' : ` · ${formatCurrency(wallet.balance)}`}
                 </option>
               ))}
             </Select>
@@ -127,12 +129,18 @@ export function TransferForm({ open, initialFrom, wallets, onClose, onSaved }) {
 
         {valid && fromWallet && toWallet ? (
           <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:bg-dark-surface-2 dark:text-dark-faint">
-            <span>
-              {fromWallet.name}: {formatCurrency(fromWallet.balance - value)}
-            </span>
-            <span>
-              {toWallet.name}: {formatCurrency(toWallet.balance + value)}
-            </span>
+            {hidden ? (
+              <span>Balances hidden</span>
+            ) : (
+              <>
+                <span>
+                  {fromWallet.name}: {formatCurrency(fromWallet.balance - value)}
+                </span>
+                <span>
+                  {toWallet.name}: {formatCurrency(toWallet.balance + value)}
+                </span>
+              </>
+            )}
           </div>
         ) : null}
       </form>

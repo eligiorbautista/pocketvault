@@ -71,6 +71,11 @@ describe('WalletCard', () => {
     expect(screen.getByText('Wallet')).toBeInTheDocument()
   })
 
+  it('falls back to the generic face for an unknown style', () => {
+    const { container } = setup({ style: 'mystery' })
+    expect(container.querySelector('.wallet-face--generic')).toBeInTheDocument()
+  })
+
   it('renders the cash art without a chip and a custom image scrim', () => {
     const { container } = setup({ style: 'cash', type: 'cash', last4: null })
     expect(container.querySelector('.wallet-lines')).toBeInTheDocument()
