@@ -20,13 +20,14 @@ import { toast } from '@renderer/store/uiStore.js'
 
 const EMPTY_FILTERS = { search: '', from: '', to: '', order: 'newest' }
 
-function IncomeForm({ open, initial, wallets, onClose, onSaved }) {
+function IncomeForm({ open, initial, wallets, archivedWallets = [], onClose, onSaved }) {
   const [receiptPath, setReceiptPath] = useState(null)
   const [attaching, setAttaching] = useState(false)
   const cashId = wallets.find((wallet) => wallet.name === 'Cash')?.id ?? wallets[0]?.id ?? ''
+  const archivedName = archivedWallets.find((wallet) => wallet.id === initial?.wallet_id)?.name
   const options =
     initial?.wallet_id && !wallets.some((wallet) => wallet.id === initial.wallet_id)
-      ? [...wallets, { id: initial.wallet_id, name: 'Archived wallet' }]
+      ? [...wallets, { id: initial.wallet_id, name: archivedName ?? 'Archived wallet' }]
       : wallets
   const {
     register,
@@ -213,10 +214,13 @@ export default function Income() {
     [page, filters]
   )
   const walletsQuery = useApiData(() => api.wallets.list(), [])
+  const archivedWalletsQuery = useApiData(() => api.wallets.archived(), [])
 
   const rows = data?.rows ?? []
   const wallets = walletsQuery.data ?? []
-  const walletName = (id) => wallets.find((wallet) => wallet.id === id)?.name ?? 'Archived wallet'
+  const archivedWallets = archivedWalletsQuery.data ?? []
+  const walletName = (id) =>
+    [...wallets, ...archivedWallets].find((wallet) => wallet.id === id)?.name ?? 'Wallet'
 
   const applyFilters = (event) => {
     event.preventDefault()
@@ -396,6 +400,7 @@ export default function Income() {
         open={formOpen}
         initial={editing}
         wallets={wallets}
+        archivedWallets={archivedWallets}
         onClose={() => setFormOpen(false)}
         onSaved={reload}
       />

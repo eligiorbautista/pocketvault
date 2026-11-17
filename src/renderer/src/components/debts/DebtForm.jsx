@@ -10,12 +10,13 @@ import { ReceiptField } from '@renderer/components/ui/ReceiptField.jsx'
 import { todayInput } from '@renderer/lib/format.js'
 import { toast } from '@renderer/store/uiStore.js'
 
-export function DebtForm({ open, initial, wallets = [], onClose, onSaved }) {
+export function DebtForm({ open, initial, wallets = [], archivedWallets = [], onClose, onSaved }) {
   const [receiptPath, setReceiptPath] = useState(null)
   const cashId = wallets.find((wallet) => wallet.name === 'Cash')?.id ?? wallets[0]?.id ?? ''
+  const archivedName = archivedWallets.find((wallet) => wallet.id === initial?.wallet_id)?.name
   const options =
     initial?.wallet_id && !wallets.some((wallet) => wallet.id === initial.wallet_id)
-      ? [...wallets, { id: initial.wallet_id, name: 'Archived wallet' }]
+      ? [...wallets, { id: initial.wallet_id, name: archivedName ?? 'Archived wallet' }]
       : wallets
   const {
     register,

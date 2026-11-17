@@ -276,4 +276,10 @@ describe('WalletActivity', () => {
     expect(await screen.findByText('No movements yet')).toBeInTheDocument()
     expect(mocks.activity).not.toHaveBeenCalled()
   })
+
+  it('omits the transfer footer when there is no second wallet', async () => {
+    render(<WalletActivity wallet={{ id: 7, name: 'BDO', balance: 100 }} open onClose={vi.fn()} />)
+    await screen.findAllByText('Salary')
+    expect(screen.queryByRole('button', { name: 'Transfer' })).not.toBeInTheDocument()
+  })
 })

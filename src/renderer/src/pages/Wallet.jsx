@@ -36,6 +36,7 @@ export default function Wallet() {
   }, [hidden])
 
   const wallets = data?.wallets ?? []
+  const canTransfer = wallets.length > 1
   const netWorth = data?.netWorth ?? 0
   const netBalance = data?.netBalance ?? 0
   const liabilities = data?.liabilities ?? 0
@@ -46,7 +47,7 @@ export default function Wallet() {
     null
   )
   const finding =
-    largest && wallets.length && data?.total > 0
+    largest && wallets.length && data?.total > 0 && wallets.every((wallet) => wallet.balance >= 0)
       ? `${largest.name} holds ${Math.round((largest.balance / data.total) * 100)}% of it.`
       : null
 
@@ -172,7 +173,7 @@ export default function Wallet() {
                   canMoveDown={index < wallets.length - 1}
                   onOpen={setActivityWallet}
                   onEdit={openEdit}
-                  onTransfer={openTransfer}
+                  onTransfer={canTransfer ? openTransfer : undefined}
                   onMove={move}
                   onArchive={setPendingArchive}
                 />
@@ -215,7 +216,7 @@ export default function Wallet() {
         open={Boolean(activityWallet)}
         hidden={hidden}
         onClose={() => setActivityWallet(null)}
-        onTransfer={openTransfer}
+        onTransfer={canTransfer ? openTransfer : undefined}
         onChanged={reload}
       />
 

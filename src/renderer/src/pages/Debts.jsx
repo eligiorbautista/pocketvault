@@ -37,9 +37,11 @@ export default function Debts() {
   )
   const summary = useApiData(() => api.reports.debtSummary(), [])
   const walletsQuery = useApiData(() => api.wallets.list(), [])
+  const archivedWalletsQuery = useApiData(() => api.wallets.archived(), [])
 
   const rows = data?.rows ?? []
   const wallets = walletsQuery.data ?? []
+  const archivedWallets = archivedWalletsQuery.data ?? []
 
   const applyFilters = (event) => {
     event.preventDefault()
@@ -243,6 +245,7 @@ export default function Debts() {
         open={formOpen}
         initial={editing}
         wallets={wallets}
+        archivedWallets={archivedWallets}
         onClose={() => setFormOpen(false)}
         onSaved={() => {
           reload()

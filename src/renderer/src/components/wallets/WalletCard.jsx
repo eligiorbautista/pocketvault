@@ -76,7 +76,7 @@ export function WalletCard({
   const amount = hidden ? '••••' : formatCurrency(wallet.balance)
   const actions = [
     { key: 'edit', label: 'Edit', onSelect: () => onEdit(wallet) },
-    { key: 'transfer', label: 'Transfer', onSelect: () => onTransfer(wallet) },
+    onTransfer ? { key: 'transfer', label: 'Transfer', onSelect: () => onTransfer(wallet) } : null,
     { key: 'activity', label: 'Activity', onSelect: () => onOpen(wallet) },
     canMoveUp ? { key: 'up', label: 'Move up', onSelect: () => onMove(wallet, 'up') } : null,
     canMoveDown ? { key: 'down', label: 'Move down', onSelect: () => onMove(wallet, 'down') } : null,

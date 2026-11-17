@@ -13,7 +13,8 @@ export function TransferForm({ open, initialFrom, wallets, hidden = false, onClo
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(todayInput())
   const [notes, setNotes] = useState('')
-  const [error, setError] = useState(null)
+  const [formError, setFormError] = useState(null)
+  const [amountError, setAmountError] = useState(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -25,7 +26,8 @@ export function TransferForm({ open, initialFrom, wallets, hidden = false, onClo
     setAmount('')
     setDate(todayInput())
     setNotes('')
-    setError(null)
+    setFormError(null)
+    setAmountError(null)
   }, [open, initialFrom, wallets])
 
   const fromWallet = wallets.find((wallet) => wallet.id === Number(from))
@@ -35,9 +37,13 @@ export function TransferForm({ open, initialFrom, wallets, hidden = false, onClo
 
   const save = async (event) => {
     event.preventDefault()
-    setError(null)
-    if (from === to) return setError('Choose two different wallets')
-    if (!valid) return setError('Enter an amount greater than zero')
+    setFormError(null)
+    setAmountError(null)
+    if (!from || !to || from === to) return setFormError('Choose two different wallets')
+    if (!Number.isFinite(value) || value <= 0) {
+      return setAmountError('Enter an amount greater than zero')
+    }
+    if (!date) return setFormError('Date is required')
 
     setSaving(true)
     try {
@@ -76,6 +82,11 @@ export function TransferForm({ open, initialFrom, wallets, hidden = false, onClo
       }
     >
       <form id="transfer-form" onSubmit={save} className="space-y-4" noValidate>
+        {formError ? (
+          <p role="alert" className="text-sm text-red-500 dark:text-red-400">
+            {formError}
+          </p>
+        ) : null}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="From" htmlFor="transfer-from">
             <Select id="transfer-from" value={from} onChange={(event) => setFrom(event.target.value)}>
@@ -100,7 +111,7 @@ export function TransferForm({ open, initialFrom, wallets, hidden = false, onClo
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Amount" htmlFor="transfer-amount" error={error || undefined}>
+          <Field label="Amount" htmlFor="transfer-amount" error={amountError || undefined}>
             <Input
               id="transfer-amount"
               type="number"
@@ -110,7 +121,7 @@ export function TransferForm({ open, initialFrom, wallets, hidden = false, onClo
               placeholder="0.00"
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
-              hasError={Boolean(error)}
+              hasError={Boolean(amountError)}
             />
           </Field>
           <Field label="Date" htmlFor="transfer-date">

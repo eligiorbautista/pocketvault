@@ -77,16 +77,18 @@ export function WalletActivity({ wallet, open, hidden, onClose, onTransfer, onCh
           ) : (
             <span />
           )}
-          <Button
-            variant="secondary"
-            onClick={() => {
-              close()
-              onTransfer(wallet)
-            }}
-          >
-            <ArrowLeftRight size={16} aria-hidden="true" />
-            Transfer
-          </Button>
+          {onTransfer ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                close()
+                onTransfer(wallet)
+              }}
+            >
+              <ArrowLeftRight size={16} aria-hidden="true" />
+              Transfer
+            </Button>
+          ) : null}
         </div>
       }
     >

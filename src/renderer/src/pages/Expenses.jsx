@@ -20,11 +20,12 @@ import { toast } from '@renderer/store/uiStore.js'
 
 const EMPTY_FILTERS = { search: '', category: '', from: '', to: '', order: 'newest' }
 
-function ExpenseForm({ open, initial, wallets, onClose, onSaved }) {
+function ExpenseForm({ open, initial, wallets, archivedWallets = [], onClose, onSaved }) {
   const cashId = wallets.find((wallet) => wallet.name === 'Cash')?.id ?? wallets[0]?.id ?? ''
+  const archivedName = archivedWallets.find((wallet) => wallet.id === initial?.wallet_id)?.name
   const options =
     initial?.wallet_id && !wallets.some((wallet) => wallet.id === initial.wallet_id)
-      ? [...wallets, { id: initial.wallet_id, name: 'Archived wallet' }]
+      ? [...wallets, { id: initial.wallet_id, name: archivedName ?? 'Archived wallet' }]
       : wallets
   const {
     register,
@@ -178,10 +179,13 @@ export default function Expenses() {
   )
   const categoriesQuery = useApiData(() => api.expenses.categories(), [])
   const walletsQuery = useApiData(() => api.wallets.list(), [])
+  const archivedWalletsQuery = useApiData(() => api.wallets.archived(), [])
 
   const rows = data?.rows ?? []
   const wallets = walletsQuery.data ?? []
-  const walletName = (id) => wallets.find((wallet) => wallet.id === id)?.name ?? 'Archived wallet'
+  const archivedWallets = archivedWalletsQuery.data ?? []
+  const walletName = (id) =>
+    [...wallets, ...archivedWallets].find((wallet) => wallet.id === id)?.name ?? 'Wallet'
 
   // Built-in categories plus any custom categories already in use, so the
   // filter dropdown can select them too.
@@ -382,6 +386,7 @@ export default function Expenses() {
         open={formOpen}
         initial={editing}
         wallets={wallets}
+        archivedWallets={archivedWallets}
         onClose={() => setFormOpen(false)}
         onSaved={() => {
           reload()

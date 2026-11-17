@@ -29,7 +29,7 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
   const [mode, setMode] = useState('color')
   const [last4, setLast4] = useState('')
   const [opening, setOpening] = useState('0')
-  const [error, setError] = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const [imageBusy, setImageBusy] = useState(false)
   const fileRef = useRef(null)
@@ -58,7 +58,7 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
       setLast4('')
       setOpening('0')
     }
-    setError(null)
+    setFieldErrors({})
   }, [open, initial])
 
   const chooseProvider = (value) => {
@@ -97,14 +97,17 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
 
   const save = async (event) => {
     event.preventDefault()
-    setError(null)
+    setFieldErrors({})
     const trimmed = name.trim()
-    if (!trimmed) return setError('Wallet name is required')
-    if (last4 && !/^\d{4}$/.test(last4.trim())) return setError('Last 4 must be four digits')
+    const nextErrors = {}
+    if (!trimmed) nextErrors.name = 'Wallet name is required'
+    if (last4 && !/^\d{4}$/.test(last4.trim())) nextErrors.last4 = 'Last 4 must be four digits'
     const openingValue = Number(opening)
     if (!Number.isFinite(openingValue) || openingValue < 0) {
-      return setError('Opening balance must be zero or more')
+      nextErrors.opening = 'Opening balance must be zero or more'
     }
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) return
 
     const payload = {
       name: trimmed,
@@ -175,13 +178,13 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Name" htmlFor="wallet-name" error={error || undefined}>
+          <Field label="Name" htmlFor="wallet-name" error={fieldErrors.name}>
             <Input
               id="wallet-name"
               value={name}
               placeholder="Wallet name"
               onChange={(event) => setName(event.target.value)}
-              hasError={Boolean(error)}
+              hasError={Boolean(fieldErrors.name)}
             />
           </Field>
           <Field label="Type" htmlFor="wallet-type">
@@ -196,7 +199,7 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Last 4 (optional)" htmlFor="wallet-last4" hint="Digits shown on the card.">
+          <Field label="Last 4 (optional)" htmlFor="wallet-last4" error={fieldErrors.last4} hint="Digits shown on the card.">
             <Input
               id="wallet-last4"
               value={last4}
@@ -204,9 +207,10 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
               maxLength={4}
               placeholder="0192"
               onChange={(event) => setLast4(event.target.value.replace(/\D/g, '').slice(0, 4))}
+              hasError={Boolean(fieldErrors.last4)}
             />
           </Field>
-          <Field label="Opening balance" htmlFor="wallet-opening" hint="What it holds today.">
+          <Field label="Opening balance" htmlFor="wallet-opening" error={fieldErrors.opening} hint="What it holds today.">
             <Input
               id="wallet-opening"
               type="number"
@@ -215,6 +219,7 @@ export function WalletForm({ open, initial, onClose, onSaved }) {
               inputMode="decimal"
               value={opening}
               onChange={(event) => setOpening(event.target.value)}
+              hasError={Boolean(fieldErrors.opening)}
             />
           </Field>
         </div>

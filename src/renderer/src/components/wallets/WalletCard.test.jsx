@@ -130,4 +130,10 @@ describe('WalletCard', () => {
     expect(screen.queryByRole('menuitem', { name: 'Move up' })).not.toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: 'Move down' })).not.toBeInTheDocument()
   })
+
+  it('omits Transfer when there is no second wallet to move to', () => {
+    setup({}, { onTransfer: undefined })
+    fireEvent.click(screen.getByRole('button', { name: 'BDO actions' }))
+    expect(screen.queryByRole('menuitem', { name: 'Transfer' })).not.toBeInTheDocument()
+  })
 })
