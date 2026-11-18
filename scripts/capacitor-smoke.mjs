@@ -385,8 +385,19 @@ const bdoWallet = await api.wallets.create({
   type: 'bank',
   style: 'bdo',
   opening_balance: 0,
-  last4: '4218'
+  last4: '4218',
+  interest_enabled: true,
+  interest_rate: 4,
+  interest_crediting: 'monthly',
+  interest_withholding: true
 })
+await check(
+  'wallet interest settings are persisted',
+  () =>
+    bdoWallet.interest_enabled === 1 &&
+    bdoWallet.interest_rate === 4 &&
+    bdoWallet.interest_crediting === 'monthly'
+)
 const transferRow = await api.wallets.transfer({
   from_wallet_id: freshCashId,
   to_wallet_id: bdoWallet.id,

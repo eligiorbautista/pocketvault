@@ -190,7 +190,10 @@ const extraWallet = walletsRepo.create(dbB, aliceB.id, {
   type: 'bank',
   style: 'bdo',
   opening_balance: 0,
-  last4: null
+  last4: null,
+  interest_enabled: true,
+  interest_rate: 4,
+  interest_crediting: 'quarterly'
 })
 walletsRepo.transfer(dbB, aliceB.id, {
   from_wallet_id: cashId(dbB, aliceB.id),
@@ -213,6 +216,12 @@ check(
   'transfer survives the import',
   reimportedExtra &&
     walletsRepo.activity(dbB, aliceB.id, reimportedExtra.id).some((row) => row.kind === 'transfer')
+)
+check(
+  'interest settings survive the import',
+  reimportedExtra?.interest_enabled === 1 &&
+    reimportedExtra?.interest_rate === 4 &&
+    reimportedExtra?.interest_crediting === 'quarterly'
 )
 
 // --- v2: no wallets -> Cash is created and rows are assigned to it ---

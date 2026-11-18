@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { MIGRATIONS, SCHEMA_VERSION } from './schema.js'
 
 describe('schema', () => {
-  it('exposes six migrations in order', () => {
-    expect(SCHEMA_VERSION).toBe(6)
-    expect(MIGRATIONS).toHaveLength(6)
+  it('exposes seven migrations in order', () => {
+    expect(SCHEMA_VERSION).toBe(7)
+    expect(MIGRATIONS).toHaveLength(7)
   })
 
   it('puts wallets and wallet ids in V6', () => {

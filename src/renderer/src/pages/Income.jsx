@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import { api } from '@renderer/lib/api.js'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -208,6 +209,16 @@ export default function Income() {
   const [viewingReceipt, setViewingReceipt] = useState(null)
   const [pendingDelete, setPendingDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') return
+    setEditing(null)
+    setFormOpen(true)
+    const next = new URLSearchParams(searchParams)
+    next.delete('new')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const { data, loading, error, reload } = useApiData(
     () => api.income.list({ page, ...filters }),

@@ -8,6 +8,8 @@ import { WalletFace } from './WalletCard.jsx'
 import { WALLET_PROVIDERS, WALLET_TYPES, WALLET_TYPE_LABELS } from '@shared/wallets.js'
 import { fileToCardImage } from '@renderer/lib/cardImage.js'
 import { toast } from '@renderer/store/uiStore.js'
+import { formatCurrency } from '@renderer/lib/format.js'
+import { cn } from '@renderer/lib/cn.js'
 
 function providerFor(wallet) {
   if (wallet.style === 'custom') return 'other'
@@ -28,6 +30,10 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
   const [mode, setMode] = useState('color')
   const [last4, setLast4] = useState('')
   const [opening, setOpening] = useState('0')
+  const [interestEnabled, setInterestEnabled] = useState(false)
+  const [interestRate, setInterestRate] = useState('0')
+  const [interestCrediting, setInterestCrediting] = useState('monthly')
+  const [interestWithholding, setInterestWithholding] = useState(true)
   const [fieldErrors, setFieldErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const [imageBusy, setImageBusy] = useState(false)
@@ -47,6 +53,10 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
       setMode(initialProvider === 'other' && initial.card_image ? 'image' : 'color')
       setLast4(initial.last4 || '')
       setOpening(String(initial.opening_balance ?? 0))
+      setInterestEnabled(Boolean(initial.interest_enabled))
+      setInterestRate(String(initial.interest_rate ?? 0))
+      setInterestCrediting(initial.interest_crediting || 'monthly')
+      setInterestWithholding(initial.interest_withholding !== 0)
     } else {
       // Cash is the required default. The name is intentionally blank because
       // the account already has a Cash wallet; the name+type guard prevents a
@@ -60,6 +70,10 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
       setMode('color')
       setLast4('')
       setOpening('0')
+      setInterestEnabled(false)
+      setInterestRate('0')
+      setInterestCrediting('monthly')
+      setInterestWithholding(true)
     }
     setFieldErrors({})
   }, [open, initial])
@@ -129,6 +143,10 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
     if (!Number.isFinite(openingValue) || openingValue < 0) {
       nextErrors.opening = 'Opening balance must be zero or more'
     }
+    const interestValue = Number(interestRate)
+    if (interestEnabled && (!Number.isFinite(interestValue) || interestValue < 0 || interestValue > 100)) {
+      nextErrors.interest = 'Interest rate must be between 0 and 100'
+    }
     setFieldErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
@@ -139,7 +157,11 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
       opening_balance: openingValue,
       last4: last4.trim() || null,
       color: style === 'custom' ? color : null,
-      card_image: style === 'custom' && mode === 'image' ? image : null
+      card_image: style === 'custom' && mode === 'image' ? image : null,
+      interest_enabled: interestEnabled && walletType !== 'cash',
+      interest_rate: interestEnabled ? interestValue : 0,
+      interest_crediting: interestCrediting,
+      interest_withholding: interestWithholding
     }
 
     setSaving(true)
@@ -164,6 +186,9 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
     color,
     card_image: custom && mode === 'image' ? image : null
   }
+  const interestPrincipal = Number(initial?.balance ?? opening) || 0
+  const monthlyGross = interestPrincipal * (Number(interestRate) || 0) / 100 / 12
+  const monthlyNet = interestWithholding ? monthlyGross * 0.8 : monthlyGross
   const providerLabel =
     walletType === 'bank' ? 'Bank' : walletType === 'ewallet' ? 'E-wallet' : null
   const providerHint =
@@ -280,6 +305,97 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
             />
           </Field>
         </div>
+
+        {walletType !== 'cash' ? (
+          <div className="space-y-3 rounded-xl border border-slate-200 p-3 dark:border-dark-border">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="block text-sm font-medium text-slate-900 dark:text-gray-100">
+                  Earns interest
+                </span>
+                <span className="mt-0.5 block text-xs text-slate-500 dark:text-dark-muted">
+                  Optional. Off for spending-only accounts.
+                </span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={interestEnabled}
+                aria-label="Earns interest"
+                onClick={() => setInterestEnabled((current) => !current)}
+                className={cn(
+                  'relative mt-0.5 h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
+                  interestEnabled ? 'bg-accent-600 dark:bg-accent-500' : 'bg-slate-300 dark:bg-dark-border'
+                )}
+              >
+                <span
+                  className={cn(
+                    'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform',
+                    interestEnabled ? 'left-[22px]' : 'left-0.5'
+                  )}
+                />
+              </button>
+            </div>
+
+            {interestEnabled ? (
+              <div className="space-y-3 border-t border-slate-100 pt-3 dark:border-dark-rule">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field
+                    label="Interest rate (% p.a.)"
+                    htmlFor="wallet-interest-rate"
+                    error={fieldErrors.interest}
+                    hint="The rate shown in your bank app or statement."
+                  >
+                    <Input
+                      id="wallet-interest-rate"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      inputMode="decimal"
+                      value={interestRate}
+                      onChange={(event) => setInterestRate(event.target.value)}
+                      hasError={Boolean(fieldErrors.interest)}
+                    />
+                  </Field>
+                  <Field label="Crediting" htmlFor="wallet-interest-crediting">
+                    <Select
+                      id="wallet-interest-crediting"
+                      value={interestCrediting}
+                      onChange={(event) => setInterestCrediting(event.target.value)}
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="yearly">Yearly</option>
+                    </Select>
+                  </Field>
+                </div>
+
+                <label className="flex items-center justify-between gap-3 text-sm text-slate-700 dark:text-gray-200">
+                  <span>
+                    Withholding tax
+                    <span className="mt-0.5 block text-xs text-slate-500 dark:text-dark-faint">
+                      Philippine savings commonly use 20%.
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={interestWithholding}
+                    onChange={(event) => setInterestWithholding(event.target.checked)}
+                    className="h-5 w-5 accent-accent-600"
+                  />
+                </label>
+
+                <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:bg-dark-surface-2 dark:text-dark-muted">
+                  {interestPrincipal > 0 && Number(interestRate) > 0
+                    ? `Estimated ${formatCurrency(monthlyNet)}/month after tax. This is an estimate and does not post a transaction.`
+                    : 'Add an opening balance and rate to see an estimate. No transaction is posted.'}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="flex items-center gap-3">
           <WalletFace wallet={preview} className="w-32 shrink-0">

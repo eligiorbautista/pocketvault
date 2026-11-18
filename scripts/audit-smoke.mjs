@@ -550,6 +550,44 @@ check(
   walletsRepo.list(db, alice.id).every((wallet) => !('card_image' in wallet))
 )
 
+const savings = walletsRepo.create(db, alice.id, {
+  name: 'BDO Savings',
+  type: 'bank',
+  style: 'bdo',
+  opening_balance: 1000,
+  interest_enabled: true,
+  interest_rate: 4,
+  interest_crediting: 'quarterly',
+  interest_withholding: true
+})
+check(
+  'wallet interest settings persist',
+  savings.interest_enabled === 1 &&
+    savings.interest_rate === 4 &&
+    savings.interest_crediting === 'quarterly' &&
+    savings.interest_withholding === 1
+)
+const noInterest = walletsRepo.update(db, alice.id, savings.id, {
+  name: 'BDO Savings',
+  type: 'bank',
+  style: 'bdo',
+  opening_balance: 1000,
+  interest_enabled: false
+})
+check(
+  'disabling interest clears the rate',
+  noInterest.interest_enabled === 0 && noInterest.interest_rate === 0
+)
+throws('interest rate above 100 is rejected', () =>
+  walletsRepo.create(db, alice.id, {
+    name: 'Bad rate',
+    type: 'bank',
+    style: 'bpi',
+    interest_enabled: true,
+    interest_rate: 101
+  })
+)
+
 const aliceCash = walletsRepo.list(db, alice.id).find((wallet) => wallet.type === 'cash')
 let defaultArchive = null
 try {

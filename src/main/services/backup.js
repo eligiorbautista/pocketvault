@@ -8,7 +8,7 @@ import {
 } from '../../shared/constants.js'
 import { validateBackupData, verifyBackupCounts } from '../../shared/backupValidate.js'
 
-const FORMAT = 3
+const FORMAT = 4
 const RECEIPTS_PREFIX = 'receipts/'
 const DATA_KEYS = [
   'income',
@@ -88,7 +88,8 @@ export async function buildUserBackup(db, userId, receiptsDir) {
   const wallets = db
     .prepare(
       `SELECT id, name, type, style, opening_balance, last4, color, card_image, sort_order,
-              is_archived, created_at, updated_at
+              is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding,
+              created_at, updated_at
        FROM wallets WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
@@ -200,7 +201,7 @@ export async function parseUserBackup(buffer) {
     throw new Error('Invalid backup: the archive contents are corrupted')
   }
 
-  if (!manifest || (manifest.format !== 2 && manifest.format !== 3)) {
+  if (!manifest || ![2, 3, 4].includes(manifest.format)) {
     throw new Error('Unsupported backup format. This file was made by a different version.')
   }
   const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -297,8 +298,9 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     const insertWallet = db.prepare(
       `INSERT INTO wallets
         (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order,
-         is_archived, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding,
+         created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const walletMap = new Map()
     walletRows.forEach((row, index) => {
@@ -313,6 +315,10 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         row.card_image ?? null,
         row.sort_order ?? index,
         row.is_archived ? 1 : 0,
+        row.interest_enabled ? 1 : 0,
+        num(row.interest_rate),
+        row.interest_crediting ?? 'monthly',
+        row.interest_withholding === 0 ? 0 : 1,
         row.created_at ?? now,
         row.updated_at ?? null
       )
@@ -337,6 +343,10 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         null,
         next,
         0,
+        0,
+        0,
+        'monthly',
+        1,
         now,
         null
       )

@@ -8,7 +8,7 @@ import {
 import { ValidationError } from '../../../shared/validate.js'
 
 const WALLET_COLUMNS =
-  'id, user_id, name, type, style, opening_balance, last4, color, sort_order, is_archived, created_at, updated_at'
+  'id, user_id, name, type, style, opening_balance, last4, color, sort_order, is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding, created_at, updated_at'
 const CARD_COLUMNS = `${WALLET_COLUMNS}, card_image`
 
 export function list(db, userId) {
@@ -97,8 +97,9 @@ export function create(db, userId, payload) {
   const info = db
     .prepare(
       `INSERT INTO wallets
-        (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+        (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order,
+         interest_enabled, interest_rate, interest_crediting, interest_withholding, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
     )
     .run(
       userId,
@@ -109,7 +110,11 @@ export function create(db, userId, payload) {
       data.last4,
       data.color,
       data.card_image,
-      next
+      next,
+      data.interest_enabled,
+      data.interest_rate,
+      data.interest_crediting,
+      data.interest_withholding
     )
   return getById(db, userId, info.lastInsertRowid)
 }
@@ -126,6 +131,7 @@ export function update(db, userId, id, payload) {
   db.prepare(
     `UPDATE wallets
      SET name = ?, type = ?, style = ?, opening_balance = ?, last4 = ?, color = ?, card_image = ?,
+         interest_enabled = ?, interest_rate = ?, interest_crediting = ?, interest_withholding = ?,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ? AND user_id = ?`
   ).run(
@@ -136,6 +142,10 @@ export function update(db, userId, id, payload) {
     data.last4,
     data.color,
     data.card_image,
+    data.interest_enabled,
+    data.interest_rate,
+    data.interest_crediting,
+    data.interest_withholding,
     id,
     userId
   )

@@ -231,5 +231,14 @@ SET wallet_id = (
 WHERE wallet_id IS NULL;
 `
 
-export const MIGRATIONS = [V1, V2, V3, V4, V5, V6]
+// v7: optional interest metadata on money accounts. Interest is an estimate;
+// no ledger rows are auto-created by the database.
+const V7 = `
+ALTER TABLE wallets ADD COLUMN interest_enabled INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE wallets ADD COLUMN interest_rate REAL NOT NULL DEFAULT 0;
+ALTER TABLE wallets ADD COLUMN interest_crediting TEXT NOT NULL DEFAULT 'monthly';
+ALTER TABLE wallets ADD COLUMN interest_withholding INTEGER NOT NULL DEFAULT 1;
+`
+
+export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7]
 export const SCHEMA_VERSION = MIGRATIONS.length

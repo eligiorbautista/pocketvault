@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff, Plus, WalletCards } from 'lucide-react'
 import { api } from '@renderer/lib/api.js'
 import { PageHeader } from '@renderer/components/ui/PageHeader.jsx'
@@ -28,6 +28,7 @@ export default function Wallet() {
   const [activityWallet, setActivityWallet] = useState(null)
   const [pendingArchive, setPendingArchive] = useState(null)
   const [archiving, setArchiving] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const { data, loading, error, reload } = useApiData(() => api.wallets.summary(), [])
 
@@ -38,6 +39,22 @@ export default function Wallet() {
   const wallets = data?.wallets ?? []
   const canTransfer = wallets.length > 1
   const defaultCashId = wallets.find((wallet) => wallet.type === 'cash')?.id
+
+  useEffect(() => {
+    if (!data) return
+    const mode = searchParams.get('new')
+    if (!mode) return
+    if (mode === 'wallet') {
+      setEditing(null)
+      setFormOpen(true)
+    } else if (mode === 'transfer' && canTransfer) {
+      setTransferFrom(null)
+      setTransferOpen(true)
+    }
+    const next = new URLSearchParams(searchParams)
+    next.delete('new')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, canTransfer, data])
   const netWorth = data?.netWorth ?? 0
   const netBalance = data?.netBalance ?? 0
   const liabilities = data?.liabilities ?? 0

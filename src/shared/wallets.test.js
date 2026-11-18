@@ -59,7 +59,11 @@ describe('wallet validation', () => {
       opening_balance: 0,
       last4: null,
       color: null,
-      card_image: null
+      card_image: null,
+      interest_enabled: 0,
+      interest_rate: 0,
+      interest_crediting: 'monthly',
+      interest_withholding: 1
     })
     expect(() => validateWalletInput({ name: 'X', type: 'nope' })).toThrow('type')
     expect(() => validateWalletInput({ name: 'X', style: 'nope' })).toThrow('style')

@@ -177,28 +177,15 @@
   margin-left: 6px;
 }
 
-/* Cash: black leather wallet, note + card peeking out */
+/* Cash: Monogram face — charcoal, no chip, large peso watermark. */
 .wallet-face--cash {
   background:
-    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.06), transparent 55%),
-    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(25deg, rgba(0, 0, 0, 0.2) 0 2px, transparent 2px 7px),
-    radial-gradient(140% 130% at 24% 6%, #272420 0%, #151311 40%, #080706 100%);
+    radial-gradient(110% 85% at 88% 0%, rgba(255, 255, 255, 0.055), transparent 55%),
+    radial-gradient(135% 125% at 18% 94%, #211d17 0%, #0e0c09 48%, #050505 100%);
   color: #ece3d6;
 }
-.wallet-face--cash .wallet-top { margin-top: 10%; }
 .wallet-face--cash::after {
-  background:
-    radial-gradient(60% 50% at 50% 118%, rgba(0, 0, 0, 0.6), transparent 70%),
-    linear-gradient(105deg, transparent 62%, rgba(255, 255, 255, 0.04) 63%, transparent 66%);
-}
-.wallet-lines {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -2;
-  pointer-events: none;
+  background: radial-gradient(62% 55% at 88% 112%, rgba(214, 178, 92, 0.16), transparent 62%);
 }
 .wallet-face--cash .wallet-label,
 .wallet-face--cash .wallet-meta { opacity: 0.55; }

@@ -4,6 +4,30 @@ All notable changes to PocketVault are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Mobile app shell for phones/tablets: fixed bottom tabs (Home, Wallet, center
+  quick-add, Reports, More), a grouped More page, and a quick-add sheet.
+- Optional wallet interest on money accounts: rate, crediting frequency and 20%
+  withholding; the UI shows a monthly estimate and never posts a transaction.
+- Cash uses the Monogram face (charcoal/gold, ₱ watermark, no chip); the old
+  leather illustration is retired.
+
+### Changed
+
+- The hamburger and mobile drawer are removed; desktop keeps the sidebar.
+- Schema **V7** adds wallet interest fields; backups use **format 4** and still
+  import v2/v3.
+- Brand palette notes from official bank/digital/e-wallet product pages are in
+  `docs/superpowers/plans/2026-11-18-account-catalog-and-mobile-nav.md`.
+
+### Tests
+
+- 127 unit, 371 smoke (61 db / 42 backup / 205 audit / 63 Capacitor), 4 Electron
+  E2E including a 390×844 mobile shell, lint and production build.
+
 ## [1.1.3] - 2026-11-17
 
 ### Added

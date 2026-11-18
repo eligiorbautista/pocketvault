@@ -76,21 +76,11 @@ describe('WalletCard', () => {
     expect(container.querySelector('.wallet-face--generic')).toBeInTheDocument()
   })
 
-  it('renders the cash art without a chip and a custom image scrim', () => {
+  it('renders the cash monogram without a chip or old leather art', () => {
     const { container } = setup({ style: 'cash', type: 'cash', last4: null })
-    expect(container.querySelector('.wallet-lines')).toBeInTheDocument()
+    expect(container.querySelector('.wallet-monogram')).toHaveTextContent('₱')
+    expect(container.querySelector('.wallet-lines')).not.toBeInTheDocument()
     expect(container.querySelector('.wallet-chip')).not.toBeInTheDocument()
-
-    const { container: image } = render(
-      <WalletFace
-        wallet={{
-          name: 'Mine',
-          style: 'custom',
-          card_image: 'data:image/png;base64,iVBORw0KGgo='
-        }}
-      />
-    )
-    expect(image.querySelector('.wallet-scrim')).toBeInTheDocument()
   })
 
   it('runs every menu action', () => {

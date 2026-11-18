@@ -47,7 +47,7 @@ const MIME_BY_EXT = {
 }
 
 const RECEIPTS_DIR = 'receipts'
-const BACKUP_FORMAT = 3
+const BACKUP_FORMAT = 4
 const BACKUP_RECEIPTS_PREFIX = 'receipts/'
 const INCOME_COLUMNS =
   'id, user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
@@ -59,7 +59,7 @@ const DEBT_COLUMNS = `id, user_id, wallet_id, creditor, total_amount, paid_amoun
   payment_type, monthly_amount, payment_day, first_payment_date, receipt_path, status, notes,
   is_archived, created_at, updated_at`
 const WALLET_COLUMNS =
-  'id, user_id, name, type, style, opening_balance, last4, color, sort_order, is_archived, created_at, updated_at'
+  'id, user_id, name, type, style, opening_balance, last4, color, sort_order, is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding, created_at, updated_at'
 const WALLET_CARD_COLUMNS = `${WALLET_COLUMNS}, card_image`
 
 let session = null // { id, username } - in-memory, mirrors the main-process session
@@ -1179,8 +1179,9 @@ export function createCapacitorApi() {
       )
       const info = await run(
         `INSERT INTO wallets
-          (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+          (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order,
+           interest_enabled, interest_rate, interest_crediting, interest_withholding, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [
           userId,
           row.name,
@@ -1190,7 +1191,11 @@ export function createCapacitorApi() {
           row.last4,
           row.color,
           row.card_image,
-          next?.next ?? 0
+          next?.next ?? 0,
+          row.interest_enabled,
+          row.interest_rate,
+          row.interest_crediting,
+          row.interest_withholding
         ]
       )
       return getOne(`SELECT ${WALLET_CARD_COLUMNS} FROM wallets WHERE id = ? AND user_id = ?`, [
@@ -1218,6 +1223,7 @@ export function createCapacitorApi() {
       await run(
         `UPDATE wallets
          SET name = ?, type = ?, style = ?, opening_balance = ?, last4 = ?, color = ?, card_image = ?,
+             interest_enabled = ?, interest_rate = ?, interest_crediting = ?, interest_withholding = ?,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = ? AND user_id = ?`,
         [
@@ -1228,6 +1234,10 @@ export function createCapacitorApi() {
           row.last4,
           row.color,
           row.card_image,
+          row.interest_enabled,
+          row.interest_rate,
+          row.interest_crediting,
+          row.interest_withholding,
           id,
           userId
         ]
@@ -1837,7 +1847,8 @@ export function createCapacitorApi() {
         : []
       const walletRows = await query(
         `SELECT id, name, type, style, opening_balance, last4, color, card_image, sort_order,
-                is_archived, created_at, updated_at
+                is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding,
+                created_at, updated_at
          FROM wallets WHERE user_id = ? ORDER BY id`,
         [userId]
       )
@@ -1973,7 +1984,7 @@ export function createCapacitorApi() {
         throw new Error('Invalid backup: the archive contents are corrupted')
       }
 
-      if (!manifest || (manifest.format !== 2 && manifest.format !== BACKUP_FORMAT)) {
+      if (!manifest || ![2, 3, 4].includes(manifest.format)) {
         throw new Error('Unsupported backup format. This file was made by a different version.')
       }
       const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -2065,8 +2076,9 @@ export function createCapacitorApi() {
         const info = await run(
           `INSERT INTO wallets
             (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order,
-             is_archived, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding,
+             created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
             row.name,
@@ -2078,6 +2090,10 @@ export function createCapacitorApi() {
             row.card_image ?? null,
             row.sort_order ?? index,
             row.is_archived ? 1 : 0,
+            row.interest_enabled ? 1 : 0,
+            num(row.interest_rate),
+            row.interest_crediting ?? 'monthly',
+            row.interest_withholding === 0 ? 0 : 1,
             row.created_at ?? now,
             row.updated_at ?? null
           ]

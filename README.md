@@ -9,7 +9,9 @@ are required.
 
 - **Multi-user, local** — register/login per device; passwords hashed with bcrypt.
 - **Income** — manual entry, optional receipt (image/PDF) attach, view, edit, delete.
-- **Wallet** — cash, bank debit cards and e-wallets with recognisable card faces.
+- **Wallet** - cash, bank debit cards and e-wallets with recognisable Monogram card faces,
+  including a charcoal/gold **Cash** face. Optional interest estimates on money accounts
+  (rate, crediting and withholding; off by default).
   Balances are **derived** from every income, expense, debt and transfer, never stored.
   Move money with transfers, archive/restore, store an optional last 4, or design an
   "Other" wallet with a colour or your own card image. Every money record requires a
@@ -33,7 +35,8 @@ are required.
   (Android exports open the share sheet; imports use the file picker).
 - **Currency** — pick any ISO 4217 currency (Philippine Peso by default) with correct symbols.
 - **Custom categories** — add your own expense/budget categories beyond the defaults.
-- **Responsive** — mobile-first UI from 320px to ultrawide; data tables collapse into
+- **Responsive** - mobile-first UI from 320px to ultrawide with app-style bottom
+  navigation (Home, Wallet, quick add, Reports, More); data tables collapse into
   stacked cards on phones.
 - **Light / dark theme** — pick Light, Dark, or match your system; the choice is
   remembered and follows the OS preference live.

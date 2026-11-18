@@ -59,7 +59,11 @@ describe('WalletForm', () => {
         opening_balance: 125.5,
         last4: null,
         color: '#ff0000',
-        card_image: null
+        card_image: null,
+        interest_enabled: false,
+        interest_rate: 0,
+        interest_crediting: 'monthly',
+        interest_withholding: true
       })
     )
     expect(onSaved).toHaveBeenCalled()
@@ -107,7 +111,11 @@ describe('WalletForm', () => {
         opening_balance: 250.5,
         last4: '1234',
         color: null,
-        card_image: null
+        card_image: null,
+        interest_enabled: false,
+        interest_rate: 0,
+        interest_crediting: 'monthly',
+        interest_withholding: true
       })
     )
     expect(onSaved).toHaveBeenCalled()
@@ -146,7 +154,11 @@ describe('WalletForm', () => {
         opening_balance: 0,
         last4: null,
         color: '#ff0000',
-        card_image: null
+        card_image: null,
+        interest_enabled: false,
+        interest_rate: 0,
+        interest_crediting: 'monthly',
+        interest_withholding: true
       })
     )
   })
@@ -333,5 +345,29 @@ describe('WalletForm', () => {
     const input = document.querySelector('input[type=file]')
     fireEvent.change(input, { target: { files: [] } })
     expect(mocks.fileToCardImage).not.toHaveBeenCalled()
+  })
+
+  it('saves optional interest settings and estimates after tax', async () => {
+    render(<WalletForm open onClose={vi.fn()} onSaved={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Wallet type'), { target: { value: 'bank' } })
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'BDO Savings' } })
+    fireEvent.change(screen.getByLabelText('Opening balance'), { target: { value: '12000' } })
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Earns interest' }))
+    fireEvent.change(screen.getByLabelText('Interest rate (% p.a.)'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('Crediting'), { target: { value: 'quarterly' } })
+    expect(screen.getByText(/Estimated ₱32.00\/month/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add wallet' }))
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          interest_enabled: true,
+          interest_rate: 4,
+          interest_crediting: 'quarterly',
+          interest_withholding: true
+        })
+      )
+    )
   })
 })

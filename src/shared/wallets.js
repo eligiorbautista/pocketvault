@@ -22,10 +22,10 @@ export const WALLET_TYPE_LABELS = {
 // 16 colour/pattern studies. `pattern` is descriptive; the actual art lives in
 // assets/wallets.css so the shared module stays platform-agnostic.
 export const WALLET_STYLE_PRESETS = [
-  { id: 'cash', label: 'Cash', from: '#181614', to: '#050505', ink: '#ffffff', accent: '#e9dfd0', pattern: 'leather' },
+  { id: 'cash', label: 'Cash', from: '#211d17', to: '#050505', ink: '#ece3d6', accent: '#d6b25c', pattern: 'monogram' },
   { id: 'bdo', label: 'BDO', from: '#0038a8', to: '#001f66', ink: '#ffffff', accent: '#7fb2ff', pattern: 'wave' },
   { id: 'bpi', label: 'BPI', from: '#a91b2b', to: '#6d0f1c', ink: '#ffffff', accent: '#ffd7dc', pattern: 'none' },
-  { id: 'metrobank', label: 'Metrobank', from: '#f5a623', to: '#e07b00', ink: '#1b1b1b', accent: '#ffe2b0', pattern: 'none' },
+  { id: 'metrobank', label: 'Metrobank', from: '#0357ff', to: '#7a1dff', ink: '#ffffff', accent: '#cfd8ff', pattern: 'none' },
   { id: 'unionbank', label: 'UnionBank', from: '#f4efe6', to: '#d9cfbf', ink: '#22201c', accent: '#8c8272', pattern: 'none' },
   { id: 'securitybank', label: 'Security Bank', from: '#0b2e5c', to: '#071d3b', ink: '#ffffff', accent: '#8fb6e8', pattern: 'none' },
   { id: 'rcbc', label: 'RCBC', from: '#0033a0', to: '#001f66', ink: '#ffffff', accent: '#ffcf5c', pattern: 'none' },
@@ -130,6 +130,24 @@ function validateWalletStyle(value) {
   return value
 }
 
+const INTEREST_CREDITING = ['daily', 'monthly', 'quarterly', 'yearly']
+
+function validateInterest(payload, type) {
+  // Cash is the required spending wallet; it never earns interest.
+  const enabled = type !== 'cash' && Boolean(payload.interest_enabled)
+  const rate = Number(payload.interest_rate ?? 0)
+  assert(Number.isFinite(rate) && rate >= 0 && rate <= 100, 'interest rate must be between 0 and 100')
+  const crediting = INTEREST_CREDITING.includes(payload.interest_crediting)
+    ? payload.interest_crediting
+    : 'monthly'
+  return {
+    interest_enabled: enabled ? 1 : 0,
+    interest_rate: enabled ? rate : 0,
+    interest_crediting: enabled ? crediting : 'monthly',
+    interest_withholding: enabled ? (payload.interest_withholding === false ? 0 : 1) : 1
+  }
+}
+
 export function validateWalletId(value) {
   return validateId(value, 'wallet_id')
 }
@@ -152,7 +170,8 @@ export function validateWalletInput(payload = {}) {
     opening_balance: opening,
     last4: rawLast4 || null,
     color,
-    card_image: cardImage
+    card_image: cardImage,
+    ...validateInterest(payload, type)
   }
 }
 
