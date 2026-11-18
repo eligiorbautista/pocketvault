@@ -59,3 +59,38 @@ export function upcomingRules(rules, today, days = 30) {
     .filter((rule) => rule.next_due && rule.next_due <= iso(end))
     .sort((a, b) => a.next_due.localeCompare(b.next_due) || a.name.localeCompare(b.name))
 }
+
+// Expands recurring rules into every occurrence inside the window and subtracts
+// debt due amounts. It is intentionally a read-only estimate: no rows are written.
+export function forecastCashFlow({
+  startBalance = 0,
+  rules = [],
+  debts = [],
+  today,
+  days = 60
+} = {}) {
+  const endDate = new Date(`${today}T00:00:00Z`)
+  endDate.setUTCDate(endDate.getUTCDate() + days)
+  const end = iso(endDate)
+  let income = 0
+  let expenses = 0
+  for (const rule of rules) {
+    let due = rule.next_due
+    while (due && due <= end) {
+      if (rule.kind === 'income') income += Number(rule.amount) || 0
+      else expenses += Number(rule.amount) || 0
+      due = advanceDue(due, rule.frequency)
+    }
+  }
+  const debt = debts
+    .filter((row) => row.remaining_amount > 0 && row.due_date >= today && row.due_date <= end)
+    .reduce((sum, row) => sum + (Number(row.remaining_amount) || 0), 0)
+  return {
+    start: startBalance,
+    income,
+    expenses,
+    debt,
+    end: startBalance + income - expenses - debt,
+    days
+  }
+}

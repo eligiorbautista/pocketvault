@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { api } from '@renderer/lib/api.js'
 import { buildPayoffPlan } from '@shared/payoff.js'
-import { upcomingRules } from '@shared/recurring.js'
+import { forecastCashFlow, upcomingRules } from '@shared/recurring.js'
 import { Card, CardBody } from '@renderer/components/ui/Card.jsx'
 import { Field } from '@renderer/components/ui/Field.jsx'
 import { Input, Select } from '@renderer/components/ui/Input.jsx'
@@ -10,6 +10,7 @@ import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
 import { ErrorState } from '@renderer/components/ui/ErrorState.jsx'
 import { useApiData } from '@renderer/hooks/useApiData.js'
 import { formatCurrency, formatDate, todayInput } from '@renderer/lib/format.js'
+import { cn } from '@renderer/lib/cn.js'
 import { CalendarDays, Target } from 'lucide-react'
 
 export function PayoffPanel() {
@@ -71,10 +72,18 @@ export function PayoffPanel() {
 export function CalendarPanel() {
   const { data, loading, error, reload } = useApiData(() => api.recurring.list(), [])
   const debts = useApiData(() => api.debts.list({ page: 1, pageSize: 500 }), [])
+  const wallets = useApiData(() => api.wallets.summary(), [])
   const today = todayInput()
   const horizon = new Date(`${today}T00:00:00Z`)
   horizon.setUTCDate(horizon.getUTCDate() + 60)
   const end = horizon.toISOString().slice(0, 10)
+  const forecast = forecastCashFlow({
+    startBalance: wallets.data?.netBalance ?? 0,
+    rules: data ?? [],
+    debts: debts.data?.rows ?? [],
+    today,
+    days: 60
+  })
   const entries = [
     ...upcomingRules(data ?? [], today, 60).map((rule) => ({
       key: `bill-${rule.id}`,
@@ -93,8 +102,8 @@ export function CalendarPanel() {
         kind: 'Debt'
       }))
   ].sort((a, b) => a.due.localeCompare(b.due) || a.name.localeCompare(b.name))
-  const busy = loading || debts.loading
-  const failure = error || debts.error
+  const busy = loading || debts.loading || wallets.loading
+  const failure = error || debts.error || wallets.error
 
   return (
     <div className="space-y-4">
@@ -102,8 +111,36 @@ export function CalendarPanel() {
         <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-gray-100">Upcoming bills & debts</h2>
         <p className="text-sm text-slate-600 dark:text-dark-muted">The next 60 days of recurring rules and debt due dates.</p>
       </div>
+      {!busy && !failure ? (
+        <Card>
+          <CardBody className="space-y-3">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">
+                  Projected balance in 60 days
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-dark-muted">
+                  Starting {formatCurrency(forecast.start)} · bills −{formatCurrency(forecast.expenses)} ·
+                  debt −{formatCurrency(forecast.debt)} · income +{formatCurrency(forecast.income)}
+                </p>
+              </div>
+              <span className={cn(
+                'text-xl font-semibold tracking-tight',
+                forecast.end < 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-gray-100'
+              )}>
+                {formatCurrency(forecast.end)}
+              </span>
+            </div>
+            {forecast.end < 0 ? (
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                This projection goes below zero. Review due bills and upcoming income.
+              </p>
+            ) : null}
+          </CardBody>
+        </Card>
+      ) : null}
       {busy ? <LoadingBlock /> : null}
-      {failure ? <ErrorState message={failure} onRetry={() => { reload(); debts.reload() }} /> : null}
+      {failure ? <ErrorState message={failure} onRetry={() => { reload(); debts.reload(); wallets.reload() }} /> : null}
       {!busy && !failure && entries.length === 0 ? (
         <EmptyState icon={CalendarDays} title="Nothing due" description="Recurring bills and debts with a due date will appear here." />
       ) : null}

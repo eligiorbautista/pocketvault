@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { advanceDue, upcomingRules, validateRecurringInput } from './recurring.js'
+import { advanceDue, forecastCashFlow, upcomingRules, validateRecurringInput } from './recurring.js'
 
 describe('recurring dates', () => {
   it('advances daily, weekly, monthly and yearly without losing the day', () => {
@@ -18,8 +18,26 @@ describe('recurring dates', () => {
   })
 })
 
-describe('recurring validation', () => {
-  const base = {
+describe('cash-flow forecast', () => {
+  it('expands occurrences and subtracts due debts', () => {
+    const result = forecastCashFlow({
+      startBalance: 1000,
+      today: '2026-01-15',
+      days: 60,
+      rules: [
+        { kind: 'bill', amount: 100, frequency: 'monthly', next_due: '2026-01-20' },
+        { kind: 'income', amount: 500, frequency: 'monthly', next_due: '2026-01-25' }
+      ],
+      debts: [
+        { remaining_amount: 200, due_date: '2026-02-01' },
+        { remaining_amount: 999, due_date: '2026-05-01' }
+      ]
+    })
+    expect(result).toMatchObject({ start: 1000, expenses: 200, income: 1000, debt: 200, end: 1600 })
+  })
+})
+
+describe('recurring validation', () => {  const base = {
     name: 'Rent',
     kind: 'bill',
     wallet_id: 1,
