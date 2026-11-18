@@ -9,10 +9,24 @@ function initials(name) {
 }
 
 // Account chip shown at the bottom of the sidebar / mobile drawer.
-export function UserSummary({ className }) {
+export function UserSummary({ className, collapsed = false }) {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
   const name = user?.username ?? ''
+
+  if (collapsed) {
+    return (
+      <div className={cn('flex justify-center', className)}>
+        <span
+          title={name}
+          aria-label={name ? `Signed in as ${name}` : 'Signed in'}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-100 text-sm font-semibold text-accent-700 dark:bg-accent-900 dark:text-accent-300"
+        >
+          {initials(name)}
+        </span>
+      </div>
+    )
+  }
 
   return (
     <div className={cn('flex items-center gap-3', className)}>
@@ -27,7 +41,7 @@ export function UserSummary({ className }) {
         <p className="truncate text-sm font-semibold text-slate-800 dark:text-gray-100" title={name}>
           {name}
         </p>
-        <p className="text-xs text-slate-400 dark:text-dark-faint">Signed in</p>
+        <p className="text-xs text-slate-500 dark:text-dark-muted">Signed in</p>
       </div>
 
       <button

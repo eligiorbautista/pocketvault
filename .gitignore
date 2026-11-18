@@ -13,6 +13,7 @@ Thumbs.db
 coverage/
 test-results/
 playwright-report/
+.playwright-mcp/
 .vitest/
 
 # Local design/AI artifacts (never committed)

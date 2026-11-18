@@ -30,7 +30,7 @@ are required.
 - **Reports** — monthly/yearly summaries with charts, PDF and CSV export.
 - **Dashboard** — totals and recent activity, filterable by **month, custom date range,
   or all records**.
-- **Backups** — export/import a per-account ZIP (that account's data + receipts only).
+- **Backups** - encrypted per-account `.pvbak` backups (AES-256-GCM) with legacy `.zip` import.
   Importing never touches other accounts. The format is identical on desktop and Android
   (Android exports open the share sheet; imports use the file picker).
 - **Currency** — pick any ISO 4217 currency (Philippine Peso by default) with correct symbols.

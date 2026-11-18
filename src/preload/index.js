@@ -117,8 +117,8 @@ const api = {
   },
 
   backup: {
-    export: () => call('backup:export'),
-    import: () => call('backup:import')
+    export: (passphrase) => call('backup:export', { passphrase }),
+    import: (passphrase) => call('backup:import', { passphrase })
   },
 
   account: {

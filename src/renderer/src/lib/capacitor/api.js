@@ -13,6 +13,7 @@ import {
 } from '@shared/constants.js'
 import { DEFAULT_CURRENCY, isValidCurrency } from '@shared/currency.js'
 import { validateBackupData, verifyBackupCounts } from '@shared/backupValidate.js'
+import { decryptBackup, encryptBackup, isEncryptedBackup } from '@shared/backupCrypto.js'
 import {
   DEFAULT_WALLET,
   computeWalletBalances,
@@ -1797,7 +1798,10 @@ export function createCapacitorApi() {
   const backup = {
     // Same ZIP layout as the desktop build (manifest + account + data +
     // receipts/), so a backup can be moved between desktop and Android.
-    export: async () => {
+    export: async (passphrase) => {
+      if (typeof passphrase !== 'string' || passphrase.length === 0) {
+        throw new Error('A backup password is required')
+      }
       const userId = requireUserId()
       const user = await getOne('SELECT id, username, created_at FROM users WHERE id = ?', [userId])
       if (!user) throw new Error('Account not found')
@@ -1929,11 +1933,12 @@ export function createCapacitorApi() {
         )
       )
 
-      const base64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' })
-      const name = `pocketvault-${user.username}-backup-${stamp()}.zip`
+      const bytes = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' })
+      const encrypted = await encryptBackup(bytes, passphrase)
+      const name = `pocketvault-${user.username}-backup-${stamp()}.pvbak`
       const written = await Filesystem.writeFile({
         path: name,
-        data: base64,
+        data: encrypted,
         directory: Directory.Cache,
         recursive: true
       })
@@ -1941,24 +1946,28 @@ export function createCapacitorApi() {
       // Hand the file to the Android share sheet so it can be saved to Files,
       // Drive, or sent anywhere (no storage permission required).
       await Share.share({
-        title: 'PocketVault backup',
-        text: `PocketVault backup for ${user.username}`,
+        title: 'PocketVault encrypted backup',
+        text: `Encrypted PocketVault backup for ${user.username}`,
         url: written.uri,
-        dialogTitle: 'Save or share your backup'
+        dialogTitle: 'Save or share your encrypted backup'
       })
 
-      return { saved: true, path: written.uri, counts }
+      return { saved: true, path: written.uri, counts, encrypted: true }
     },
 
-    import: async () => {
+    import: async (passphrase) => {
       const userId = requireUserId()
       const user = await getOne('SELECT id, username FROM users WHERE id = ?', [userId])
       if (!user) throw new Error('Account not found')
 
-      const file = await pickFile('.zip,application/zip')
+      const file = await pickFile('.pvbak,.zip,application/zip,application/octet-stream')
       if (!file) return { imported: false }
 
-      const buffer = await readAsArrayBuffer(file)
+      const raw = await readAsArrayBuffer(file)
+      let buffer = raw
+      if (isEncryptedBackup(raw)) {
+        buffer = await decryptBackup(raw, passphrase ?? '')
+      }
       let zip
       try {
         zip = await JSZip.loadAsync(buffer)

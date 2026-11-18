@@ -350,22 +350,23 @@ await check('categoryBreakdown + incomeBySource + debtSummary', async () => {
 await check('receipt read returns dataUrl', async () => (await api.files.readReceipt('abc.png')).dataUrl.startsWith('data:image/png;base64,'))
 await check('saveExport writes via filesystem', async () => (await api.files.saveExport({ defaultName: 'report.csv', data: new Uint8Array([1, 2, 3]) })).saved === true)
 await check('backup export builds a zip and shares', async () => {
-  const result = await api.backup.export()
+  const result = await api.backup.export('smoke-passphrase')
   return result.saved === true && result.counts && result.counts.income >= 1
 })
 await check('backup import can be cancelled', async () => {
   globalThis.__pickFile = null
-  return (await api.backup.import()).imported === false
+  return (await api.backup.import('smoke-passphrase')).imported === false
 })
 await check('backup export/import round-trips', async () => {
-  const exported = await api.backup.export()
-  const zipPath = [...globalThis.__fsStore.keys()].reverse().find((p) => p.endsWith('.zip'))
-  const bytes = Buffer.from(globalThis.__fsStore.get(zipPath), 'base64')
+  const exported = await api.backup.export('smoke-passphrase')
+  const zipPath = [...globalThis.__fsStore.keys()].reverse().find((p) => p.endsWith('.pvbak'))
+  const encrypted = globalThis.__fsStore.get(zipPath)
+  const bytes = Buffer.from(encrypted, 'utf8')
   globalThis.__pickFile = {
-    name: 'backup.zip',
+    name: 'backup.pvbak',
     arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
   }
-  const imported = await api.backup.import()
+  const imported = await api.backup.import('smoke-passphrase')
   globalThis.__pickFile = null
   return (
     imported.imported === true &&

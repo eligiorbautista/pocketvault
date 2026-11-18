@@ -2,16 +2,19 @@ import { NavLink } from 'react-router-dom'
 import { NAV_GROUPS } from './navItems.js'
 import { cn } from '@renderer/lib/cn.js'
 
-function NavItem({ item, onNavigate }) {
+function NavItem({ item, onNavigate, collapsed }) {
   const Icon = item.icon
   return (
     <NavLink
       to={item.to}
       end={item.end}
       onClick={onNavigate}
+      title={collapsed ? item.label : undefined}
+      aria-label={collapsed ? item.label : undefined}
       className={({ isActive }) =>
         cn(
-          'flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors',
+          'flex min-h-11 items-center rounded-lg text-sm font-medium transition-colors',
+          collapsed ? 'justify-center px-0' : 'gap-3 px-3',
           'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
           isActive
             ? 'bg-accent-50 text-accent-700 dark:bg-white/10 dark:text-white'
@@ -20,15 +23,15 @@ function NavItem({ item, onNavigate }) {
       }
     >
       <Icon size={18} aria-hidden="true" />
-      <span>{item.label}</span>
+      <span className={collapsed ? 'sr-only' : undefined}>{item.label}</span>
     </NavLink>
   )
 }
 
-export function NavList({ onNavigate }) {
+export function NavList({ onNavigate, collapsed = false }) {
   return (
     <nav
-      className="flex flex-1 flex-col overflow-y-auto p-3"
+      className={cn('flex flex-1 flex-col overflow-y-auto', collapsed ? 'p-2' : 'p-3')}
       aria-label="Main navigation"
     >
       {NAV_GROUPS.map((group) => (
@@ -38,14 +41,20 @@ export function NavList({ onNavigate }) {
           aria-label={group.label}
           className={cn(
             'space-y-1',
-            group.bottom && 'mt-auto border-t border-slate-100 pt-4 dark:border-dark-rule'
+            group.bottom
+              ? 'mt-auto border-t border-slate-100 pt-4 dark:border-dark-rule'
+              : collapsed
+                ? 'mt-2 border-t border-slate-100 pt-2 first:mt-0 first:border-0 first:pt-0 dark:border-dark-rule'
+                : 'mt-4 first:mt-0'
           )}
         >
-          <div className="px-3 pb-1.5 text-[11px] font-medium text-slate-400 dark:text-dark-faint">
-            {group.label}
-          </div>
+          {collapsed ? null : (
+            <div className="px-3 pb-1.5 text-[11px] font-medium text-slate-500 dark:text-dark-muted">
+              {group.label}
+            </div>
+          )}
           {group.items.map((item) => (
-            <NavItem key={item.to} item={item} onNavigate={onNavigate} />
+            <NavItem key={item.to} item={item} onNavigate={onNavigate} collapsed={collapsed} />
           ))}
         </div>
       ))}

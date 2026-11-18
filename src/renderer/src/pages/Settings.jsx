@@ -26,7 +26,7 @@ import { Card, CardBody, CardHeader, CardIcon, CardTitle } from '@renderer/compo
 import { Button } from '@renderer/components/ui/Button.jsx'
 import { SettingRow } from '@renderer/components/ui/Field.jsx'
 import { Input, Select, Switch } from '@renderer/components/ui/Input.jsx'
-import { ConfirmDialog } from '@renderer/components/ui/ConfirmDialog.jsx'
+import { BackupPasswordDialog } from '@renderer/components/settings/BackupPasswordDialog.jsx'
 import { ChangePasswordForm } from '@renderer/components/settings/ChangePasswordForm.jsx'
 import { DeleteDataForm } from '@renderer/components/settings/DeleteDataForm.jsx'
 import { ThemeSelect } from '@renderer/components/settings/ThemeSelect.jsx'
@@ -55,7 +55,7 @@ export default function Settings() {
   const logout = useAuthStore((state) => state.logout)
   const navigate = useNavigate()
   const [busy, setBusy] = useState(null)
-  const [confirmImport, setConfirmImport] = useState(false)
+  const [backupMode, setBackupMode] = useState(null)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [deleteDataOpen, setDeleteDataOpen] = useState(false)
   const [exactAlarms, setExactAlarms] = useState({ supported: false, granted: true })
@@ -129,13 +129,14 @@ export default function Settings() {
     }
   }
 
-  const exportBackup = async () => {
+  const exportBackup = async (passphrase) => {
     setBusy('export')
     try {
-      const result = await api.backup.export()
+      const result = await api.backup.export(passphrase)
       if (result.saved) {
-        toast('Backup exported', 'success', {
-          description: 'The file contains only this account\u2019s data.'
+        setBackupMode(null)
+        toast('Encrypted backup exported', 'success', {
+          description: 'Only this account\u2019s data is in the file.'
         })
       }
     } catch (error) {
@@ -145,12 +146,12 @@ export default function Settings() {
     }
   }
 
-  const importBackup = async () => {
+  const importBackup = async (passphrase) => {
     setBusy('import')
     try {
-      const result = await api.backup.import()
-      setConfirmImport(false)
+      const result = await api.backup.import(passphrase)
       if (result.imported) {
+        setBackupMode(null)
         toast('Backup imported', 'success', {
           description: 'This account\u2019s data was restored.'
         })
@@ -158,7 +159,6 @@ export default function Settings() {
       }
     } catch (error) {
       toast(error.message, 'error')
-      setConfirmImport(false)
     } finally {
       setBusy(null)
     }
@@ -303,9 +303,9 @@ export default function Settings() {
         <CardBody className="py-2">
           <SettingRow
             title="Export backup"
-            description="Save a ZIP of this account's records and receipts."
+            description="Save an encrypted .pvbak file with this account's records and receipts."
           >
-            <Button onClick={exportBackup} loading={busy === 'export'}>
+            <Button onClick={() => setBackupMode('export')} loading={busy === 'export'}>
               <Download size={16} aria-hidden="true" />
               Export backup
             </Button>
@@ -313,12 +313,12 @@ export default function Settings() {
 
           <SettingRow
             title="Import backup"
-            description="Restore this account from a previous backup."
+            description="Restore this account from an encrypted .pvbak or a legacy .zip backup."
             last
           >
             <Button
               variant="secondary"
-              onClick={() => setConfirmImport(true)}
+              onClick={() => setBackupMode('import')}
               loading={busy === 'import'}
             >
               <Upload size={16} aria-hidden="true" />
@@ -418,14 +418,12 @@ export default function Settings() {
         onDeleted={() => navigate('/')}
       />
 
-      <ConfirmDialog
-        open={confirmImport}
-        title="Import backup?"
-        message="Importing replaces all data in this account with the backup's contents. This cannot be undone. Other accounts are not affected."
-        confirmLabel="Replace account data"
-        loading={busy === 'import'}
-        onConfirm={importBackup}
-        onCancel={() => setConfirmImport(false)}
+      <BackupPasswordDialog
+        open={Boolean(backupMode)}
+        mode={backupMode ?? 'export'}
+        loading={busy === backupMode}
+        onClose={() => setBackupMode(null)}
+        onConfirm={backupMode === 'import' ? importBackup : exportBackup}
       />
     </div>
   )

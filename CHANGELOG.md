@@ -34,6 +34,8 @@ All notable changes to PocketVault are documented here. The format follows
 
 ### Changed
 
+- **Encrypted backups** - export writes a password-protected `.pvbak` (PBKDF2-SHA256 + AES-256-GCM); legacy `.zip` backups still import.
+- **Collapsible desktop sidebar** - collapses to a 76px icon rail with Ctrl/Cmd+B or the header toggle.
 - The hamburger and mobile drawer are removed; desktop keeps the sidebar.
 - Schema **V7** adds wallet interest fields; backups use **format 4** and still
   import v2/v3.
@@ -42,7 +44,7 @@ All notable changes to PocketVault are documented here. The format follows
 
 ### Tests
 
-- 127 unit, 371 smoke (61 db / 42 backup / 205 audit / 63 Capacitor), 23 stress,
+- 132 unit, 371 smoke (61 db / 42 backup / 205 audit / 63 Capacitor), 23 stress,
   4 Electron E2E including a 390×844 mobile shell, lint and production build.
 
 ## [1.1.3] - 2026-11-17
