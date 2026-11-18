@@ -4,7 +4,7 @@ All notable changes to PocketVault are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.4] - 2026-11-18
 
 ### Added
 
@@ -15,11 +15,26 @@ All notable changes to PocketVault are documented here. The format follows
 - Cash uses the Monogram face (charcoal/gold, ₱ watermark, no chip); the old
   leather illustration is retired.
 
+### Fixed
+
+- New entries now default to Cash by **wallet type**, not the name, so renaming
+  Cash no longer sends entries to another wallet.
+- Cash always keeps its Monogram face; imports and legacy rows cannot turn it
+  into a custom/preset card.
+- Backup import finds Cash by type and normalizes wallet rows, so a renamed Cash
+  no longer creates a duplicate Cash.
+- Quick-add forms wait for the wallet list before opening, preventing default
+  wallet resets and lost input.
+- Android shows the status bar and insets the WebView below it; the top bar and
+  bottom tabs no longer draw underneath system UI.
+- Quick-add now traps and restores focus, exposes `aria-expanded`/`aria-controls`
+  and locks background scrolling.
+- Hidden Cash interest fields are ignored instead of leaking into the saved row.
+- Mobile E2E registration/wallet setup is stable and covered.
+
 ### Changed
 
 - The hamburger and mobile drawer are removed; desktop keeps the sidebar.
-- Android keeps the status bar visible and insets the WebView below it (plus the
-  navigation bar), so the top bar and bottom tabs never draw underneath system UI.
 - Schema **V7** adds wallet interest fields; backups use **format 4** and still
   import v2/v3.
 - Brand palette notes from official bank/digital/e-wallet product pages are in
@@ -27,8 +42,8 @@ All notable changes to PocketVault are documented here. The format follows
 
 ### Tests
 
-- 127 unit, 371 smoke (61 db / 42 backup / 205 audit / 63 Capacitor), 4 Electron
-  E2E including a 390×844 mobile shell, lint and production build.
+- 127 unit, 371 smoke (61 db / 42 backup / 205 audit / 63 Capacitor), 23 stress,
+  4 Electron E2E including a 390×844 mobile shell, lint and production build.
 
 ## [1.1.3] - 2026-11-17
 
@@ -171,6 +186,7 @@ First public release: local multi-user income, expenses, debts, budgets,
 savings goals, reports, receipts, per-account backups, light/dark themes,
 multi-currency support, CSV/PDF export, and Windows/Android installers.
 
+[1.1.4]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.4
 [1.1.3]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.3
 [1.1.2]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.2
 [1.1.1]: https://github.com/eligiorbautista/pocketvault/releases/tag/v1.1.1
