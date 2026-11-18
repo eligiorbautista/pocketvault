@@ -139,8 +139,9 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
     if (!Number.isFinite(openingValue) || openingValue < 0) {
       nextErrors.opening = 'Opening balance must be zero or more'
     }
+    const interestActive = interestEnabled && walletType !== 'cash'
     const interestValue = Number(interestRate)
-    if (interestEnabled && (!Number.isFinite(interestValue) || interestValue < 0 || interestValue > 100)) {
+    if (interestActive && (!Number.isFinite(interestValue) || interestValue < 0 || interestValue > 100)) {
       nextErrors.interest = 'Interest rate must be between 0 and 100'
     }
     setFieldErrors(nextErrors)
@@ -154,8 +155,8 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
       last4: last4.trim() || null,
       color: style === 'custom' ? color : null,
       card_image: style === 'custom' && mode === 'image' ? image : null,
-      interest_enabled: interestEnabled && walletType !== 'cash',
-      interest_rate: interestEnabled ? interestValue : 0,
+      interest_enabled: interestActive,
+      interest_rate: interestActive ? interestValue : 0,
       interest_crediting: interestCrediting,
       interest_withholding: interestWithholding
     }
