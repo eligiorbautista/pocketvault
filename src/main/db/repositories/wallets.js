@@ -8,7 +8,7 @@ import {
 import { ValidationError } from '../../../shared/validate.js'
 
 const WALLET_COLUMNS =
-  'id, user_id, name, type, style, opening_balance, last4, color, sort_order, is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding, created_at, updated_at'
+  'id, user_id, name, type, style, opening_balance, last4, color, sort_order, is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding, credit_limit, statement_day, due_day, minimum_payment, apr, track_only, created_at, updated_at'
 const CARD_COLUMNS = `${WALLET_COLUMNS}, card_image`
 
 export function list(db, userId) {
@@ -53,7 +53,7 @@ export function listArchived(db, userId) {
 
 export function ensureWallet(db, userId, id) {
   const wallet = db
-    .prepare('SELECT id, user_id, name, type, style, is_archived FROM wallets WHERE id = ? AND user_id = ?')
+    .prepare('SELECT id, user_id, name, type, style, is_archived, track_only FROM wallets WHERE id = ? AND user_id = ?')
     .get(id, userId)
   if (!wallet) throw new ValidationError('Wallet not found')
   return wallet
@@ -98,8 +98,8 @@ export function create(db, userId, payload) {
     .prepare(
       `INSERT INTO wallets
         (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order,
-         interest_enabled, interest_rate, interest_crediting, interest_withholding, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+         interest_enabled, interest_rate, interest_crediting, interest_withholding, credit_limit, statement_day, due_day, minimum_payment, apr, track_only, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
     )
     .run(
       userId,
@@ -114,7 +114,13 @@ export function create(db, userId, payload) {
       data.interest_enabled,
       data.interest_rate,
       data.interest_crediting,
-      data.interest_withholding
+      data.interest_withholding,
+      data.credit_limit,
+      data.statement_day,
+      data.due_day,
+      data.minimum_payment,
+      data.apr,
+      data.track_only
     )
   return getById(db, userId, info.lastInsertRowid)
 }
@@ -132,6 +138,7 @@ export function update(db, userId, id, payload) {
     `UPDATE wallets
      SET name = ?, type = ?, style = ?, opening_balance = ?, last4 = ?, color = ?, card_image = ?,
          interest_enabled = ?, interest_rate = ?, interest_crediting = ?, interest_withholding = ?,
+         credit_limit = ?, statement_day = ?, due_day = ?, minimum_payment = ?, apr = ?, track_only = ?,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ? AND user_id = ?`
   ).run(
@@ -146,6 +153,12 @@ export function update(db, userId, id, payload) {
     data.interest_rate,
     data.interest_crediting,
     data.interest_withholding,
+    data.credit_limit,
+    data.statement_day,
+    data.due_day,
+    data.minimum_payment,
+    data.apr,
+    data.track_only,
     id,
     userId
   )
@@ -324,8 +337,11 @@ export function getTransfer(db, userId, id) {
 
 export function transfer(db, userId, payload) {
   const data = validateTransferInput(payload)
-  ensureActiveWallet(db, userId, data.from_wallet_id)
-  ensureActiveWallet(db, userId, data.to_wallet_id)
+  const from = ensureActiveWallet(db, userId, data.from_wallet_id)
+  const to = ensureActiveWallet(db, userId, data.to_wallet_id)
+  if (from.track_only || to.track_only) {
+    throw new ValidationError('Transfers are not available for track-only wallets')
+  }
   const info = db
     .prepare(
       `INSERT INTO wallet_transfers

@@ -216,8 +216,20 @@ walletsRepo.transfer(dbB, aliceB.id, {
   date: '2026-03-12',
   notes: 'move'
 })
+walletsRepo.create(dbB, aliceB.id, {
+  name: 'Visa',
+  type: 'credit',
+  style: 'generic',
+  opening_balance: 1000,
+  credit_limit: 5000,
+  statement_day: 5,
+  due_day: 20,
+  minimum_payment: 500,
+  apr: 24.9,
+  last4: '4242'
+})
 const full = await buildUserBackup(dbB, aliceB.id, destReceipts)
-check('v3 backup counts wallets', full.counts.wallets === 2, full.counts)
+check('v3 backup counts wallets', full.counts.wallets === 3, full.counts)
 check('v3 backup counts transfers', full.counts.walletTransfers === 1, full.counts)
 const fullParsed = await parseUserBackup(full.buffer)
 check(
@@ -226,6 +238,9 @@ check(
 )
 applyUserBackup(dbB, aliceB.id, fullParsed, destReceipts, 'alice')
 const reimportedExtra = walletsRepo.list(dbB, aliceB.id).find((wallet) => wallet.name === 'BDO extra')
+const reimportedCredit = walletsRepo
+  .list(dbB, aliceB.id)
+  .find((wallet) => wallet.id && wallet.name === 'Visa')
 check(
   'transfer survives the import',
   reimportedExtra &&
@@ -236,6 +251,14 @@ check(
   reimportedExtra?.interest_enabled === 1 &&
     reimportedExtra?.interest_rate === 4 &&
     reimportedExtra?.interest_crediting === 'quarterly'
+)
+check(
+  'credit-card fields survive the import',
+  reimportedCredit?.type === 'credit' &&
+    reimportedCredit?.credit_limit === 5000 &&
+    reimportedCredit?.statement_day === 5 &&
+    reimportedCredit?.due_day === 20 &&
+    reimportedCredit?.apr === 24.9
 )
 
 // --- v2: no wallets -> Cash is created and rows are assigned to it ---

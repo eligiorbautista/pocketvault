@@ -30,6 +30,12 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
   const [interestRate, setInterestRate] = useState('0')
   const [interestCrediting, setInterestCrediting] = useState('monthly')
   const [interestWithholding, setInterestWithholding] = useState(true)
+  const [creditLimit, setCreditLimit] = useState('0')
+  const [statementDay, setStatementDay] = useState('')
+  const [dueDay, setDueDay] = useState('')
+  const [minimumPayment, setMinimumPayment] = useState('0')
+  const [apr, setApr] = useState('0')
+  const [trackOnly, setTrackOnly] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const [imageBusy, setImageBusy] = useState(false)
@@ -53,6 +59,12 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
       setInterestRate(String(initial.interest_rate ?? 0))
       setInterestCrediting(initial.interest_crediting || 'monthly')
       setInterestWithholding(initial.interest_withholding !== 0)
+      setCreditLimit(String(initial.credit_limit ?? 0))
+      setStatementDay(initial.statement_day ? String(initial.statement_day) : '')
+      setDueDay(initial.due_day ? String(initial.due_day) : '')
+      setMinimumPayment(String(initial.minimum_payment ?? 0))
+      setApr(String(initial.apr ?? 0))
+      setTrackOnly(Boolean(initial.track_only))
     } else {
       // Cash is the required default. The name is intentionally blank because
       // the account already has a Cash wallet; the name+type guard prevents a
@@ -70,6 +82,12 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
       setInterestRate('0')
       setInterestCrediting('monthly')
       setInterestWithholding(true)
+      setCreditLimit('0')
+      setStatementDay('')
+      setDueDay('')
+      setMinimumPayment('0')
+      setApr('0')
+      setTrackOnly(false)
     }
     setFieldErrors({})
   }, [open, initial])
@@ -92,6 +110,12 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
       setProvider('other')
       setName('')
       setStyle('custom')
+      return
+    }
+    if (value === 'credit') {
+      setProvider('other')
+      setName('')
+      setStyle('generic')
       return
     }
     const first = Object.values(WALLET_PROVIDERS).find((option) => option.type === value)
@@ -139,10 +163,23 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
     if (!Number.isFinite(openingValue) || openingValue < 0) {
       nextErrors.opening = 'Opening balance must be zero or more'
     }
-    const interestActive = interestEnabled && walletType !== 'cash'
+    const interestActive = interestEnabled && walletType !== 'cash' && walletType !== 'credit'
     const interestValue = Number(interestRate)
     if (interestActive && (!Number.isFinite(interestValue) || interestValue < 0 || interestValue > 100)) {
       nextErrors.interest = 'Interest rate must be between 0 and 100'
+    }
+    const creditActive = walletType === 'credit'
+    const creditLimitValue = Number(creditLimit)
+    const minimumValue = Number(minimumPayment)
+    const aprValue = Number(apr)
+    if (creditActive && (!Number.isFinite(creditLimitValue) || creditLimitValue < 0)) {
+      nextErrors.credit = 'Credit limit must be zero or more'
+    }
+    if (creditActive && (!Number.isFinite(minimumValue) || minimumValue < 0)) {
+      nextErrors.credit = 'Minimum payment must be zero or more'
+    }
+    if (creditActive && (!Number.isFinite(aprValue) || aprValue < 0 || aprValue > 100)) {
+      nextErrors.credit = 'APR must be between 0 and 100'
     }
     setFieldErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
@@ -158,7 +195,13 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
       interest_enabled: interestActive,
       interest_rate: interestActive ? interestValue : 0,
       interest_crediting: interestCrediting,
-      interest_withholding: interestWithholding
+      interest_withholding: interestWithholding,
+      credit_limit: creditActive ? creditLimitValue : 0,
+      statement_day: creditActive && statementDay ? Number(statementDay) : null,
+      due_day: creditActive && dueDay ? Number(dueDay) : null,
+      minimum_payment: creditActive ? minimumValue : 0,
+      apr: creditActive ? aprValue : 0,
+      track_only: trackOnly
     }
 
     setSaving(true)
@@ -285,10 +328,10 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
             />
           </Field>
           <Field
-            label="Opening balance"
+            label={walletType === 'credit' ? 'Opening owed' : 'Opening balance'}
             htmlFor="wallet-opening"
             error={fieldErrors.opening}
-            hint="What it holds today."
+            hint={walletType === 'credit' ? 'What you already owe on this card.' : 'What it holds today.'}
           >
             <Input
               id="wallet-opening"
@@ -303,7 +346,90 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
           </Field>
         </div>
 
-        {walletType !== 'cash' ? (
+        {fieldErrors.credit ? (
+          <p role="alert" className="text-sm text-red-500 dark:text-red-400">{fieldErrors.credit}</p>
+        ) : null}
+
+        {walletType === 'credit' ? (
+          <div className="space-y-3 rounded-xl border border-slate-200 p-3 dark:border-dark-border">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Credit limit" htmlFor="wallet-credit-limit">
+                <Input
+                  id="wallet-credit-limit"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  value={creditLimit}
+                  onChange={(event) => setCreditLimit(event.target.value)}
+                />
+              </Field>
+              <Field label="Minimum payment" htmlFor="wallet-minimum-payment">
+                <Input
+                  id="wallet-minimum-payment"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  value={minimumPayment}
+                  onChange={(event) => setMinimumPayment(event.target.value)}
+                />
+              </Field>
+              <Field label="Statement day" htmlFor="wallet-statement-day" hint="1–31">
+                <Input
+                  id="wallet-statement-day"
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={statementDay}
+                  onChange={(event) => setStatementDay(event.target.value)}
+                />
+              </Field>
+              <Field label="Due day" htmlFor="wallet-due-day" hint="1–31">
+                <Input
+                  id="wallet-due-day"
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={dueDay}
+                  onChange={(event) => setDueDay(event.target.value)}
+                />
+              </Field>
+              <Field label="APR (%)" htmlFor="wallet-apr" hint="Used for display; payoff is not interest-aware.">
+                <Input
+                  id="wallet-apr"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  inputMode="decimal"
+                  value={apr}
+                  onChange={(event) => setApr(event.target.value)}
+                />
+              </Field>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-dark-muted">
+              Credit cards are liabilities: expenses raise the amount owed, payments lower it, and they never count as cash.
+            </p>
+          </div>
+        ) : null}
+
+        <label className="flex items-center justify-between gap-3 text-sm text-slate-700 dark:text-gray-200">
+          <span>
+            Track only
+            <span className="mt-0.5 block text-xs text-slate-500 dark:text-dark-faint">
+              Record transactions but leave this account out of net worth.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={trackOnly}
+            onChange={(event) => setTrackOnly(event.target.checked)}
+            className="h-5 w-5 accent-accent-600"
+          />
+        </label>
+
+        {walletType !== 'cash' && walletType !== 'credit' ? (
           <div className="space-y-3 rounded-xl border border-slate-200 p-3 dark:border-dark-border">
             <div className="flex items-start justify-between gap-3">
               <div>

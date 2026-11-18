@@ -602,6 +602,43 @@ check(
   'disabling interest clears the rate',
   noInterest.interest_enabled === 0 && noInterest.interest_rate === 0
 )
+const creditAudit = walletsRepo.create(db, alice.id, {
+  name: 'Audit Visa',
+  type: 'credit',
+  style: 'generic',
+  opening_balance: 1200,
+  credit_limit: 6000,
+  statement_day: 5,
+  due_day: 20,
+  minimum_payment: 600,
+  apr: 24.9,
+  last4: '4242'
+})
+const creditAuditSummary = walletsRepo.summary(db, alice.id)
+check(
+  'credit cards count as owed liabilities',
+  creditAuditSummary.wallets.find((wallet) => wallet.id === creditAudit.id)?.balance === -1200 &&
+    creditAuditSummary.creditOwed >= 1200
+)
+const trackAudit = walletsRepo.create(db, alice.id, {
+  name: 'Archived bank record',
+  type: 'bank',
+  style: 'bdo',
+  opening_balance: 300,
+  track_only: true
+})
+check(
+  'track-only accounts are excluded from net worth',
+  walletsRepo.summary(db, alice.id).wallets.find((wallet) => wallet.id === trackAudit.id)?.balance === 0
+)
+throws('track-only wallets cannot transfer', () =>
+  walletsRepo.transfer(db, alice.id, {
+    from_wallet_id: trackAudit.id,
+    to_wallet_id: cashId(db, alice.id),
+    amount: 5,
+    date: '2026-12-01'
+  })
+)
 throws('interest rate above 100 is rejected', () =>
   walletsRepo.create(db, alice.id, {
     name: 'Bad rate',

@@ -49,7 +49,7 @@ const MIME_BY_EXT = {
 }
 
 const RECEIPTS_DIR = 'receipts'
-const BACKUP_FORMAT = 5
+const BACKUP_FORMAT = 6
 const BACKUP_RECEIPTS_PREFIX = 'receipts/'
 const INCOME_COLUMNS =
   'id, user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
@@ -61,7 +61,7 @@ const DEBT_COLUMNS = `id, user_id, wallet_id, creditor, total_amount, paid_amoun
   payment_type, monthly_amount, payment_day, first_payment_date, receipt_path, status, notes,
   is_archived, created_at, updated_at`
 const WALLET_COLUMNS =
-  'id, user_id, name, type, style, opening_balance, last4, color, sort_order, is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding, created_at, updated_at'
+  'id, user_id, name, type, style, opening_balance, last4, color, sort_order, is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding, credit_limit, statement_day, due_day, minimum_payment, apr, track_only, created_at, updated_at'
 const WALLET_CARD_COLUMNS = `${WALLET_COLUMNS}, card_image`
 
 let session = null // { id, username } - in-memory, mirrors the main-process session
@@ -500,7 +500,7 @@ function normalizeReceipt(value) {
 async function ensureWallet(userId, value) {
   const id = validateWalletId(value)
   const row = await getOne(
-    'SELECT id, user_id, name, type, style, is_archived FROM wallets WHERE id = ? AND user_id = ?',
+    'SELECT id, user_id, name, type, style, is_archived, track_only FROM wallets WHERE id = ? AND user_id = ?',
     [id, userId]
   )
   if (!row) throw new Error('Wallet not found')
@@ -1182,8 +1182,8 @@ export function createCapacitorApi() {
       const info = await run(
         `INSERT INTO wallets
           (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order,
-           interest_enabled, interest_rate, interest_crediting, interest_withholding, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+           interest_enabled, interest_rate, interest_crediting, interest_withholding, credit_limit, statement_day, due_day, minimum_payment, apr, track_only, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [
           userId,
           row.name,
@@ -1197,7 +1197,13 @@ export function createCapacitorApi() {
           row.interest_enabled,
           row.interest_rate,
           row.interest_crediting,
-          row.interest_withholding
+          row.interest_withholding,
+          row.credit_limit,
+          row.statement_day,
+          row.due_day,
+          row.minimum_payment,
+          row.apr,
+          row.track_only
         ]
       )
       return getOne(`SELECT ${WALLET_CARD_COLUMNS} FROM wallets WHERE id = ? AND user_id = ?`, [
@@ -1226,6 +1232,7 @@ export function createCapacitorApi() {
         `UPDATE wallets
          SET name = ?, type = ?, style = ?, opening_balance = ?, last4 = ?, color = ?, card_image = ?,
              interest_enabled = ?, interest_rate = ?, interest_crediting = ?, interest_withholding = ?,
+             credit_limit = ?, statement_day = ?, due_day = ?, minimum_payment = ?, apr = ?, track_only = ?,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = ? AND user_id = ?`,
         [
@@ -1240,6 +1247,12 @@ export function createCapacitorApi() {
           row.interest_rate,
           row.interest_crediting,
           row.interest_withholding,
+          row.credit_limit,
+          row.statement_day,
+          row.due_day,
+          row.minimum_payment,
+          row.apr,
+          row.track_only,
           id,
           userId
         ]
@@ -1420,6 +1433,9 @@ export function createCapacitorApi() {
       const row = validateTransferInput(data)
       const from = await ensureActiveWallet(userId, row.from_wallet_id)
       const to = await ensureActiveWallet(userId, row.to_wallet_id)
+      if (from.track_only || to.track_only) {
+        throw new Error('Transfers are not available for track-only wallets')
+      }
       const info = await run(
         `INSERT INTO wallet_transfers
           (user_id, from_wallet_id, to_wallet_id, amount, date, notes, updated_at)
@@ -1856,6 +1872,7 @@ export function createCapacitorApi() {
       const walletRows = await query(
         `SELECT id, name, type, style, opening_balance, last4, color, card_image, sort_order,
                 is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding,
+                credit_limit, statement_day, due_day, minimum_payment, apr, track_only,
                 created_at, updated_at
          FROM wallets WHERE user_id = ? ORDER BY id`,
         [userId]
@@ -2006,7 +2023,7 @@ export function createCapacitorApi() {
         throw new Error('Invalid backup: the archive contents are corrupted')
       }
 
-      if (!manifest || ![2, 3, 4, 5].includes(manifest.format)) {
+      if (!manifest || ![2, 3, 4, 5, 6].includes(manifest.format)) {
         throw new Error('Unsupported backup format. This file was made by a different version.')
       }
       const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -2103,8 +2120,9 @@ export function createCapacitorApi() {
           `INSERT INTO wallets
             (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order,
              is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding,
+             credit_limit, statement_day, due_day, minimum_payment, apr, track_only,
              created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
             wallet.name,
@@ -2120,6 +2138,12 @@ export function createCapacitorApi() {
             wallet.interest_rate,
             wallet.interest_crediting,
             wallet.interest_withholding,
+            wallet.credit_limit,
+            wallet.statement_day,
+            wallet.due_day,
+            wallet.minimum_payment,
+            wallet.apr,
+            wallet.track_only,
             row.created_at ?? now,
             row.updated_at ?? null
           ]

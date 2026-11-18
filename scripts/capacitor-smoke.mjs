@@ -428,6 +428,45 @@ await check(
     bdoWallet.interest_rate === 4 &&
     bdoWallet.interest_crediting === 'monthly'
 )
+const creditWallet = await api.wallets.create({
+  name: 'Visa Android',
+  type: 'credit',
+  style: 'generic',
+  opening_balance: 1000,
+  credit_limit: 5000,
+  statement_day: 5,
+  due_day: 20,
+  minimum_payment: 500,
+  apr: 24.9
+})
+const creditSummary = await api.wallets.summary()
+const creditRow = creditSummary.wallets.find((wallet) => wallet.id === creditWallet.id)
+await check(
+  'credit card balance is negative and summarized as owed',
+  () => creditRow?.balance === -1000 && creditSummary.creditOwed >= 1000
+)
+const trackOnly = await api.wallets.create({
+  name: 'Old account',
+  type: 'bank',
+  style: 'bdo',
+  opening_balance: 500,
+  track_only: true
+})
+await check('track-only balance is excluded', async () => {
+  const summary = await api.wallets.summary()
+  return summary.wallets.find((wallet) => wallet.id === trackOnly.id)?.balance === 0
+})
+await expectThrow(
+  'track-only wallets cannot transfer',
+  () =>
+    api.wallets.transfer({
+      from_wallet_id: trackOnly.id,
+      to_wallet_id: freshCashId,
+      amount: 5,
+      date: '2026-09-21'
+    }),
+  'track-only'
+)
 const transferRow = await api.wallets.transfer({
   from_wallet_id: freshCashId,
   to_wallet_id: bdoWallet.id,

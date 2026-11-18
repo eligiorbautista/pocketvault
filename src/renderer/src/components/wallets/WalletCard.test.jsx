@@ -137,4 +137,32 @@ describe('WalletCard', () => {
     const { container } = setup()
     expect(container.querySelector('.wallet-monogram')).toHaveTextContent('BDO')
   })
+
+  it('shows card debt and utilization for credit cards', () => {
+    setup({
+      type: 'credit',
+      style: 'generic',
+      name: 'Visa',
+      balance: -2500,
+      credit_limit: 10000,
+      last4: null
+    })
+    expect(screen.getByText(/Credit card/)).toBeInTheDocument()
+    expect(screen.getByText('Owed')).toBeInTheDocument()
+    expect(screen.getByText('₱2,500.00')).toBeInTheDocument()
+    expect(screen.getByText(/25% used/)).toBeInTheDocument()
+  })
+
+  it('hides monetary values for track-only accounts', () => {
+    setup({
+      type: 'bank',
+      style: 'bdo',
+      name: 'Old account',
+      balance: 0,
+      track_only: 1,
+      last4: null
+    })
+    expect(screen.getByText('Track only')).toBeInTheDocument()
+    expect(screen.queryByText('Owed')).not.toBeInTheDocument()
+  })
 })

@@ -6,17 +6,19 @@ import {
   validateAmount,
   validateDate,
   validateId,
+  validateInt,
   validateText,
   assert
 } from './validate.js'
 
-export const WALLET_TYPES = ['cash', 'bank', 'ewallet', 'other']
+export const WALLET_TYPES = ['cash', 'bank', 'ewallet', 'other', 'credit']
 
 export const WALLET_TYPE_LABELS = {
   cash: 'Cash',
   bank: 'Bank debit card',
   ewallet: 'E-wallet',
-  other: 'Other'
+  other: 'Other',
+  credit: 'Credit card'
 }
 
 // 16 colour/pattern studies. `pattern` is descriptive; the actual art lives in
@@ -133,8 +135,9 @@ function validateWalletStyle(value) {
 const INTEREST_CREDITING = ['daily', 'monthly', 'quarterly', 'yearly']
 
 function validateInterest(payload, type) {
-  // Cash is the required spending wallet; it never earns interest.
-  const enabled = type !== 'cash' && Boolean(payload.interest_enabled)
+  // Cash is the required spending wallet; it never earns interest. Credit cards
+  // use APR, not savings interest.
+  const enabled = type !== 'cash' && type !== 'credit' && Boolean(payload.interest_enabled)
   const rate = Number(payload.interest_rate ?? 0)
   assert(Number.isFinite(rate) && rate >= 0 && rate <= 100, 'interest rate must be between 0 and 100')
   const crediting = INTEREST_CREDITING.includes(payload.interest_crediting)
@@ -164,6 +167,21 @@ export function validateWalletInput(payload = {}) {
   const isCustom = style === 'custom'
   const color = isCustom ? validateColor(payload.color || '#3b3b40') : null
   const cardImage = isCustom ? validateCardImage(payload.card_image) : null
+  const isCredit = type === 'credit'
+  const creditLimit = isCredit
+    ? validateAmount(payload.credit_limit ?? 0, 'credit limit', { allowZero: true })
+    : 0
+  const statementDay = isCredit && payload.statement_day != null && payload.statement_day !== ''
+    ? validateInt(payload.statement_day, 'statement day', { min: 1, max: 31 })
+    : null
+  const dueDay = isCredit && payload.due_day != null && payload.due_day !== ''
+    ? validateInt(payload.due_day, 'due day', { min: 1, max: 31 })
+    : null
+  const minimumPayment = isCredit
+    ? validateAmount(payload.minimum_payment ?? 0, 'minimum payment', { allowZero: true })
+    : 0
+  const apr = isCredit ? validateAmount(payload.apr ?? 0, 'apr', { allowZero: true }) : 0
+  assert(apr <= 100, 'apr must be between 0 and 100')
 
   return {
     name,
@@ -173,6 +191,12 @@ export function validateWalletInput(payload = {}) {
     last4: rawLast4 || null,
     color,
     card_image: cardImage,
+    credit_limit: creditLimit,
+    statement_day: statementDay,
+    due_day: dueDay,
+    minimum_payment: minimumPayment,
+    apr,
+    track_only: payload.track_only ? 1 : 0,
     ...validateInterest(payload, type)
   }
 }
@@ -190,7 +214,12 @@ export function validateTransferInput(payload = {}) {
 // Pure balance math. Callers pass only active rows (archived rows are excluded
 // by the repository query, including payments of archived debts).
 export function computeWalletBalances({ wallets = [], income = [], expenses = [], debts = [], payments = [], transfers = [] } = {}) {
-  const cents = new Map(wallets.map((wallet) => [wallet.id, toCents(wallet.opening_balance)]))
+  const cents = new Map(
+    wallets.map((wallet) => [
+      wallet.id,
+      wallet.type === 'credit' ? -toCents(wallet.opening_balance) : toCents(wallet.opening_balance)
+    ])
+  )
   const add = (walletId, value) => {
     if (walletId != null && cents.has(walletId)) cents.set(walletId, cents.get(walletId) + value)
   }
@@ -206,7 +235,7 @@ export function computeWalletBalances({ wallets = [], income = [], expenses = []
 
   const rows = wallets.map((wallet) => ({
     ...wallet,
-    balance: fromCents(cents.get(wallet.id))
+    balance: wallet.track_only ? 0 : fromCents(cents.get(wallet.id))
   }))
   const total = fromCents(rows.reduce((sum, wallet) => sum + toCents(wallet.balance), 0))
   const byId = rows.reduce((map, wallet) => {
@@ -219,9 +248,13 @@ export function computeWalletBalances({ wallets = [], income = [], expenses = []
 
 export function summarizeWallets(walletRows = [], outstandingDebtCents = 0) {
   const balanceCents = walletRows.reduce((sum, wallet) => sum + toCents(wallet.balance), 0)
+  const creditOwedCents = walletRows
+    .filter((wallet) => wallet.type === 'credit')
+    .reduce((sum, wallet) => sum + Math.max(0, -toCents(wallet.balance)), 0)
   return {
     netBalance: fromCents(balanceCents),
     liabilities: fromCents(outstandingDebtCents),
+    creditOwed: fromCents(creditOwedCents),
     netWorth: fromCents(balanceCents - outstandingDebtCents)
   }
 }

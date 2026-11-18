@@ -15,18 +15,25 @@ All notable changes to PocketVault are documented here. The format follows
   income/expense row and advances the next date; Skip advances without posting.
 - **Bills & Debts hub** — Debts, Bills, a due-date Calendar and a read-only
   Payoff view (smallest or largest balance first; uses monthly payments, not APR).
+- **Credit cards** — credit limit, statement day, due day, minimum payment and
+  APR; balances show as Owed with utilization, and count toward liabilities.
+- **Track-only accounts** — record history without affecting net worth; they
+  cannot be used for transfers.
 - **Archive** now includes recurring bills and subscriptions.
 
 ### Changed
 
-- Schema **V8** adds savings-bucket metadata and `recurring_rules`.
-- Backups use **format 5**; format 4 and older still import, with recurring
-  rules absent from older files.
+- Schema **V9** adds credit-card fields; schema **V8** adds savings-bucket
+  metadata and `recurring_rules`.
+- Backups use **format 6**; format 5 and older still import, with credit fields
+  defaulting to zero and recurring rules absent from older files.
 
 ### Notes
 
-- V8 is one-way: older builds cannot read a database upgraded by this release.
+- V8/V9 are one-way: older builds cannot read a database upgraded by this release.
 - Recurring rules post only when confirmed; there is no automatic bank posting.
+- Credit-card math uses the card balance and APR is stored for planning; the
+  payoff view does not compound interest yet.
 
 ## [1.1.4] - 2026-11-18
 

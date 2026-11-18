@@ -9,7 +9,7 @@ import {
 import { validateBackupData, verifyBackupCounts } from '../../shared/backupValidate.js'
 import { validateWalletInput } from '../../shared/wallets.js'
 
-const FORMAT = 5
+const FORMAT = 6
 const RECEIPTS_PREFIX = 'receipts/'
 const DATA_KEYS = [
   'income',
@@ -91,6 +91,7 @@ export async function buildUserBackup(db, userId, receiptsDir) {
     .prepare(
       `SELECT id, name, type, style, opening_balance, last4, color, card_image, sort_order,
               is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding,
+              credit_limit, statement_day, due_day, minimum_payment, apr, track_only,
               created_at, updated_at
        FROM wallets WHERE user_id = ? ORDER BY id`
     )
@@ -211,7 +212,7 @@ export async function parseUserBackup(buffer) {
     throw new Error('Invalid backup: the archive contents are corrupted')
   }
 
-  if (!manifest || ![2, 3, 4, 5].includes(manifest.format)) {
+  if (!manifest || ![2, 3, 4, 5, 6].includes(manifest.format)) {
     throw new Error('Unsupported backup format. This file was made by a different version.')
   }
   const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -311,8 +312,9 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
       `INSERT INTO wallets
         (user_id, name, type, style, opening_balance, last4, color, card_image, sort_order,
          is_archived, interest_enabled, interest_rate, interest_crediting, interest_withholding,
+         credit_limit, statement_day, due_day, minimum_payment, apr, track_only,
          created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const walletMap = new Map()
     walletRows.forEach((row, index) => {
@@ -332,6 +334,12 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         wallet.interest_rate,
         wallet.interest_crediting,
         wallet.interest_withholding,
+        wallet.credit_limit,
+        wallet.statement_day,
+        wallet.due_day,
+        wallet.minimum_payment,
+        wallet.apr,
+        wallet.track_only,
         row.created_at ?? now,
         row.updated_at ?? null
       )
@@ -362,6 +370,12 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         0,
         'monthly',
         1,
+        0,
+        null,
+        null,
+        0,
+        0,
+        0,
         now,
         null
       )

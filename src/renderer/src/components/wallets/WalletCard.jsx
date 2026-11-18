@@ -78,6 +78,12 @@ export function WalletCard({
   onArchive
 }) {
   const typeLabel = WALLET_TYPE_LABELS[wallet.type] ?? 'Wallet'
+  const isCredit = wallet.type === 'credit'
+  const isTrackOnly = Boolean(wallet.track_only)
+  const owed = Math.max(0, -Number(wallet.balance || 0))
+  const utilization = isCredit && Number(wallet.credit_limit) > 0
+    ? `${Math.round((owed / Number(wallet.credit_limit)) * 100)}% used`
+    : null
   const interestLabel = wallet.interest_enabled
     ? `${Number(wallet.interest_rate || 0).toFixed(2)}%`
     : null
@@ -87,11 +93,17 @@ export function WalletCard({
       : wallet.last4
         ? `${wallet.type === 'bank' ? 'Debit' : typeLabel} · ${wallet.last4}`
         : typeLabel,
-    interestLabel
+    interestLabel,
+    utilization
   ]
     .filter(Boolean)
     .join(' · ')
-  const amount = hidden ? '••••' : formatCurrency(wallet.balance)
+  const amount = hidden
+    ? '••••'
+    : isTrackOnly
+      ? '—'
+      : formatCurrency(isCredit ? owed : wallet.balance)
+  const valueLabel = isTrackOnly ? 'Track only' : isCredit ? 'Owed' : 'Balance'
   const actions = [
     { key: 'edit', label: 'Edit', onSelect: () => onEdit(wallet) },
     onTransfer ? { key: 'transfer', label: 'Transfer', onSelect: () => onTransfer(wallet) } : null,
@@ -107,7 +119,7 @@ export function WalletCard({
         type="button"
         onClick={() => onOpen(wallet)}
         className="absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
-        aria-label={`${wallet.name}, balance ${hidden ? 'hidden' : formatCurrency(wallet.balance)}`}
+        aria-label={`${wallet.name}, ${isTrackOnly ? 'track only' : isCredit ? 'owed' : 'balance'} ${hidden ? 'hidden' : formatCurrency(isCredit ? owed : wallet.balance)}`}
       />
 
       <div className="relative z-10 flex items-start justify-between gap-2 pointer-events-none">
@@ -134,8 +146,8 @@ export function WalletCard({
 
       <div className="relative z-10 wallet-bottom pointer-events-none">
         <div className="min-w-0">
-          <div className="wallet-label">Balance</div>
-          <div className={cn('wallet-balance num', wallet.balance < 0 && 'wallet-negative')}>
+          <div className="wallet-label">{valueLabel}</div>
+          <div className={cn('wallet-balance num', wallet.balance < 0 && !isCredit && !isTrackOnly && 'wallet-negative')}>
             {amount}
           </div>
         </div>

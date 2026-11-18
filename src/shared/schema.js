@@ -268,6 +268,16 @@ CREATE INDEX IF NOT EXISTS idx_savings_goals_wallet ON savings_goals (wallet_id)
 CREATE INDEX IF NOT EXISTS idx_recurring_user_due ON recurring_rules (user_id, is_archived, next_due);
 CREATE INDEX IF NOT EXISTS idx_recurring_wallet ON recurring_rules (wallet_id);
 `
+// v9: credit cards and track-only accounts. Credit cards store opening_balance
+// as the amount owed; derived balances are negative so they reduce net worth.
+const V9 = `
+ALTER TABLE wallets ADD COLUMN credit_limit REAL NOT NULL DEFAULT 0;
+ALTER TABLE wallets ADD COLUMN statement_day INTEGER;
+ALTER TABLE wallets ADD COLUMN due_day INTEGER;
+ALTER TABLE wallets ADD COLUMN minimum_payment REAL NOT NULL DEFAULT 0;
+ALTER TABLE wallets ADD COLUMN apr REAL NOT NULL DEFAULT 0;
+ALTER TABLE wallets ADD COLUMN track_only INTEGER NOT NULL DEFAULT 0;
+`
 
-export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7, V8]
+export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7, V8, V9]
 export const SCHEMA_VERSION = MIGRATIONS.length

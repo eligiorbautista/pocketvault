@@ -38,7 +38,8 @@ export default function Wallet() {
   }, [hidden])
 
   const wallets = data?.wallets ?? []
-  const canTransfer = wallets.length > 1
+  const transferableWallets = wallets.filter((wallet) => !wallet.track_only)
+  const canTransfer = transferableWallets.length > 1
   const defaultCashId = wallets.find((wallet) => wallet.type === 'cash')?.id
 
   useEffect(() => {
@@ -60,8 +61,9 @@ export default function Wallet() {
   }, [searchParams, setSearchParams, canTransfer, data])
   const netWorth = data?.netWorth ?? 0
   const netBalance = data?.netBalance ?? 0
-  const liabilities = data?.liabilities ?? 0
-  const assets = netBalance
+  const creditOwed = data?.creditOwed ?? 0
+  const liabilities = (data?.liabilities ?? 0) + creditOwed
+  const assets = netBalance + creditOwed
 
   const largest = wallets.reduce(
     (best, wallet) => (best == null || wallet.balance > best.balance ? wallet : best),
@@ -202,7 +204,7 @@ export default function Wallet() {
                   canArchive={wallet.id !== defaultCashId}
                   onOpen={setActivityWallet}
                   onEdit={openEdit}
-                  onTransfer={canTransfer ? openTransfer : undefined}
+                  onTransfer={canTransfer && !wallet.track_only ? openTransfer : undefined}
                   onMove={move}
                   onArchive={setPendingArchive}
                 />
@@ -235,7 +237,7 @@ export default function Wallet() {
       <TransferForm
         open={transferOpen}
         initialFrom={transferFrom}
-        wallets={wallets}
+        wallets={transferableWallets}
         hidden={hidden}
         onClose={() => setTransferOpen(false)}
         onSaved={reload}
@@ -246,7 +248,7 @@ export default function Wallet() {
         open={Boolean(activityWallet)}
         hidden={hidden}
         onClose={() => setActivityWallet(null)}
-        onTransfer={canTransfer ? openTransfer : undefined}
+        onTransfer={canTransfer && !activityWallet?.track_only ? openTransfer : undefined}
         onChanged={reload}
       />
 

@@ -63,7 +63,13 @@ describe('wallet validation', () => {
       interest_enabled: 0,
       interest_rate: 0,
       interest_crediting: 'monthly',
-      interest_withholding: 1
+      interest_withholding: 1,
+      credit_limit: 0,
+      statement_day: null,
+      due_day: null,
+      minimum_payment: 0,
+      apr: 0,
+      track_only: 0
     })
     expect(() => validateWalletInput({ name: 'X', type: 'nope' })).toThrow('type')
     expect(() => validateWalletInput({ name: 'X', type: 'bank', style: 'nope' })).toThrow('style')
@@ -72,6 +78,27 @@ describe('wallet validation', () => {
     ).toEqual(expect.objectContaining({ style: 'cash', color: null, card_image: null }))
     expect(() => validateWalletInput({ name: 'X', type: 'bank', style: 'custom', color: 'red' })).toThrow('colour')
     expect(() => validateWalletId(0)).toThrow('wallet_id')
+    expect(
+      validateWalletInput({
+        name: 'Visa',
+        type: 'credit',
+        credit_limit: '50000',
+        statement_day: '5',
+        due_day: '20',
+        apr: '24.9'
+      })
+    ).toMatchObject({
+      type: 'credit',
+      credit_limit: 50000,
+      statement_day: 5,
+      due_day: 20,
+      apr: 24.9,
+      interest_enabled: 0
+    })
+    expect(() => validateWalletInput({ name: 'Visa', type: 'credit', apr: 101 })).toThrow('apr')
+    expect(() =>
+      validateWalletInput({ name: 'Visa', type: 'credit', statement_day: 32 })
+    ).toThrow('statement day')
   })
 
   it('requires a name and formats last4/opening balance', () => {
@@ -204,14 +231,35 @@ describe('balance math', () => {
   })
 
   it('summarises empty input', () => {
-    expect(summarizeWallets()).toEqual({ netBalance: 0, liabilities: 0, netWorth: 0 })
+    expect(summarizeWallets()).toEqual({ netBalance: 0, liabilities: 0, creditOwed: 0, netWorth: 0 })
   })
 
   it('summarises net worth against outstanding debt', () => {
     expect(summarizeWallets([{ balance: 100 }, { balance: 50 }], 3000)).toEqual({
       netBalance: 150,
       liabilities: 30,
+      creditOwed: 0,
       netWorth: 120
+    })
+  })
+
+  it('treats credit cards as negative balances and track-only accounts as zero', () => {
+    const result = computeWalletBalances({
+      wallets: [
+        { id: 1, opening_balance: 500, type: 'bank' },
+        { id: 2, opening_balance: 1000, type: 'credit' },
+        { id: 3, opening_balance: 800, type: 'bank', track_only: 1 }
+      ],
+      expenses: [{ wallet_id: 2, amount: 200 }],
+      transfers: [{ from_wallet_id: 1, to_wallet_id: 2, amount: 100 }]
+    })
+    expect(result.byId[2].balance).toBe(-1100)
+    expect(result.byId[3].balance).toBe(0)
+    expect(result.total).toBe(-700)
+    expect(summarizeWallets(result.wallets, 0)).toMatchObject({
+      netBalance: -700,
+      creditOwed: 1100,
+      netWorth: -700
     })
   })
 })

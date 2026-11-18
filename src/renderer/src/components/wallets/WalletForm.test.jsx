@@ -63,7 +63,13 @@ describe('WalletForm', () => {
         interest_enabled: false,
         interest_rate: 0,
         interest_crediting: 'monthly',
-        interest_withholding: true
+        interest_withholding: true,
+        credit_limit: 0,
+        statement_day: null,
+        due_day: null,
+        minimum_payment: 0,
+        apr: 0,
+        track_only: false
       })
     )
     expect(onSaved).toHaveBeenCalled()
@@ -115,7 +121,13 @@ describe('WalletForm', () => {
         interest_enabled: false,
         interest_rate: 0,
         interest_crediting: 'monthly',
-        interest_withholding: true
+        interest_withholding: true,
+        credit_limit: 0,
+        statement_day: null,
+        due_day: null,
+        minimum_payment: 0,
+        apr: 0,
+        track_only: false
       })
     )
     expect(onSaved).toHaveBeenCalled()
@@ -158,7 +170,13 @@ describe('WalletForm', () => {
         interest_enabled: false,
         interest_rate: 0,
         interest_crediting: 'monthly',
-        interest_withholding: true
+        interest_withholding: true,
+        credit_limit: 0,
+        statement_day: null,
+        due_day: null,
+        minimum_payment: 0,
+        apr: 0,
+        track_only: false
       })
     )
   })
