@@ -1,6 +1,7 @@
 import {
   Archive,
   BarChart3,
+  FileUp,
   HandCoins,
   LayoutDashboard,
   PiggyBank,
@@ -33,6 +34,7 @@ export const NAV_GROUPS = [
     label: 'Review',
     items: [
       { to: '/reports', label: 'Reports', icon: BarChart3 },
+      { to: '/import', label: 'Import CSV', icon: FileUp },
       { to: '/archive', label: 'Archive', icon: Archive }
     ]
   },

@@ -3,6 +3,7 @@ import {
   Archive,
   BarChart3,
   ChevronRight,
+  FileUp,
   HandCoins,
   PiggyBank,
   Settings,
@@ -29,6 +30,7 @@ const GROUPS = [
     title: 'Data',
     items: [
       { to: '/reports', label: 'Reports', icon: BarChart3 },
+      { to: '/import', label: 'Import CSV', icon: FileUp },
       { to: '/archive', label: 'Archive', icon: Archive }
     ]
   },

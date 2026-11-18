@@ -26,8 +26,9 @@ are required.
 - **Reminders** — optional debt payment reminders: a heads-up before each due date
   (configurable lead time) and one when a payment is overdue. Android fires them even
   when the app is closed; desktop fires them while PocketVault is running.
-- **Savings** — goals, contributions (linkable to an income record), progress.
-- **Reports** — monthly/yearly summaries with charts, PDF and CSV export.
+- **Savings** - goals and sinking-fund buckets, contributions (linkable to an income record), progress.
+- **CSV import** - preview a spreadsheet, map wallet names (falling back to Cash), skip invalid rows, then import income and expenses.
+- **Reports** - monthly/yearly summaries with charts, PDF and CSV export.
 - **Dashboard** — totals and recent activity, filterable by **month, custom date range,
   or all records**.
 - **Backups** - encrypted per-account `.pvbak` backups (AES-256-GCM) with legacy `.zip` import.

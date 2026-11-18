@@ -18,6 +18,7 @@ import Expenses from '@renderer/pages/Expenses.jsx'
 import Debts from '@renderer/pages/BillsDebts.jsx'
 import Budgets from '@renderer/pages/Budgets.jsx'
 import Savings from '@renderer/pages/Savings.jsx'
+import ImportCsv from '@renderer/pages/ImportCsv.jsx'
 import Archive from '@renderer/pages/Archive.jsx'
 import More from '@renderer/pages/More.jsx'
 import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
@@ -85,7 +86,7 @@ export default function App() {
               <Route path="/debts" element={<Debts />} />
               <Route path="/budgets" element={<Budgets />} />
               <Route path="/savings" element={<Savings />} />
-              <Route
+              <Route path="/import" element={<ImportCsv />} />              <Route
                 path="/reports"
                 element={
                   <ErrorBoundary message="The reports screen failed to load.">

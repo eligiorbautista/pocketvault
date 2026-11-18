@@ -20,6 +20,8 @@ All notable changes to PocketVault are documented here. The format follows
 - **Track-only accounts** — record history without affecting net worth; they
   cannot be used for transfers.
 - **Archive** now includes recurring bills and subscriptions.
+- **CSV import** - review a file before writing, map wallets by name with a Cash
+  fallback, skip invalid rows, and import income/expenses in one pass.
 
 ### Changed
 

@@ -23,6 +23,7 @@ const TABS = [
 ]
 
 const MORE_PATHS = ['/income', '/expenses', '/debts', '/budgets', '/savings', '/archive', '/settings']
+const MORE_PATHS_WITH_IMPORT = [...MORE_PATHS, '/import']
 
 const QUICK_ACTIONS = [
   { to: '/income?new=1', label: 'Add income', icon: TrendingUp },
@@ -45,7 +46,7 @@ export function BottomNav() {
   const [quickOpen, setQuickOpen] = useState(false)
   const quickButtonRef = useRef(null)
   const sheetRef = useRef(null)
-  const isMorePage = MORE_PATHS.some(
+  const isMorePage = MORE_PATHS_WITH_IMPORT.some(
     (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
   )
 
