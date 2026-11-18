@@ -7,6 +7,7 @@ import {
   RECEIPT_FILE_PATTERN
 } from '../../shared/constants.js'
 import { validateBackupData, verifyBackupCounts } from '../../shared/backupValidate.js'
+import { validateWalletInput } from '../../shared/wallets.js'
 
 const FORMAT = 4
 const RECEIPTS_PREFIX = 'receipts/'
@@ -304,21 +305,22 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     )
     const walletMap = new Map()
     walletRows.forEach((row, index) => {
+      const wallet = validateWalletInput(row)
       const info = insertWallet.run(
         userId,
-        row.name,
-        row.type ?? 'cash',
-        row.style ?? 'generic',
-        num(row.opening_balance),
-        row.last4 ?? null,
-        row.color ?? null,
-        row.card_image ?? null,
+        wallet.name,
+        wallet.type,
+        wallet.style,
+        wallet.opening_balance,
+        wallet.last4,
+        wallet.color,
+        wallet.card_image,
         row.sort_order ?? index,
         row.is_archived ? 1 : 0,
-        row.interest_enabled ? 1 : 0,
-        num(row.interest_rate),
-        row.interest_crediting ?? 'monthly',
-        row.interest_withholding === 0 ? 0 : 1,
+        wallet.interest_enabled,
+        wallet.interest_rate,
+        wallet.interest_crediting,
+        wallet.interest_withholding,
         row.created_at ?? now,
         row.updated_at ?? null
       )
@@ -326,7 +328,9 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     })
 
     let cash = db
-      .prepare("SELECT id FROM wallets WHERE user_id = ? AND name = 'Cash' ORDER BY id LIMIT 1")
+      .prepare(
+        "SELECT id FROM wallets WHERE user_id = ? AND type = 'cash' ORDER BY sort_order ASC, id ASC LIMIT 1"
+      )
       .get(userId)
     if (!cash) {
       const next = db

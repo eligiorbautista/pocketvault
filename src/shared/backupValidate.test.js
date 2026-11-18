@@ -101,19 +101,20 @@ describe('validateBackupData', () => {
 
   it('rejects invalid wallet rows', () => {
     expect(() => validateBackupData(withRow('wallets', { ...WALLET, id: 0 }))).toThrow('wallet id')
-    expect(() => validateBackupData(withRow('wallets', { ...WALLET, style: 'nope' }))).toThrow('style')
+    expect(() => validateBackupData(withRow('wallets', { ...WALLET, type: 'bank', style: 'nope' }))).toThrow('style')
     expect(() => validateBackupData(withRow('wallets', { ...WALLET, sort_order: -1 }))).toThrow(
       'sort order'
     )
     expect(() =>
       validateBackupData(
-        withRow('wallets', { ...WALLET, style: 'custom', color: 'blue' })
+        withRow('wallets', { ...WALLET, type: 'bank', style: 'custom', color: 'blue' })
       )
     ).toThrow('colour')
     expect(() =>
       validateBackupData(
         withRow('wallets', {
           ...WALLET,
+          type: 'bank',
           style: 'custom',
           card_image: 'data:image/svg+xml;base64,AAA'
         })

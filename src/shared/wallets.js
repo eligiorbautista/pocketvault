@@ -155,7 +155,9 @@ export function validateWalletId(value) {
 export function validateWalletInput(payload = {}) {
   const name = validateText(payload.name, 'name', { required: true, max: 60 })
   const type = validateWalletType(payload.type ?? 'cash')
-  const style = validateWalletStyle(payload.style ?? 'generic')
+  // Cash keeps its fixed Monogram face; never let an import or an old row
+  // turn it into a custom/preset card.
+  const style = type === 'cash' ? 'cash' : validateWalletStyle(payload.style ?? 'generic')
   const opening = validateAmount(payload.opening_balance ?? 0, 'opening balance', { allowZero: true })
   const rawLast4 = String(payload.last4 ?? '').trim()
   assert(rawLast4 === '' || /^\d{4}$/.test(rawLast4), 'last 4 must be four digits')

@@ -55,7 +55,7 @@ describe('wallet validation', () => {
     expect(validateWalletInput({ name: 'Pocket' })).toEqual({
       name: 'Pocket',
       type: 'cash',
-      style: 'generic',
+      style: 'cash',
       opening_balance: 0,
       last4: null,
       color: null,
@@ -66,8 +66,11 @@ describe('wallet validation', () => {
       interest_withholding: 1
     })
     expect(() => validateWalletInput({ name: 'X', type: 'nope' })).toThrow('type')
-    expect(() => validateWalletInput({ name: 'X', style: 'nope' })).toThrow('style')
-    expect(() => validateWalletInput({ name: 'X', style: 'custom', color: 'red' })).toThrow('colour')
+    expect(() => validateWalletInput({ name: 'X', type: 'bank', style: 'nope' })).toThrow('style')
+    expect(
+      validateWalletInput({ name: 'Cash', type: 'cash', style: 'custom', color: '#ffffff' })
+    ).toEqual(expect.objectContaining({ style: 'cash', color: null, card_image: null }))
+    expect(() => validateWalletInput({ name: 'X', type: 'bank', style: 'custom', color: 'red' })).toThrow('colour')
     expect(() => validateWalletId(0)).toThrow('wallet_id')
   })
 

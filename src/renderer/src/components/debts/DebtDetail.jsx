@@ -33,7 +33,7 @@ const SCHEDULE_LABEL = { paid: 'Paid', partial: 'Partial', overdue: 'Overdue', u
 function LedgerForm({ idPrefix, debtId, installment, defaultAmount, wallets = [], onDone }) {
   const [receiptPath, setReceiptPath] = useState(null)
   const suggested = defaultAmount != null ? String(defaultAmount) : ''
-  const cashId = wallets.find((wallet) => wallet.name === 'Cash')?.id ?? wallets[0]?.id ?? ''
+  const cashId = wallets.find((wallet) => wallet.type === 'cash')?.id ?? wallets[0]?.id ?? ''
   const {
     register,
     handleSubmit,

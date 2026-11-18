@@ -16,10 +16,6 @@ function providerFor(wallet) {
   return Object.values(WALLET_PROVIDERS).find((provider) => provider.style === wallet.style)?.id ?? 'other'
 }
 
-function typeForProvider(provider) {
-  return provider === 'other' ? 'other' : (WALLET_PROVIDERS[provider]?.type ?? 'cash')
-}
-
 export function WalletForm({ open, initial, lockType = false, onClose, onSaved }) {
   const [walletType, setWalletType] = useState('cash')
   const [provider, setProvider] = useState('cash')
@@ -43,14 +39,14 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
     if (!open) return
     if (initial) {
       const initialProvider = providerFor(initial)
-      const initialType = typeForProvider(initialProvider)
-      setWalletType(initialType)
+      setWalletType(initial.type)
       setProvider(initialProvider)
       setName(initial.name)
-      setStyle(initialProvider === 'other' ? 'custom' : initial.style)
-      setColor(initial.color || '#3b3b40')
-      setImage(initial.card_image || null)
-      setMode(initialProvider === 'other' && initial.card_image ? 'image' : 'color')
+      const isCash = initial.type === 'cash'
+      setStyle(isCash ? 'cash' : initialProvider === 'other' ? 'custom' : initial.style)
+      setColor(isCash ? '#3b3b40' : initial.color || '#3b3b40')
+      setImage(isCash ? null : initial.card_image || null)
+      setMode(isCash ? 'color' : initialProvider === 'other' && initial.card_image ? 'image' : 'color')
       setLast4(initial.last4 || '')
       setOpening(String(initial.opening_balance ?? 0))
       setInterestEnabled(Boolean(initial.interest_enabled))

@@ -24,7 +24,7 @@ const EMPTY_FILTERS = { search: '', from: '', to: '', order: 'newest' }
 function IncomeForm({ open, initial, wallets, archivedWallets = [], onClose, onSaved }) {
   const [receiptPath, setReceiptPath] = useState(null)
   const [attaching, setAttaching] = useState(false)
-  const cashId = wallets.find((wallet) => wallet.name === 'Cash')?.id ?? wallets[0]?.id ?? ''
+  const cashId = wallets.find((wallet) => wallet.type === 'cash')?.id ?? wallets[0]?.id ?? ''
   const archivedName = archivedWallets.find((wallet) => wallet.id === initial?.wallet_id)?.name
   const options =
     initial?.wallet_id && !wallets.some((wallet) => wallet.id === initial.wallet_id)
