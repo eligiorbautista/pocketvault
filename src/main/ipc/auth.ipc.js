@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs'
 import { handle } from './handle.js'
 import { getDatabase } from '../db/connection.js'
 import * as users from '../db/repositories/users.js'
-import { getSettings } from '../db/repositories/settings.js'
+import { clearAppLock, getAppLock, getSettings, setAppLock } from '../db/repositories/settings.js'
 import { clearSession, getSessionUserId, setSession } from '../db/session.js'
 import { validateId, validatePassword, validateUsername } from '../db/validate.js'
 
@@ -11,6 +11,8 @@ import { validateId, validatePassword, validateUsername } from '../db/validate.j
 const ATTEMPTS = new Map()
 const MAX_ATTEMPTS = 5
 const WINDOW_MS = 60_000
+// Sessions that have a valid saved user but are waiting for the local PIN.
+const LOCKED = new Map()
 
 function throttleKey(prefix, value) {
   return `${prefix}:${String(value ?? '').toLowerCase()}`
@@ -74,6 +76,7 @@ export function registerAuthHandlers() {
         throw new Error('Invalid username or password')
       }
       recordSuccess(key)
+      LOCKED.delete(event.sender.id)
       setSession(event.sender.id, record.id)
       return { user: { id: record.id, username: record.username } }
     },
@@ -94,12 +97,67 @@ export function registerAuthHandlers() {
         error.code = 'PASSWORD_REQUIRED'
         throw error
       }
+      const lock = getAppLock(db, userId)
+      if (lock.enabled) {
+        clearSession(event.sender.id)
+        LOCKED.set(event.sender.id, userId)
+        const user = users.findById(db, userId)
+        return { user: { id: user.id, username: user.username }, locked: true }
+      }
       setSession(event.sender.id, userId)
       const user = users.findById(db, userId)
       return { user: { id: user.id, username: user.username } }
     },
     { auth: false }
   )
+
+  handle(
+    'auth:unlock',
+    ({ event, payload }) => {
+      const db = getDatabase()
+      const userId = LOCKED.get(event.sender.id)
+      if (!userId) throw new Error('Session expired. Sign in again.')
+      const key = throttleKey('unlock', event.sender.id)
+      assertNotThrottled(key)
+      const pin = String(payload.pin ?? '')
+      if (!/^\d{4,6}$/.test(pin)) throw new Error('PIN must be 4 to 6 digits')
+      const lock = getAppLock(db, userId)
+      if (!lock.enabled || !bcrypt.compareSync(pin, lock.hash ?? '')) {
+        recordFailure(key)
+        throw new Error('Incorrect PIN')
+      }
+      recordSuccess(key)
+      LOCKED.delete(event.sender.id)
+      setSession(event.sender.id, userId)
+      const user = users.findById(db, userId)
+      return { user: { id: user.id, username: user.username } }
+    },
+    { auth: false }
+  )
+
+  handle('auth:setAppLock', ({ userId, payload }) => {
+    const db = getDatabase()
+    const record = users.getRecordById(db, userId)
+    if (!record) throw new Error('Account not found')
+    if (!bcrypt.compareSync(String(payload.password ?? ''), record.password_hash)) {
+      throw new Error('Current password is incorrect')
+    }
+    const pin = String(payload.pin ?? '')
+    if (!/^\d{4,6}$/.test(pin)) throw new Error('PIN must be 4 to 6 digits')
+    setAppLock(db, userId, bcrypt.hashSync(pin, 10))
+    return { enabled: true }
+  })
+
+  handle('auth:disableAppLock', ({ userId, payload }) => {
+    const db = getDatabase()
+    const record = users.getRecordById(db, userId)
+    if (!record) throw new Error('Account not found')
+    if (!bcrypt.compareSync(String(payload.password ?? ''), record.password_hash)) {
+      throw new Error('Current password is incorrect')
+    }
+    clearAppLock(db, userId)
+    return { enabled: false }
+  })
 
   handle(
     'auth:current',
@@ -117,6 +175,7 @@ export function registerAuthHandlers() {
     'auth:logout',
     ({ event }) => {
       clearSession(event.sender.id)
+      LOCKED.delete(event.sender.id)
       return true
     },
     { auth: false }

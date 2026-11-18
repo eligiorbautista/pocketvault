@@ -13,7 +13,8 @@ export function getSettings(db, userId) {
       currency: DEFAULT_CURRENCY,
       requirePasswordOnStart: false,
       remindersEnabled: false,
-      reminderLeadDays: DEFAULT_LEAD_DAYS
+      reminderLeadDays: DEFAULT_LEAD_DAYS,
+      appLockEnabled: false
     }
   }
   const lead = Number(row.reminder_lead_days)
@@ -21,8 +22,43 @@ export function getSettings(db, userId) {
     currency: row.currency || DEFAULT_CURRENCY,
     requirePasswordOnStart: Boolean(row.require_password_on_start),
     remindersEnabled: Boolean(row.reminders_enabled),
-    reminderLeadDays: Number.isFinite(lead) ? lead : DEFAULT_LEAD_DAYS
+    reminderLeadDays: Number.isFinite(lead) ? lead : DEFAULT_LEAD_DAYS,
+    appLockEnabled: Boolean(row.app_lock_enabled)
   }
+}
+
+export function getAppLock(db, userId) {
+  const row = db
+    .prepare('SELECT app_lock_enabled, app_lock_pin_hash FROM user_settings WHERE user_id = ?')
+    .get(userId)
+  return {
+    enabled: Boolean(row?.app_lock_enabled && row?.app_lock_pin_hash),
+    hash: row?.app_lock_pin_hash ?? null
+  }
+}
+
+export function setAppLock(db, userId, hash) {
+  db.prepare(
+    `INSERT INTO user_settings (user_id, app_lock_enabled, app_lock_pin_hash, updated_at)
+     VALUES (?, 1, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT (user_id)
+     DO UPDATE SET app_lock_enabled = 1,
+                   app_lock_pin_hash = excluded.app_lock_pin_hash,
+                   updated_at = CURRENT_TIMESTAMP`
+  ).run(userId, hash)
+  return getSettings(db, userId)
+}
+
+export function clearAppLock(db, userId) {
+  db.prepare(
+    `INSERT INTO user_settings (user_id, app_lock_enabled, app_lock_pin_hash, updated_at)
+     VALUES (?, 0, NULL, CURRENT_TIMESTAMP)
+     ON CONFLICT (user_id)
+     DO UPDATE SET app_lock_enabled = 0,
+                   app_lock_pin_hash = NULL,
+                   updated_at = CURRENT_TIMESTAMP`
+  ).run(userId)
+  return getSettings(db, userId)
 }
 
 export function upsertSettings(

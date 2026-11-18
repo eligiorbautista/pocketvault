@@ -28,6 +28,7 @@ export const useAuthStore = create((set) => ({
   user: null,
   status: 'loading',
   error: null,
+  locked: false,
   // True when the session was resumed automatically (no password this launch).
   viaRestore: false,
 
@@ -37,7 +38,7 @@ export const useAuthStore = create((set) => ({
     try {
       const existing = await api.auth.current()
       if (existing?.user) {
-        set({ user: existing.user, status: 'authenticated', error: null, viaRestore: false })
+        set({ user: existing.user, status: 'authenticated', error: null, locked: false, viaRestore: false })
         return
       }
     } catch {
@@ -51,29 +52,48 @@ export const useAuthStore = create((set) => ({
       raw = null
     }
     if (!raw) {
-      set({ status: 'unauthenticated', user: null, viaRestore: false })
+      set({ status: 'unauthenticated', user: null, locked: false, viaRestore: false })
       return
     }
     try {
       const parsed = JSON.parse(raw)
-      const { user } = await api.auth.restore(parsed.id)
-      set({ user, status: 'authenticated', error: null, viaRestore: true })
+      const result = await api.auth.restore(parsed.id)
+      if (result.locked) {
+        set({ user: result.user, status: 'locked', error: null, locked: true, viaRestore: true })
+        return
+      }
+      const { user } = result
+      set({ user, status: 'authenticated', error: null, locked: false, viaRestore: true })
     } catch {
       clearPersistedSession()
-      set({ user: null, status: 'unauthenticated', error: null, viaRestore: false })
+      set({ user: null, status: 'unauthenticated', error: null, locked: false, viaRestore: false })
     }
+  },
+
+  async unlock(pin) {
+    const { user } = await api.auth.unlock(pin)
+    persistSession(user)
+    set({ user, status: 'authenticated', error: null, locked: false, viaRestore: true })
   },
 
   async login(username, password) {
     const { user } = await api.auth.login(username, password)
     persistSession(user)
-    set({ user, status: 'authenticated', error: null, viaRestore: false })
+    set({ user, status: 'authenticated', error: null, locked: false, viaRestore: false })
+  },
+
+  async restoreBackup(passphrase, password) {
+    const result = await api.backup.restoreLogin(passphrase, password)
+    if (!result.restored) return false
+    persistSession(result.user)
+    set({ user: result.user, status: 'authenticated', error: null, locked: false, viaRestore: false })
+    return true
   },
 
   async register(username, password) {
     const { user } = await api.auth.register(username, password)
     persistSession(user)
-    set({ user, status: 'authenticated', error: null, viaRestore: false })
+    set({ user, status: 'authenticated', error: null, locked: false, viaRestore: false })
   },
 
   async logout() {
@@ -86,7 +106,7 @@ export const useAuthStore = create((set) => ({
       await api.auth.logout()
     } finally {
       clearPersistedSession()
-      set({ user: null, status: 'unauthenticated', error: null, viaRestore: false })
+      set({ user: null, status: 'unauthenticated', error: null, locked: false, viaRestore: false })
     }
   }
 }))

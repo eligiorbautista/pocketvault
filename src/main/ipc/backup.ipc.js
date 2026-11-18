@@ -1,7 +1,11 @@
 import { dialog } from 'electron'
 import { readFileSync, writeFileSync } from 'node:fs'
+import bcrypt from 'bcryptjs'
 import { handle } from './handle.js'
 import { checkpointDatabase, getDatabase } from '../db/connection.js'
+import * as users from '../db/repositories/users.js'
+import { validatePassword, validateUsername } from '../db/validate.js'
+import { setSession } from '../db/session.js'
 import {
   applyUserBackup,
   assertBackupMatchesAccount,
@@ -48,8 +52,7 @@ export function registerBackupHandlers() {
     return { saved: true, path: result.filePath, counts, encrypted: true }
   })
 
-  handle('backup:import', async ({ userId, passphrase }) => {
-    const db = getDatabase()
+  handle('backup:import', async ({ userId, passphrase }) => {    const db = getDatabase()
     const user = currentUser(db, userId)
     if (!user) throw new Error('Account not found')
 
@@ -77,4 +80,62 @@ export function registerBackupHandlers() {
     const result = applyUserBackup(db, userId, parsed, receiptsDir(), user.username)
     return { imported: true, counts: result.counts, username: result.username }
   })
+
+  // Restore an encrypted account backup from the login page. The backup names
+  // the account; an existing account must confirm its password, while a fresh
+  // install creates the account with the password entered here.
+  handle(
+    'backup:restoreLogin',
+    async ({ event, payload }) => {
+      const db = getDatabase()
+      const passphrase = String(payload.passphrase ?? '')
+      const password = String(payload.password ?? '')
+      const picked = await dialog.showOpenDialog({
+        title: 'Restore account from backup',
+        properties: ['openFile'],
+        filters: [
+          { name: 'PocketVault backup', extensions: ['pvbak', 'zip'] },
+          { name: 'Encrypted PocketVault backup', extensions: ['pvbak'] },
+          { name: 'Legacy ZIP backup', extensions: ['zip'] }
+        ]
+      })
+      if (picked.canceled || picked.filePaths.length === 0) return { restored: false }
+
+      const file = readFileSync(picked.filePaths[0])
+      const buffer = isEncryptedBackup(file)
+        ? Buffer.from(await decryptBackup(file, passphrase))
+        : file
+      const parsed = await parseUserBackup(buffer)
+      const username = validateUsername(parsed.account.username)
+      let record = users.findByUsername(db, username)
+      let created = false
+
+      if (record) {
+        if (!bcrypt.compareSync(password, record.password_hash)) {
+          throw new Error('Incorrect account password for this backup')
+        }
+      } else {
+        const nextPassword = validatePassword(password)
+        record = users.createUser(db, {
+          username,
+          passwordHash: bcrypt.hashSync(nextPassword, 10)
+        })
+        created = true
+      }
+
+      try {
+        const result = applyUserBackup(db, record.id, parsed, receiptsDir(), record.username)
+        setSession(event.sender.id, record.id)
+        return {
+          restored: true,
+          user: { id: record.id, username: record.username },
+          counts: result.counts
+        }
+      } catch (error) {
+        if (created) db.prepare('DELETE FROM users WHERE id = ?').run(record.id)
+        throw error
+      }
+    },
+    { auth: false }
+  )
 }

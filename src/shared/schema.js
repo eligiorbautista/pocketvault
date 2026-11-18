@@ -306,5 +306,10 @@ CREATE TABLE IF NOT EXISTS net_worth_snapshots (
 CREATE INDEX IF NOT EXISTS idx_snapshots_user_date ON net_worth_snapshots (user_id, date);
 `
 
-export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11]
+const V12 = `
+ALTER TABLE user_settings ADD COLUMN app_lock_enabled INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE user_settings ADD COLUMN app_lock_pin_hash TEXT;
+`
+
+export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12]
 export const SCHEMA_VERSION = MIGRATIONS.length

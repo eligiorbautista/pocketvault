@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@renderer/components/ErrorBoundary.jsx'
 import { AppShell } from '@renderer/components/layout/AppShell.jsx'
 import { SplashScreen } from '@renderer/components/layout/SplashScreen.jsx'
 import Login from '@renderer/pages/Login.jsx'
+import LockScreen from '@renderer/pages/LockScreen.jsx'
 import Register from '@renderer/pages/Register.jsx'
 import Dashboard from '@renderer/pages/Dashboard.jsx'
 import Wallet from '@renderer/pages/Wallet.jsx'
@@ -70,6 +71,8 @@ export default function App() {
     <>
       {status === 'loading' ? (
         <SplashScreen />
+      ) : status === 'locked' ? (
+        <LockScreen />
       ) : (
         <Routes>
           <Route element={<PublicOnlyRoute />}>

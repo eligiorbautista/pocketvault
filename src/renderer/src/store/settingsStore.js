@@ -7,7 +7,8 @@ const DEFAULTS = {
   currency: DEFAULT_CURRENCY,
   requirePasswordOnStart: false,
   remindersEnabled: false,
-  reminderLeadDays: DEFAULT_LEAD_DAYS
+  reminderLeadDays: DEFAULT_LEAD_DAYS,
+  appLockEnabled: false
 }
 
 export const useSettingsStore = create((set) => ({
@@ -21,6 +22,7 @@ export const useSettingsStore = create((set) => ({
       requirePasswordOnStart: settings.requirePasswordOnStart,
       remindersEnabled: settings.remindersEnabled,
       reminderLeadDays: settings.reminderLeadDays,
+      appLockEnabled: Boolean(settings.appLockEnabled),
       loaded: true
     })
     return settings
@@ -32,7 +34,8 @@ export const useSettingsStore = create((set) => ({
       currency: settings.currency,
       requirePasswordOnStart: settings.requirePasswordOnStart,
       remindersEnabled: settings.remindersEnabled,
-      reminderLeadDays: settings.reminderLeadDays
+      reminderLeadDays: settings.reminderLeadDays,
+      appLockEnabled: Boolean(settings.appLockEnabled)
     })
     return settings
   },

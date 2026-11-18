@@ -28,6 +28,7 @@ import { SettingRow } from '@renderer/components/ui/Field.jsx'
 import { Input, Select, Switch } from '@renderer/components/ui/Input.jsx'
 import { BackupPasswordDialog } from '@renderer/components/settings/BackupPasswordDialog.jsx'
 import { ChangePasswordForm } from '@renderer/components/settings/ChangePasswordForm.jsx'
+import { AppLockDialog } from '@renderer/components/settings/AppLockDialog.jsx'
 import { DeleteDataForm } from '@renderer/components/settings/DeleteDataForm.jsx'
 import { ThemeSelect } from '@renderer/components/settings/ThemeSelect.jsx'
 import { useAuthStore } from '@renderer/store/authStore.js'
@@ -57,10 +58,12 @@ export default function Settings() {
   const [busy, setBusy] = useState(null)
   const [backupMode, setBackupMode] = useState(null)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [appLockOpen, setAppLockOpen] = useState(false)
   const [deleteDataOpen, setDeleteDataOpen] = useState(false)
   const [exactAlarms, setExactAlarms] = useState({ supported: false, granted: true })
   const currency = useSettingsStore((state) => state.currency)
   const requirePasswordOnStart = useSettingsStore((state) => state.requirePasswordOnStart)
+  const appLockEnabled = useSettingsStore((state) => state.appLockEnabled)
   const remindersEnabled = useSettingsStore((state) => state.remindersEnabled)
   const reminderLeadDays = useSettingsStore((state) => state.reminderLeadDays)
 
@@ -194,6 +197,20 @@ export default function Settings() {
               onChange={toggleRequirePassword}
               aria-label="Require password on startup"
             />
+          </SettingRow>
+
+          <SettingRow
+            title="App lock PIN"
+            description={
+              appLockEnabled
+                ? 'A 4 to 6 digit PIN is required when PocketVault reopens.'
+                : 'Add a quick PIN lock for this device.'
+            }
+          >
+            <Button variant="secondary" size="sm" onClick={() => setAppLockOpen(true)}>
+              <KeyRound size={16} aria-hidden="true" />
+              {appLockEnabled ? 'Manage PIN' : 'Set PIN'}
+            </Button>
           </SettingRow>
 
           <SettingRow title="Sign out" description="End your session on this device." last>
@@ -410,6 +427,13 @@ export default function Settings() {
       <ChangePasswordForm
         open={changePasswordOpen}
         onClose={() => setChangePasswordOpen(false)}
+      />
+
+      <AppLockDialog
+        open={appLockOpen}
+        enabled={appLockEnabled}
+        onClose={() => setAppLockOpen(false)}
+        onSaved={() => useSettingsStore.getState().load()}
       />
 
       <DeleteDataForm

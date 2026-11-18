@@ -20,6 +20,9 @@ const api = {
     register: (username, password) => call('auth:register', { username, password }),
     login: (username, password) => call('auth:login', { username, password }),
     restore: (userId) => call('auth:restore', { userId }),
+    unlock: (pin) => call('auth:unlock', { pin }),
+    setAppLock: (password, pin) => call('auth:setAppLock', { password, pin }),
+    disableAppLock: (password) => call('auth:disableAppLock', { password }),
     current: () => call('auth:current'),
     logout: () => call('auth:logout'),
     changePassword: (currentPassword, newPassword) =>
@@ -131,7 +134,8 @@ const api = {
 
   backup: {
     export: (passphrase) => call('backup:export', { passphrase }),
-    import: (passphrase) => call('backup:import', { passphrase })
+    import: (passphrase) => call('backup:import', { passphrase }),
+    restoreLogin: (passphrase, password) => call('backup:restoreLogin', { passphrase, password })
   },
 
   account: {

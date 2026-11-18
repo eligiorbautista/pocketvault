@@ -65,6 +65,7 @@ const WALLET_COLUMNS =
 const WALLET_CARD_COLUMNS = `${WALLET_COLUMNS}, card_image`
 
 let session = null // { id, username } - in-memory, mirrors the main-process session
+let lockedUser = null // saved user waiting for the local PIN
 
 function uuid() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
@@ -625,7 +626,7 @@ export function createCapacitorApi() {
       // Mirror the desktop gate: a stored id is not enough when the account
       // requires a password on start.
       const settingsRow = await getOne(
-        'SELECT require_password_on_start FROM user_settings WHERE user_id = ?',
+        'SELECT require_password_on_start, app_lock_enabled, app_lock_pin_hash FROM user_settings WHERE user_id = ?',
         [id]
       )
       if (settingsRow && Number(settingsRow.require_password_on_start)) {
@@ -634,8 +635,67 @@ export function createCapacitorApi() {
         error.code = 'PASSWORD_REQUIRED'
         throw error
       }
+      if (settingsRow && Number(settingsRow.app_lock_enabled) && settingsRow.app_lock_pin_hash) {
+        session = null
+        lockedUser = { id: user.id, username: user.username }
+        return { user: lockedUser, locked: true }
+      }
       session = { id: user.id, username: user.username }
       return { user: session }
+    },
+
+    unlock: async (pinRaw) => {
+      if (!lockedUser) throw new Error('Session expired. Sign in again.')
+      const pin = String(pinRaw ?? '')
+      if (!/^\d{4,6}$/.test(pin)) throw new Error('PIN must be 4 to 6 digits')
+      const row = await getOne(
+        'SELECT app_lock_enabled, app_lock_pin_hash FROM user_settings WHERE user_id = ?',
+        [lockedUser.id]
+      )
+      if (!row || !Number(row.app_lock_enabled) || !row.app_lock_pin_hash || !bcrypt.compareSync(pin, row.app_lock_pin_hash)) {
+        throw new Error('Incorrect PIN')
+      }
+      session = lockedUser
+      lockedUser = null
+      return { user: session }
+    },
+
+    setAppLock: async (passwordRaw, pinRaw) => {
+      const userId = requireUserId()
+      const record = await getOne('SELECT * FROM users WHERE id = ?', [userId])
+      if (!record) throw new Error('Account not found')
+      if (!bcrypt.compareSync(String(passwordRaw ?? ''), record.password_hash)) {
+        throw new Error('Current password is incorrect')
+      }
+      const pin = String(pinRaw ?? '')
+      if (!/^\d{4,6}$/.test(pin)) throw new Error('PIN must be 4 to 6 digits')
+      await run(
+        `INSERT INTO user_settings (user_id, app_lock_enabled, app_lock_pin_hash, updated_at)
+         VALUES (?, 1, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT (user_id)
+         DO UPDATE SET app_lock_enabled = 1,
+                       app_lock_pin_hash = excluded.app_lock_pin_hash,
+                       updated_at = CURRENT_TIMESTAMP`,
+        [userId, bcrypt.hashSync(pin, 10)]
+      )
+      return { enabled: true }
+    },
+
+    disableAppLock: async (passwordRaw) => {
+      const userId = requireUserId()
+      const record = await getOne('SELECT * FROM users WHERE id = ?', [userId])
+      if (!record) throw new Error('Account not found')
+      if (!bcrypt.compareSync(String(passwordRaw ?? ''), record.password_hash)) {
+        throw new Error('Current password is incorrect')
+      }
+      await run(
+        `INSERT INTO user_settings (user_id, app_lock_enabled, app_lock_pin_hash, updated_at)
+         VALUES (?, 0, NULL, CURRENT_TIMESTAMP)
+         ON CONFLICT (user_id)
+         DO UPDATE SET app_lock_enabled = 0, app_lock_pin_hash = NULL, updated_at = CURRENT_TIMESTAMP`,
+        [userId]
+      )
+      return { enabled: false }
     },
 
     current: async () => {
@@ -650,6 +710,7 @@ export function createCapacitorApi() {
 
     logout: async () => {
       session = null
+      lockedUser = null
       return true
     },
 
@@ -674,7 +735,7 @@ export function createCapacitorApi() {
     get: async () => {
       const userId = requireUserId()
       const row = await getOne(
-        'SELECT user_id, currency, require_password_on_start, reminders_enabled, reminder_lead_days, updated_at FROM user_settings WHERE user_id = ?',
+        'SELECT user_id, currency, require_password_on_start, reminders_enabled, reminder_lead_days, app_lock_enabled, updated_at FROM user_settings WHERE user_id = ?',
         [userId]
       )
       if (!row) {
@@ -682,7 +743,8 @@ export function createCapacitorApi() {
           currency: DEFAULT_CURRENCY,
           requirePasswordOnStart: false,
           remindersEnabled: false,
-          reminderLeadDays: DEFAULT_LEAD_DAYS
+          reminderLeadDays: DEFAULT_LEAD_DAYS,
+          appLockEnabled: false
         }
       }
       const lead = Number(row.reminder_lead_days)
@@ -690,7 +752,8 @@ export function createCapacitorApi() {
         currency: row.currency || DEFAULT_CURRENCY,
         requirePasswordOnStart: Boolean(row.require_password_on_start),
         remindersEnabled: Boolean(row.reminders_enabled),
-        reminderLeadDays: Number.isFinite(lead) ? lead : DEFAULT_LEAD_DAYS
+        reminderLeadDays: Number.isFinite(lead) ? lead : DEFAULT_LEAD_DAYS,
+        appLockEnabled: Boolean(row.app_lock_enabled)
       }
     },
     update: async (patch = {}) => {
