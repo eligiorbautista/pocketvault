@@ -85,6 +85,17 @@ const api = {
     archived: () => call('budgets:archived')
   },
 
+  recurring: {
+    list: () => call('recurring:list'),
+    create: (data) => call('recurring:create', data),
+    update: (id, data) => call('recurring:update', { id, ...data }),
+    remove: (id) => call('recurring:remove', { id }),
+    restore: (id) => call('recurring:restore', { id }),
+    archived: () => call('recurring:archived'),
+    post: (id) => call('recurring:post', { id }),
+    skip: (id) => call('recurring:skip', { id })
+  },
+
   savings: {
     list: () => call('savings:list'),
     get: (id) => call('savings:get', { id }),

@@ -9,7 +9,7 @@ import {
 import { validateBackupData, verifyBackupCounts } from '../../shared/backupValidate.js'
 import { validateWalletInput } from '../../shared/wallets.js'
 
-const FORMAT = 4
+const FORMAT = 5
 const RECEIPTS_PREFIX = 'receipts/'
 const DATA_KEYS = [
   'income',
@@ -20,7 +20,8 @@ const DATA_KEYS = [
   'savings_goals',
   'savings_contributions',
   'wallets',
-  'wallet_transfers'
+  'wallet_transfers',
+  'recurring_rules'
 ]
 
 function num(value) {
@@ -72,7 +73,7 @@ export async function buildUserBackup(db, userId, receiptsDir) {
     .all(userId)
   const savings_goals = db
     .prepare(
-      `SELECT id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at
+      `SELECT id, goal_name, target_amount, current_amount, deadline, wallet_id, kind, is_archived, created_at, updated_at
        FROM savings_goals WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
@@ -94,6 +95,12 @@ export async function buildUserBackup(db, userId, receiptsDir) {
        FROM wallets WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
+  const recurring_rules = db
+    .prepare(
+      `SELECT id, name, kind, wallet_id, category, amount, frequency, next_due, reminder_days, is_archived, created_at, updated_at
+       FROM recurring_rules WHERE user_id = ? ORDER BY id`
+    )
+    .all(userId)
   const wallet_transfers = db
     .prepare(
       `SELECT id, from_wallet_id, to_wallet_id, amount, date, notes, is_archived, created_at, updated_at
@@ -112,6 +119,7 @@ export async function buildUserBackup(db, userId, receiptsDir) {
     savingsContributions: savings_contributions.length,
     wallets: wallets.length,
     walletTransfers: wallet_transfers.length,
+    recurringRules: recurring_rules.length,
     receipts: 0
   }
 
@@ -131,7 +139,8 @@ export async function buildUserBackup(db, userId, receiptsDir) {
         savings_goals,
         savings_contributions,
         wallets,
-        wallet_transfers
+        wallet_transfers,
+        recurring_rules
       },
       null,
       2
@@ -202,7 +211,7 @@ export async function parseUserBackup(buffer) {
     throw new Error('Invalid backup: the archive contents are corrupted')
   }
 
-  if (!manifest || ![2, 3, 4].includes(manifest.format)) {
+  if (!manifest || ![2, 3, 4, 5].includes(manifest.format)) {
     throw new Error('Unsupported backup format. This file was made by a different version.')
   }
   const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -264,6 +273,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
   const now = new Date().toISOString()
   const walletRows = Array.isArray(data.wallets) ? data.wallets : []
   const transferRows = Array.isArray(data.wallet_transfers) ? data.wallet_transfers : []
+  const recurringRows = Array.isArray(data.recurring_rules) ? data.recurring_rules : []
 
   const oldReceipts = [
     ...db
@@ -293,6 +303,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     db.prepare('DELETE FROM income WHERE user_id = ?').run(userId)
     db.prepare('DELETE FROM expenses WHERE user_id = ?').run(userId)
     db.prepare('DELETE FROM budgets WHERE user_id = ?').run(userId)
+    db.prepare('DELETE FROM recurring_rules WHERE user_id = ?').run(userId)
     db.prepare('DELETE FROM wallet_transfers WHERE user_id = ?').run(userId)
     db.prepare('DELETE FROM wallets WHERE user_id = ?').run(userId)
 
@@ -498,8 +509,8 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     }
 
     const insertGoal = db.prepare(
-      `INSERT INTO savings_goals (user_id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO savings_goals (user_id, goal_name, target_amount, current_amount, deadline, wallet_id, kind, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const goalMap = new Map()
     for (const row of data.savings_goals) {
@@ -509,6 +520,8 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         num(row.target_amount),
         num(row.current_amount),
         row.deadline ?? null,
+        row.wallet_id != null ? resolveWallet(row.wallet_id) : null,
+        row.kind === 'sinking' ? 'sinking' : 'goal',
         row.is_archived ? 1 : 0,
         row.created_at ?? now,
         row.updated_at ?? null
@@ -531,6 +544,28 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         row.date,
         row.notes ?? null,
         row.created_at ?? now
+      )
+    }
+
+    const insertRule = db.prepare(
+      `INSERT INTO recurring_rules
+        (user_id, name, kind, wallet_id, category, amount, frequency, next_due, reminder_days, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    for (const row of recurringRows) {
+      insertRule.run(
+        userId,
+        row.name,
+        row.kind,
+        resolveWallet(row.wallet_id),
+        row.category ?? null,
+        num(row.amount),
+        row.frequency,
+        row.next_due,
+        row.reminder_days ?? 3,
+        row.is_archived ? 1 : 0,
+        row.created_at ?? now,
+        row.updated_at ?? null
       )
     }
   })
@@ -559,6 +594,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
       savingsContributions: data.savings_contributions.length,
       wallets: data.wallets.length,
       walletTransfers: data.wallet_transfers.length,
+      recurringRules: recurringRows.length,
       receipts: receipts.length
     }
   }

@@ -12,6 +12,7 @@ import * as debtsRepo from '../src/main/db/repositories/debts.js'
 import * as walletsRepo from '../src/main/db/repositories/wallets.js'
 import * as budgetsRepo from '../src/main/db/repositories/budgets.js'
 import * as savingsRepo from '../src/main/db/repositories/savings.js'
+import * as recurringRepo from '../src/main/db/repositories/recurring.js'
 import * as reportsRepo from '../src/main/db/repositories/reports.js'
 import * as dashboardRepo from '../src/main/db/repositories/dashboard.js'
 import * as settingsRepo from '../src/main/db/repositories/settings.js'
@@ -368,6 +369,29 @@ check('savings remove works', savingsRepo.remove(db, alice.id, goal.id) === true
 check('archiving goal keeps contributions', (savingsRepo.listContributions(db, alice.id, goal.id) ?? []).length === 1)
 check('archived goal hidden from active list', savingsRepo.list(db, alice.id).every((r) => r.id !== goal.id))
 check('restoring goal returns it to active list', savingsRepo.restore(db, alice.id, goal.id) === true && savingsRepo.list(db, alice.id).some((r) => r.id === goal.id))
+
+// ---------- recurring bills ----------
+const recurring = recurringRepo.create(db, alice.id, {
+  name: 'Rent',
+  kind: 'bill',
+  wallet_id: cashId(db, alice.id),
+  category: 'housing',
+  amount: 100,
+  frequency: 'monthly',
+  next_due: '2026-09-30',
+  reminder_days: 3
+})
+check('recurring rule is listed', recurringRepo.list(db, alice.id).some((row) => row.id === recurring.id))
+const postedRule = recurringRepo.post(db, alice.id, recurring.id)
+check(
+  'recurring post advances the next due date',
+  postedRule.next_due === '2026-10-30' &&
+    expensesRepo.list(db, alice.id, {}).rows.some((row) => row.notes === 'Recurring: Rent')
+)
+check(
+  'recurring skip advances without posting',
+  recurringRepo.skip(db, alice.id, recurring.id).next_due === '2026-11-30'
+)
 savingsRepo.remove(db, alice.id, goal.id)
 check('income survives contribution cascade (SET NULL)', incomeRepo.getById(db, alice.id, incLink.id) !== null)
 

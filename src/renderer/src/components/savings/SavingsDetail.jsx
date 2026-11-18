@@ -32,7 +32,7 @@ function ContributionForm({ goalId, incomeOptions, onDone }) {
         income_id: values.income_id ? Number(values.income_id) : null,
         notes: values.notes
       })
-      toast('Contribution added', 'success')
+      toast('Allocation added', 'success')
       reset({ amount: '', date: todayInput(), income_id: '', notes: '' })
       onDone()
     } catch (error) {
@@ -84,7 +84,7 @@ function ContributionForm({ goalId, incomeOptions, onDone }) {
         <Input id="contrib-notes" placeholder="Optional" {...register('notes')} />
       </Field>
       <Button type="submit" size="sm" loading={busy}>
-        Add contribution
+        Allocate to bucket
       </Button>
     </form>
   )
@@ -98,8 +98,8 @@ export function SavingsDetail({ goalId, open, onClose, onChanged }) {
     () => (goalId ? api.savings.get(goalId) : Promise.resolve(null)),
     [goalId, open]
   )
-  const contributionsQuery = useApiData(
-    () => (goalId ? api.savings.contributions(goalId) : Promise.resolve([])),
+  const AllocationsQuery = useApiData(
+    () => (goalId ? api.savings.Allocations(goalId) : Promise.resolve([])),
     [goalId, open]
   )
   const incomeQuery = useApiData(
@@ -108,12 +108,12 @@ export function SavingsDetail({ goalId, open, onClose, onChanged }) {
   )
 
   const goal = goalQuery.data
-  const contributions = contributionsQuery.data ?? []
+  const Allocations = AllocationsQuery.data ?? []
   const incomeOptions = incomeQuery.data ?? []
 
   const refresh = () => {
     goalQuery.reload()
-    contributionsQuery.reload()
+    AllocationsQuery.reload()
     onChanged?.()
   }
 
@@ -122,7 +122,7 @@ export function SavingsDetail({ goalId, open, onClose, onChanged }) {
     setRemoving(true)
     try {
       await api.savings.removeContribution(pendingDelete.id)
-      toast('Contribution removed', 'success')
+      toast('Allocation released', 'success')
       setPendingDelete(null)
       refresh()
     } catch (error) {
@@ -162,17 +162,17 @@ export function SavingsDetail({ goalId, open, onClose, onChanged }) {
           </div>
 
           <div className="rounded-lg border border-slate-200 p-3 dark:border-dark-border">
-            <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-gray-100">Add contribution</h3>
+            <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-gray-100">Allocate to bucket</h3>
             <ContributionForm goalId={goal.id} incomeOptions={incomeOptions} onDone={refresh} />
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-gray-100">Contributions</h3>
-            {contributions.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-dark-faint">No contributions yet.</p>
+            <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-gray-100">Allocations</h3>
+            {Allocations.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-dark-faint">No Allocations yet.</p>
             ) : (
               <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 dark:divide-dark-rule dark:border-dark-border">
-                {contributions.map((contribution) => (
+                {Allocations.map((contribution) => (
                   <li key={contribution.id} className="flex items-center justify-between gap-3 p-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-slate-900 dark:text-gray-100">
@@ -187,7 +187,7 @@ export function SavingsDetail({ goalId, open, onClose, onChanged }) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label="Remove contribution"
+                      aria-label="Release allocation"
                       onClick={() => setPendingDelete(contribution)}
                     >
                       <Trash2 size={16} className="text-red-500" aria-hidden="true" />
@@ -202,8 +202,8 @@ export function SavingsDetail({ goalId, open, onClose, onChanged }) {
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}
-        title="Remove contribution?"
-        message="This reduces the goal's saved amount."
+        title="Release allocation?"
+        message="This releases the earmarked amount from the bucket."
         confirmLabel="Remove"
         loading={removing}
         onConfirm={confirmRemove}

@@ -13,6 +13,7 @@ import {
 } from '@shared/constants.js'
 import { DEFAULT_CURRENCY, isValidCurrency } from '@shared/currency.js'
 import { validateBackupData, verifyBackupCounts } from '@shared/backupValidate.js'
+import { advanceDue, validateRecurringInput } from '@shared/recurring.js'
 import { decryptBackup, encryptBackup, isEncryptedBackup } from '@shared/backupCrypto.js'
 import {
   DEFAULT_WALLET,
@@ -48,14 +49,14 @@ const MIME_BY_EXT = {
 }
 
 const RECEIPTS_DIR = 'receipts'
-const BACKUP_FORMAT = 4
+const BACKUP_FORMAT = 5
 const BACKUP_RECEIPTS_PREFIX = 'receipts/'
 const INCOME_COLUMNS =
   'id, user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
 const EXPENSE_COLUMNS =
   'id, user_id, wallet_id, category, amount, date, notes, is_archived, created_at, updated_at'
 const GOAL_COLUMNS =
-  'id, user_id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at'
+  'id, user_id, goal_name, target_amount, current_amount, deadline, wallet_id, kind, is_archived, created_at, updated_at'
 const DEBT_COLUMNS = `id, user_id, wallet_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
   payment_type, monthly_amount, payment_day, first_payment_date, receipt_path, status, notes,
   is_archived, created_at, updated_at`
@@ -1543,13 +1544,14 @@ export function createCapacitorApi() {
     create: async (data) => {
       const userId = requireUserId()
       const info = await run(
-        `INSERT INTO savings_goals (user_id, goal_name, target_amount, current_amount, deadline, updated_at)
-         VALUES (?, ?, ?, 0, ?, CURRENT_TIMESTAMP)`,
+        `INSERT INTO savings_goals (user_id, goal_name, target_amount, current_amount, deadline, wallet_id, kind, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [
           userId,
           validateText(data.goal_name, 'goal_name', { required: true, max: 120 }),
           validateAmount(data.target_amount, 'target_amount'),
-          validateDate(data.deadline, 'deadline', { required: false })
+          validateDate(data.deadline, 'deadline', { required: false }),
+          data.wallet_id ? validateId(data.wallet_id, 'wallet_id') : null,
+          data.kind === 'sinking' ? 'sinking' : 'goal'
         ]
       )
       return decorateGoal(
@@ -1564,12 +1566,14 @@ export function createCapacitorApi() {
       const userId = requireUserId()
       const info = await run(
         `UPDATE savings_goals
-         SET goal_name = ?, target_amount = ?, deadline = ?, updated_at = CURRENT_TIMESTAMP
+         SET goal_name = ?, target_amount = ?, deadline = ?, wallet_id = ?, kind = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ? AND user_id = ?`,
         [
           validateText(data.goal_name, 'goal_name', { required: true, max: 120 }),
           validateAmount(data.target_amount, 'target_amount'),
           validateDate(data.deadline, 'deadline', { required: false }),
+          data.wallet_id ? validateId(data.wallet_id, 'wallet_id') : null,
+          data.kind === 'sinking' ? 'sinking' : 'goal',
           validateId(id),
           userId
         ]
@@ -1837,7 +1841,7 @@ export function createCapacitorApi() {
         [userId]
       )
       const savingsGoals = await query(
-        `SELECT id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at
+        `SELECT id, goal_name, target_amount, current_amount, deadline, wallet_id, kind, is_archived, created_at, updated_at
          FROM savings_goals WHERE user_id = ? ORDER BY id`,
         [userId]
       )
@@ -1861,6 +1865,11 @@ export function createCapacitorApi() {
          FROM wallet_transfers WHERE user_id = ? ORDER BY id`,
         [userId]
       )
+      const recurringRules = await query(
+        `SELECT id, name, kind, wallet_id, category, amount, frequency, next_due, reminder_days, is_archived, created_at, updated_at
+         FROM recurring_rules WHERE user_id = ? ORDER BY id`,
+        [userId]
+      )
 
       const counts = {
         income: income.length,
@@ -1872,6 +1881,7 @@ export function createCapacitorApi() {
         savingsContributions: savingsContributions.length,
         wallets: walletRows.length,
         walletTransfers: transferRows.length,
+        recurringRules: recurringRules.length,
         receipts: 0
       }
 
@@ -1892,7 +1902,8 @@ export function createCapacitorApi() {
             savings_goals: savingsGoals,
             savings_contributions: savingsContributions,
             wallets: walletRows,
-            wallet_transfers: transferRows
+            wallet_transfers: transferRows,
+            recurring_rules: recurringRules
           },
           null,
           2
@@ -1995,7 +2006,7 @@ export function createCapacitorApi() {
         throw new Error('Invalid backup: the archive contents are corrupted')
       }
 
-      if (!manifest || ![2, 3, 4].includes(manifest.format)) {
+      if (!manifest || ![2, 3, 4, 5].includes(manifest.format)) {
         throw new Error('Unsupported backup format. This file was made by a different version.')
       }
       const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -2037,7 +2048,8 @@ export function createCapacitorApi() {
         savings_goals: Array.isArray(data.savings_goals) ? data.savings_goals : [],
         savings_contributions: Array.isArray(data.savings_contributions) ? data.savings_contributions : [],
         wallets: Array.isArray(data.wallets) ? data.wallets : [],
-        wallet_transfers: Array.isArray(data.wallet_transfers) ? data.wallet_transfers : []
+        wallet_transfers: Array.isArray(data.wallet_transfers) ? data.wallet_transfers : [],
+        recurring_rules: Array.isArray(data.recurring_rules) ? data.recurring_rules : []
       })
       verifyBackupCounts(manifest, data, receipts.length)
 
@@ -2063,6 +2075,7 @@ export function createCapacitorApi() {
       const contribRows = Array.isArray(data.savings_contributions) ? data.savings_contributions : []
       const walletRows = Array.isArray(data.wallets) ? data.wallets : []
       const transferRows = Array.isArray(data.wallet_transfers) ? data.wallet_transfers : []
+      const recurringRows = Array.isArray(data.recurring_rules) ? data.recurring_rules : []
       const now = new Date().toISOString()
 
       await transaction(async () => {
@@ -2079,6 +2092,7 @@ export function createCapacitorApi() {
         await run('DELETE FROM income WHERE user_id = ?', [userId])
         await run('DELETE FROM expenses WHERE user_id = ?', [userId])
         await run('DELETE FROM budgets WHERE user_id = ?', [userId])
+        await run('DELETE FROM recurring_rules WHERE user_id = ?', [userId])
         await run('DELETE FROM wallet_transfers WHERE user_id = ?', [userId])
         await run('DELETE FROM wallets WHERE user_id = ?', [userId])
 
@@ -2271,14 +2285,16 @@ export function createCapacitorApi() {
       const goalMap = new Map()
       for (const row of goalRows) {
         const info = await run(
-          `INSERT INTO savings_goals (user_id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO savings_goals (user_id, goal_name, target_amount, current_amount, deadline, wallet_id, kind, is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
             row.goal_name,
             num(row.target_amount),
             num(row.current_amount),
             row.deadline ?? null,
+            row.wallet_id != null ? resolveWallet(row.wallet_id) : null,
+            row.kind === 'sinking' ? 'sinking' : 'goal',
             row.is_archived ? 1 : 0,
             row.created_at ?? now,
             row.updated_at ?? null
@@ -2295,6 +2311,28 @@ export function createCapacitorApi() {
           `INSERT INTO savings_contributions (goal_id, income_id, amount, date, notes, created_at)
            VALUES (?, ?, ?, ?, ?, ?)`,
           [goalId, incomeId, num(row.amount), row.date, row.notes ?? null, row.created_at ?? now]
+        )
+      }
+
+      for (const row of recurringRows) {
+        await run(
+          `INSERT INTO recurring_rules
+            (user_id, name, kind, wallet_id, category, amount, frequency, next_due, reminder_days, is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId,
+            row.name,
+            row.kind,
+            resolveWallet(row.wallet_id),
+            row.category ?? null,
+            num(row.amount),
+            row.frequency,
+            row.next_due,
+            row.reminder_days ?? 3,
+            row.is_archived ? 1 : 0,
+            row.created_at ?? now,
+            row.updated_at ?? null
+          ]
         )
       }
       })
@@ -2332,6 +2370,7 @@ export function createCapacitorApi() {
           savingsContributions: contribRows.length,
           wallets: walletRows.length,
           walletTransfers: transferRows.length,
+          recurringRules: recurringRows.length,
           receipts: receipts.length
         }
       }
@@ -2372,6 +2411,7 @@ export function createCapacitorApi() {
         { statement: 'DELETE FROM income WHERE user_id = ?', values: [userId] },
         { statement: 'DELETE FROM expenses WHERE user_id = ?', values: [userId] },
         { statement: 'DELETE FROM budgets WHERE user_id = ?', values: [userId] },
+        { statement: 'DELETE FROM recurring_rules WHERE user_id = ?', values: [userId] },
         { statement: 'DELETE FROM wallet_transfers WHERE user_id = ?', values: [userId] },
         { statement: 'DELETE FROM wallets WHERE user_id = ?', values: [userId] },
         {
@@ -2392,6 +2432,93 @@ export function createCapacitorApi() {
     }
   }
 
+  const recurring = {
+    list: async () => {
+      const userId = requireUserId()
+      return query(
+        'SELECT * FROM recurring_rules WHERE user_id = ? AND is_archived = 0 ORDER BY next_due ASC, id ASC',
+        [userId]
+      )
+    },
+    create: async (data) => {
+      const userId = requireUserId()
+      const wallets = await query('SELECT id FROM wallets WHERE user_id = ? AND is_archived = 0', [userId])
+      const row = validateRecurringInput(data, { wallets })
+      const info = await run(
+        `INSERT INTO recurring_rules (user_id, name, kind, wallet_id, category, amount, frequency, next_due, reminder_days)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, row.name, row.kind, row.wallet_id, row.category, row.amount, row.frequency, row.next_due, row.reminder_days]
+      )
+      return getOne('SELECT * FROM recurring_rules WHERE id = ? AND user_id = ?', [info.lastId, userId])
+    },
+    update: async (id, data) => {
+      const userId = requireUserId()
+      const wallets = await query('SELECT id FROM wallets WHERE user_id = ? AND is_archived = 0', [userId])
+      const row = validateRecurringInput(data, { wallets })
+      const info = await run(
+        `UPDATE recurring_rules SET name = ?, kind = ?, wallet_id = ?, category = ?, amount = ?,
+           frequency = ?, next_due = ?, reminder_days = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND user_id = ?`,
+        [row.name, row.kind, row.wallet_id, row.category, row.amount, row.frequency, row.next_due, row.reminder_days, validateId(id), userId]
+      )
+      if (info.changes === 0) return null
+      return getOne('SELECT * FROM recurring_rules WHERE id = ? AND user_id = ?', [id, userId])
+    },
+    remove: async (id) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE recurring_rules SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 0',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+    restore: async (id) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE recurring_rules SET is_archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND is_archived = 1',
+        [validateId(id), userId]
+      )
+      return info.changes > 0
+    },
+    archived: async () => {
+      const userId = requireUserId()
+      return query('SELECT * FROM recurring_rules WHERE user_id = ? AND is_archived = 1 ORDER BY id DESC', [userId])
+    },
+    post: async (id) => {
+      const userId = requireUserId()
+      const rule = await getOne('SELECT * FROM recurring_rules WHERE id = ? AND user_id = ?', [validateId(id), userId])
+      if (!rule || rule.is_archived) return null
+      await transaction(async () => {
+        if (rule.kind === 'income') {
+          await run(
+            'INSERT INTO income (user_id, wallet_id, amount, date, source, notes) VALUES (?, ?, ?, ?, ?, ?)',
+            [userId, rule.wallet_id, rule.amount, rule.next_due, rule.name, 'Recurring income']
+          )
+        } else {
+          await run(
+            'INSERT INTO expenses (user_id, wallet_id, category, amount, date, notes) VALUES (?, ?, ?, ?, ?, ?)',
+            [userId, rule.wallet_id, rule.category || 'other', rule.amount, rule.next_due, `Recurring: ${rule.name}`]
+          )
+        }
+        await run(
+          'UPDATE recurring_rules SET next_due = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+          [advanceDue(rule.next_due, rule.frequency), rule.id, userId]
+        )
+      })
+      return getOne('SELECT * FROM recurring_rules WHERE id = ? AND user_id = ?', [rule.id, userId])
+    },
+    skip: async (id) => {
+      const userId = requireUserId()
+      const rule = await getOne('SELECT * FROM recurring_rules WHERE id = ? AND user_id = ?', [validateId(id), userId])
+      if (!rule || rule.is_archived) return null
+      await run(
+        'UPDATE recurring_rules SET next_due = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+        [advanceDue(rule.next_due, rule.frequency), rule.id, userId]
+      )
+      return getOne('SELECT * FROM recurring_rules WHERE id = ? AND user_id = ?', [rule.id, userId])
+    }
+  }
+
   return {
     platform: 'android',
     auth,
@@ -2402,6 +2529,7 @@ export function createCapacitorApi() {
     debts,
     budgets,
     savings,
+    recurring,
     reports,
     files,
     backup,

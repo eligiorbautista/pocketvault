@@ -21,7 +21,9 @@ function normalizeGoal(payload) {
   return {
     goal_name: validateText(payload.goal_name, 'goal_name', { required: true, max: 120 }),
     target_amount: validateAmount(payload.target_amount, 'target_amount'),
-    deadline: validateDate(payload.deadline, 'deadline', { required: false })
+    deadline: validateDate(payload.deadline, 'deadline', { required: false }),
+    wallet_id: payload.wallet_id ? validateId(payload.wallet_id, 'wallet_id') : null,
+    kind: payload.kind === 'sinking' ? 'sinking' : 'goal'
   }
 }
 

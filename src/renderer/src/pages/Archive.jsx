@@ -85,6 +85,16 @@ const SECTIONS = [
       title: `${row.from_name} → ${row.to_name}`,
       meta: `${formatDate(row.date)} · ${formatCurrency(row.amount)}`
     })
+  },
+  {
+    key: 'recurring',
+    label: 'Bills',
+    load: () => api.recurring.archived(),
+    restore: (id) => api.recurring.restore(id),
+    render: (row) => ({
+      title: row.name,
+      meta: `${row.frequency} · next ${formatDate(row.next_due)}`
+    })
   }
 ]
 

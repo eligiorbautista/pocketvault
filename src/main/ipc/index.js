@@ -5,6 +5,7 @@ import { registerExpensesHandlers } from './expenses.ipc.js'
 import { registerDebtsHandlers } from './debts.ipc.js'
 import { registerBudgetsHandlers } from './budgets.ipc.js'
 import { registerSavingsHandlers } from './savings.ipc.js'
+import { registerRecurringHandlers } from './recurring.ipc.js'
 import { registerReportsHandlers } from './reports.ipc.js'
 import { registerFilesHandlers } from './files.ipc.js'
 import { registerBackupHandlers } from './backup.ipc.js'
@@ -20,6 +21,7 @@ export function registerIpcHandlers() {
   registerDebtsHandlers()
   registerBudgetsHandlers()
   registerSavingsHandlers()
+  registerRecurringHandlers()
   registerReportsHandlers()
   registerFilesHandlers()
   registerBackupHandlers()

@@ -240,5 +240,34 @@ ALTER TABLE wallets ADD COLUMN interest_crediting TEXT NOT NULL DEFAULT 'monthly
 ALTER TABLE wallets ADD COLUMN interest_withholding INTEGER NOT NULL DEFAULT 1;
 `
 
-export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7]
+// v8: savings buckets share the existing goal/contribution ledger, and
+// recurring bills are rules that post an income/expense only when confirmed.
+const V8 = `
+ALTER TABLE savings_goals ADD COLUMN wallet_id INTEGER;
+ALTER TABLE savings_goals ADD COLUMN kind TEXT NOT NULL DEFAULT 'goal';
+
+CREATE TABLE IF NOT EXISTS recurring_rules (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'bill',
+  wallet_id INTEGER NOT NULL,
+  category TEXT,
+  amount REAL NOT NULL,
+  frequency TEXT NOT NULL DEFAULT 'monthly',
+  next_due TEXT NOT NULL,
+  reminder_days INTEGER NOT NULL DEFAULT 3,
+  is_archived INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (wallet_id) REFERENCES wallets(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_savings_goals_wallet ON savings_goals (wallet_id);
+CREATE INDEX IF NOT EXISTS idx_recurring_user_due ON recurring_rules (user_id, is_archived, next_due);
+CREATE INDEX IF NOT EXISTS idx_recurring_wallet ON recurring_rules (wallet_id);
+`
+
+export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7, V8]
 export const SCHEMA_VERSION = MIGRATIONS.length

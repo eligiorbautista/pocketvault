@@ -19,6 +19,7 @@ import {
   validateText
 } from './validate.js'
 import { validateTransferInput, validateWalletInput } from './wallets.js'
+import { RECURRING_FREQUENCIES, RECURRING_KINDS } from './recurring.js'
 
 function receiptOf(value, field) {
   if (value === undefined || value === null || value === '') return null
@@ -111,6 +112,21 @@ export function validateBackupData(data) {
     validateAmount(row.target_amount, 'target amount')
     validateAmount(row.current_amount, 'current amount', { allowZero: true })
     validateDate(row.deadline, 'deadline', { required: false })
+    if (row.wallet_id != null) validateId(row.wallet_id, 'goal wallet')
+    assert(row.kind === undefined || row.kind === 'goal' || row.kind === 'sinking', 'goal kind is invalid')
+  }
+
+  for (const row of asArray(data.recurring_rules)) {
+    validateText(row.name, 'recurring name', { required: true, max: 120 })
+    assert(RECURRING_KINDS.includes(row.kind), 'recurring kind is invalid')
+    assert(RECURRING_FREQUENCIES.includes(row.frequency), 'recurring frequency is invalid')
+    validateId(row.wallet_id, 'recurring wallet')
+    validateAmount(row.amount, 'recurring amount')
+    validateDate(row.next_due, 'recurring next due')
+    if (row.reminder_days !== undefined && row.reminder_days !== null) {
+      validateInt(row.reminder_days, 'recurring reminder days', { min: 0, max: 30 })
+    }
+    if (row.kind !== 'income') validateCategory(row.category)
   }
 
   for (const row of asArray(data.savings_contributions)) {
@@ -131,7 +147,8 @@ export function backupRowCounts(data) {
     savingsGoals: asArray(data.savings_goals).length,
     savingsContributions: asArray(data.savings_contributions).length,
     wallets: asArray(data.wallets).length,
-    walletTransfers: asArray(data.wallet_transfers).length
+    walletTransfers: asArray(data.wallet_transfers).length,
+    recurringRules: asArray(data.recurring_rules).length
   }
 }
 

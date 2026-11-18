@@ -4,6 +4,30 @@ All notable changes to PocketVault are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Savings buckets** — goals and sinking funds share the existing
+  contribution ledger, with an optional source wallet and a Goal/Sinking label.
+- **Recurring bills** — bills, subscriptions and recurring income with a
+  frequency, next due date and reminder lead; Post now creates exactly one
+  income/expense row and advances the next date; Skip advances without posting.
+- **Bills & Debts hub** — Debts, Bills, a due-date Calendar and a read-only
+  Payoff view (smallest or largest balance first; uses monthly payments, not APR).
+- **Archive** now includes recurring bills and subscriptions.
+
+### Changed
+
+- Schema **V8** adds savings-bucket metadata and `recurring_rules`.
+- Backups use **format 5**; format 4 and older still import, with recurring
+  rules absent from older files.
+
+### Notes
+
+- V8 is one-way: older builds cannot read a database upgraded by this release.
+- Recurring rules post only when confirmed; there is no automatic bank posting.
+
 ## [1.1.4] - 2026-11-18
 
 ### Added

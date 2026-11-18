@@ -245,7 +245,8 @@ describe('backup counts', () => {
       savingsGoals: 1,
       savingsContributions: 1,
       wallets: 2,
-      walletTransfers: 1
+      walletTransfers: 1,
+      recurringRules: 0
     })
     expect(backupRowCounts({})).toMatchObject({ income: 0, wallets: 0, walletTransfers: 0 })
   })

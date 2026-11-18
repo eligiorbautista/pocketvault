@@ -12,6 +12,7 @@ import * as debtsRepo from '../src/main/db/repositories/debts.js'
 import * as walletsRepo from '../src/main/db/repositories/wallets.js'
 import * as budgetsRepo from '../src/main/db/repositories/budgets.js'
 import * as savingsRepo from '../src/main/db/repositories/savings.js'
+import * as recurringRepo from '../src/main/db/repositories/recurring.js'
 import { buildUserBackup, parseUserBackup, applyUserBackup } from '../src/main/services/backup.js'
 
 const cashId = (db, userId) => walletsRepo.list(db, userId)[0].id
@@ -68,6 +69,16 @@ function seedAlice(db, receipts) {
     income_id: i1.id,
     notes: null
   })
+  recurringRepo.create(db, alice.id, {
+    name: 'Rent',
+    kind: 'bill',
+    wallet_id: cashId(db, alice.id),
+    category: 'housing',
+    amount: 800,
+    frequency: 'monthly',
+    next_due: '2026-04-01',
+    reminder_days: 3
+  })
   if (receipts) {
     mkdirSync(receipts, { recursive: true })
     writeFileSync(join(receipts, receiptName), Buffer.from('fake-image-bytes'))
@@ -107,12 +118,14 @@ check('backup counts alice debt payments = 1', counts.debtPayments === 1)
 check('backup counts alice budgets = 1', counts.budgets === 1)
 check('backup counts alice goals = 1', counts.savingsGoals === 1)
 check('backup counts alice contributions = 1', counts.savingsContributions === 1)
+check('backup counts alice recurring = 1', counts.recurringRules === 1, counts)
 check('backup includes 1 receipt', counts.receipts === 1, counts.receipts)
 closeDatabase()
 
 const parsed = await parseUserBackup(buffer)
 check('parsed username is alice', parsed.account.username === 'alice')
 check('parsed data includes wallets', parsed.data.wallets.length === 1)
+check('parsed data includes recurring rules', parsed.data.recurring_rules.length === 1)
 check('parsed income carries wallet_id', parsed.data.income.every((row) => row.wallet_id != null))
 check('parsed income has no user_id column leak', !('user_id' in parsed.data.income[0]))
 check(
@@ -167,6 +180,7 @@ check(
   contributions[0]?.income_id
 )
 check('alice receipt restored on disk', existsSync(join(destReceipts, receiptName)))
+check('alice recurring rule restored', recurringRepo.list(dbB, aliceB.id).length === 1 && recurringRepo.list(dbB, aliceB.id)[0].name === 'Rent')
 
 // --- Other account untouched ---
 check('bob income untouched after import', incomeRepo.list(dbB, bobB, {}).total === bobIncomeBefore)

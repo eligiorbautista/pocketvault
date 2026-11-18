@@ -324,6 +324,35 @@ await check('remove contribution syncs down', async () => {
 })
 await check('savings list decorates', async () => (await api.savings.list())[0].complete === false)
 
+let recurringId
+await check('recurring bill posts one expense and advances', async () => {
+  const rule = await api.recurring.create({
+    name: 'Rent',
+    kind: 'bill',
+    wallet_id: walletId,
+    category: 'housing',
+    amount: 100,
+    frequency: 'monthly',
+    next_due: '2026-09-30',
+    reminder_days: 3
+  })
+  recurringId = rule.id
+  const after = await api.recurring.post(rule.id)
+  const rows = await api.expenses.list({ page: 1 })
+  const posted = rows.rows.find((row) => row.notes === 'Recurring: Rent' && row.amount === 100)
+  if (posted) await api.expenses.remove(posted.id)
+  return after.next_due === '2026-10-30' && Boolean(posted)
+})
+await check('recurring bill skips to the next period', async () => {
+  const after = await api.recurring.skip(recurringId)
+  return after.next_due === '2026-11-30'
+})
+await check('recurring bill archives and restores', async () => {
+  await api.recurring.remove(recurringId)
+  const archived = await api.recurring.archived()
+  return archived.some((row) => row.id === recurringId) && (await api.recurring.restore(recurringId)) === true
+})
+
 await check('dashboard month / range / all', async () => {
   const month = await api.reports.dashboard({ mode: 'month', month: '2026-09' })
   const range = await api.reports.dashboard({ mode: 'range', from: '2026-09-01', to: '2026-09-30' })
@@ -361,7 +390,7 @@ await check('backup export/import round-trips', async () => {
   const exported = await api.backup.export('smoke-passphrase')
   const zipPath = [...globalThis.__fsStore.keys()].reverse().find((p) => p.endsWith('.pvbak'))
   const encrypted = globalThis.__fsStore.get(zipPath)
-  const bytes = Buffer.from(encrypted, 'utf8')
+  const bytes = Buffer.from(encrypted, 'base64')
   globalThis.__pickFile = {
     name: 'backup.pvbak',
     arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)

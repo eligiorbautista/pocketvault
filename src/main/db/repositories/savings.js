@@ -1,7 +1,7 @@
 import { fromCents, toCents } from '../../../shared/money.js'
 
 const GOAL_COLUMNS =
-  'id, user_id, goal_name, target_amount, current_amount, deadline, is_archived, created_at, updated_at'
+  'id, user_id, goal_name, target_amount, current_amount, deadline, wallet_id, kind, is_archived, created_at, updated_at'
 
 function syncCurrentAmount(db, goalId, userId) {
   const total = db
@@ -44,10 +44,9 @@ export function getById(db, userId, id) {
 export function create(db, userId, data) {
   const info = db
     .prepare(
-      `INSERT INTO savings_goals (user_id, goal_name, target_amount, current_amount, deadline, updated_at)
-       VALUES (?, ?, ?, 0, ?, CURRENT_TIMESTAMP)`
+      `INSERT INTO savings_goals (user_id, goal_name, target_amount, current_amount, deadline, wallet_id, kind, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, CURRENT_TIMESTAMP)`
     )
-    .run(userId, data.goal_name, data.target_amount, data.deadline)
+    .run(userId, data.goal_name, data.target_amount, data.deadline, data.wallet_id ?? null, data.kind ?? 'goal')
   return getById(db, userId, info.lastInsertRowid)
 }
 
@@ -55,10 +54,10 @@ export function update(db, userId, id, data) {
   const info = db
     .prepare(
       `UPDATE savings_goals
-       SET goal_name = ?, target_amount = ?, deadline = ?, updated_at = CURRENT_TIMESTAMP
+       SET goal_name = ?, target_amount = ?, deadline = ?, wallet_id = ?, kind = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND user_id = ?`
     )
-    .run(data.goal_name, data.target_amount, data.deadline, id, userId)
+    .run(data.goal_name, data.target_amount, data.deadline, data.wallet_id ?? null, data.kind ?? 'goal', id, userId)
   if (info.changes === 0) return null
   return getById(db, userId, id)
 }

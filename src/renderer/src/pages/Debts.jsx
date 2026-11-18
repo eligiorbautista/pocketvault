@@ -22,7 +22,7 @@ import { toast } from '@renderer/store/uiStore.js'
 
 const EMPTY_FILTERS = { search: '', status: '', order: 'recent' }
 
-export default function Debts() {
+export default function Debts({ embedded = false } = {}) {
   const [page, setPage] = useState(1)
   const [draft, setDraft] = useState(EMPTY_FILTERS)
   const [filters, setFilters] = useState(EMPTY_FILTERS)
@@ -130,10 +130,26 @@ export default function Debts() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Debts"
-        description="Track balances, installment schedules and payments."
-        actions={
+      {embedded ? null : (
+        <PageHeader
+          title="Debts"
+          description="Track balances, installment schedules and payments."
+          actions={
+            <Button
+              onClick={() => {
+                setEditing(null)
+                setFormOpen(true)
+              }}
+            >
+              <Plus size={16} aria-hidden="true" />
+              Add debt
+            </Button>
+          }
+        />
+      )}
+
+      {embedded ? (
+        <div className="flex justify-end">
           <Button
             onClick={() => {
               setEditing(null)
@@ -143,8 +159,8 @@ export default function Debts() {
             <Plus size={16} aria-hidden="true" />
             Add debt
           </Button>
-        }
-      />
+        </div>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard

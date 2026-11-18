@@ -4,10 +4,13 @@ import { useForm } from 'react-hook-form'
 import { Modal } from '@renderer/components/ui/Modal.jsx'
 import { Button } from '@renderer/components/ui/Button.jsx'
 import { Field } from '@renderer/components/ui/Field.jsx'
-import { Input } from '@renderer/components/ui/Input.jsx'
+import { Input, Select } from '@renderer/components/ui/Input.jsx'
+import { useApiData } from '@renderer/hooks/useApiData.js'
 import { toast } from '@renderer/store/uiStore.js'
 
 export function SavingsGoalForm({ open, initial, onClose, onSaved }) {
+  const walletsQuery = useApiData(() => api.wallets.list(), [])
+  const wallets = walletsQuery.data ?? []
   const {
     register,
     handleSubmit,
@@ -20,7 +23,9 @@ export function SavingsGoalForm({ open, initial, onClose, onSaved }) {
       reset({
         goal_name: initial?.goal_name ?? '',
         target_amount: initial?.target_amount ?? '',
-        deadline: initial?.deadline ?? ''
+        deadline: initial?.deadline ?? '',
+        wallet_id: String(initial?.wallet_id ?? ''),
+        kind: initial?.kind ?? 'goal'
       })
     }
   }, [open, initial, reset])
@@ -29,7 +34,9 @@ export function SavingsGoalForm({ open, initial, onClose, onSaved }) {
     const payload = {
       goal_name: values.goal_name,
       target_amount: Number(values.target_amount),
-      deadline: values.deadline || null
+      deadline: values.deadline || null,
+      wallet_id: values.wallet_id ? Number(values.wallet_id) : null,
+      kind: values.kind
     }
     try {
       if (initial) await api.savings.update(initial.id, payload)
@@ -83,8 +90,26 @@ export function SavingsGoalForm({ open, initial, onClose, onSaved }) {
               })}
             />
           </Field>
-          <Field label="Deadline" htmlFor="deadline" hint="Optional">
+          <Field label="Deadline" htmlFor="deadline" hint="Optional target date">
             <Input id="deadline" type="date" {...register('deadline')} />
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Bucket type" htmlFor="goal-kind">
+            <Select id="goal-kind" {...register('kind')}>
+              <option value="goal">Goal</option>
+              <option value="sinking">Sinking fund</option>
+            </Select>
+          </Field>
+          <Field label="Held in wallet" htmlFor="goal-wallet" hint="Optional; earmarking does not move money">
+            <Select id="goal-wallet" {...register('wallet_id')}>
+              <option value="">Unassigned</option>
+              {wallets.map((wallet) => (
+                <option key={wallet.id} value={wallet.id}>
+                  {wallet.name}
+                </option>
+              ))}
+            </Select>
           </Field>
         </div>
       </form>

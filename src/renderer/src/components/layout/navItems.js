@@ -24,9 +24,9 @@ export const NAV_GROUPS = [
     items: [
       { to: '/income', label: 'Income', icon: TrendingUp },
       { to: '/expenses', label: 'Expenses', icon: TrendingDown },
-      { to: '/debts', label: 'Debts', icon: HandCoins },
+      { to: '/debts', label: 'Bills & Debts', icon: HandCoins },
       { to: '/budgets', label: 'Budgets', icon: PiggyBank },
-      { to: '/savings', label: 'Savings', icon: Target }
+      { to: '/savings', label: 'Savings & Buckets', icon: Target }
     ]
   },
   {

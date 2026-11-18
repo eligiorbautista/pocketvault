@@ -24,7 +24,10 @@ export default function Savings() {
   const [deleting, setDeleting] = useState(false)
 
   const { data, loading, error, reload } = useApiData(() => api.savings.list(), [])
+  const walletsQuery = useApiData(() => api.wallets.list(), [])
   const goals = Array.isArray(data) ? data : []
+  const wallets = walletsQuery.data ?? []
+  const walletName = (id) => wallets.find((wallet) => wallet.id === id)?.name
 
   const confirmDelete = async () => {
     if (!pendingDelete) return
@@ -44,8 +47,8 @@ export default function Savings() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Savings"
-        description="Set targets, track progress and link contributions to income."
+        title="Savings & Buckets"
+        description="Earmark money for goals and sinking funds. Allocating does not move wallet money."
         actions={
           <Button
             onClick={() => {
@@ -92,6 +95,10 @@ export default function Savings() {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-slate-900 dark:text-gray-100">{goal.goal_name}</p>
                   <p className="text-xs text-slate-500 dark:text-dark-faint">
+                    {goal.kind === 'sinking' ? 'Sinking fund' : 'Goal'}
+                    {goal.wallet_id ? ` · ${walletName(goal.wallet_id) ?? 'Wallet'}` : ''}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-dark-faint">
                     {formatCurrency(goal.current_amount)} of {formatCurrency(goal.target_amount)}
                   </p>
                 </div>
@@ -111,7 +118,7 @@ export default function Savings() {
 
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 dark:border-dark-rule">
                 <Button size="sm" onClick={() => setDetailId(goal.id)}>
-                  Contribute
+                  Allocate
                 </Button>
                 <Button
                   variant="ghost"
