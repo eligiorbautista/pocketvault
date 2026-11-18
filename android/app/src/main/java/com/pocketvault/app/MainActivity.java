@@ -84,8 +84,11 @@ public class MainActivity extends BridgeActivity {
         // too early is discarded by the initial navigation.
         if (webView.getProgress() >= 100) {
             String hash = JSONObject.quote("#" + route);
+            String routeLiteral = JSONObject.quote(route);
             String script =
-                "(function(){var n=0;function go(){if(document.getElementById('root'))" +
+                "(function(){try{localStorage.setItem('pocketvault.shortcut'," + routeLiteral + ");" +
+                "window.dispatchEvent(new CustomEvent('pocketvault:shortcut',{detail:" + routeLiteral + "}));}catch(e){}" +
+                "var n=0;function go(){if(document.getElementById('root'))" +
                 "{window.location.hash=" + hash + ";return;}if(n++<50)setTimeout(go,100);}go();})()";
             webView.evaluateJavascript(script, null);
             return;

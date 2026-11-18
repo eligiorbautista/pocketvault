@@ -44,7 +44,7 @@ export default function LockScreen() {
           onClick={logout}
           className="font-medium text-accent-700 hover:underline dark:text-accent-400"
         >
-          Sign in with password instead
+          Sign in with account password
         </button>
       }
     >
@@ -55,9 +55,14 @@ export default function LockScreen() {
           </p>
         ) : null}
         {isCapacitor ? (
-          <Button type="button" className="w-full" loading={busy} onClick={() => authenticate()}>
-            Unlock with device biometric or PIN
-          </Button>
+          <>
+            <Button type="button" className="w-full" loading={busy} onClick={() => authenticate()}>
+              Unlock with device biometric or screen lock
+            </Button>
+            <p className="text-center text-xs text-slate-500 dark:text-dark-faint">
+              Uses your phone&rsquo;s screen lock. PocketVault does not keep a separate PIN.
+            </p>
+          </>
         ) : (
           <p className="text-sm text-slate-500 dark:text-dark-faint">
             App lock is available on Android. Use your account password on this device.

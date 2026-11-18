@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { useAuthStore } from '@renderer/store/authStore.js'
 import { useSettingsStore } from '@renderer/store/settingsStore.js'
@@ -28,6 +28,34 @@ import { LoadingBlock } from '@renderer/components/ui/Spinner.jsx'
 const Reports = lazy(() => import('@renderer/pages/Reports.jsx'))
 import Settings from '@renderer/pages/Settings.jsx'
 import NotFound from '@renderer/pages/NotFound.jsx'
+
+const SHORTCUT_KEY = 'pocketvault.shortcut'
+
+// Native Android shortcuts can arrive while the app is locked. Keep the route
+// in localStorage until auth is ready, then navigate once; this survives the
+// WebView reload that the device credential prompt can cause.
+function ShortcutBridge() {
+  const navigate = useNavigate()
+  const authenticated = useAuthStore((state) => state.status === 'authenticated')
+
+  useEffect(() => {
+    const apply = (route) => {
+      if (typeof route !== 'string' || !route.startsWith('/')) return
+      localStorage.removeItem(SHORTCUT_KEY)
+      navigate(route, { replace: true })
+    }
+    if (authenticated) apply(localStorage.getItem(SHORTCUT_KEY))
+    const onShortcut = (event) => {
+      if (typeof event.detail !== 'string') return
+      localStorage.setItem(SHORTCUT_KEY, event.detail)
+      if (authenticated) apply(event.detail)
+    }
+    window.addEventListener('pocketvault:shortcut', onShortcut)
+    return () => window.removeEventListener('pocketvault:shortcut', onShortcut)
+  }, [authenticated, navigate])
+
+  return null
+}
 
 export default function App() {
   const status = useAuthStore((state) => state.status)
@@ -69,6 +97,7 @@ export default function App() {
 
   return (
     <>
+      <ShortcutBridge />
       {status === 'loading' ? (
         <SplashScreen />
       ) : status === 'locked' ? (
