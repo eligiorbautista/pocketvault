@@ -19,6 +19,7 @@ test('mobile shell uses bottom tabs, grouped More page, and quick add', async ()
     await page.setViewportSize({ width: 390, height: 844 })
 
     await page.getByRole('link', { name: 'Create one' }).click()
+    await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
     await page.getByLabel('Username').fill('mobileuser')
     await page.getByLabel('Password', { exact: true }).fill('secret123')
     await page.getByLabel('Confirm password').fill('secret123')

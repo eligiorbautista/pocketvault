@@ -52,6 +52,8 @@ export function BottomNav() {
   useEffect(() => {
     if (!quickOpen) return undefined
     const previouslyFocused = document.activeElement
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
         setQuickOpen(false)
@@ -83,6 +85,7 @@ export function BottomNav() {
     sheetRef.current?.focus()
     return () => {
       document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = previousOverflow
       previouslyFocused?.focus?.()
     }
   }, [quickOpen])
