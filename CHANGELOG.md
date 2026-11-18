@@ -27,6 +27,10 @@ All notable changes to PocketVault are documented here. The format follows
 - **96-account catalog** - searchable banks and e-wallets in the type-first Add
   wallet flow; the 16 bespoke faces are reused where available and the rest use
   the generic Monogram face.
+- **Dashboard quick actions** - direct links for income, expense, bill and wallet
+  entry; the same actions are exposed as Android app shortcuts.
+- **Amount fields** - money inputs start at `0.00` and select the value on focus,
+  so typing replaces the placeholder instead of appending to it.
 - **Device lock (Android)** - optional biometric/screen-lock prompt when a saved
   session is restored; no app PIN is stored.
 - **Pre-login restore (desktop)** - restore an encrypted account backup from the
