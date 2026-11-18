@@ -314,8 +314,8 @@ export default function Expenses() {
       />
 
       <Card>
-        <form onSubmit={applyFilters} className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5">
-          <Field label="Search" htmlFor="expense-search">
+        <form onSubmit={applyFilters} className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5">
+          <Field label="Search" htmlFor="expense-search" className="col-span-2 sm:col-span-1">
             <Input
               id="expense-search"
               placeholder="Notes"

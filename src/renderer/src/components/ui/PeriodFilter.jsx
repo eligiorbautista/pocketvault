@@ -1,5 +1,6 @@
 import { Field } from './Field.jsx'
 import { Input, Select } from './Input.jsx'
+import { cn } from '@renderer/lib/cn.js'
 
 // value: { mode: 'month'|'range'|'all', month: 'YYYY-MM', from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }
 export function PeriodFilter({
@@ -11,8 +12,15 @@ export function PeriodFilter({
   const update = (key) => (event) => onChange({ ...value, [key]: event.target.value })
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <Field label="Period" htmlFor={`${idPrefix}-mode`} className="w-40">
+    <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-end">
+      <Field
+        label="Period"
+        htmlFor={`${idPrefix}-mode`}
+        className={cn(
+          'w-full min-w-0 sm:w-40',
+          value.mode !== 'month' && 'col-span-2 sm:col-span-1'
+        )}
+      >
         <Select id={`${idPrefix}-mode`} value={value.mode} onChange={update('mode')}>
           {modes.includes('month') ? <option value="month">By month</option> : null}
           {modes.includes('range') ? <option value="range">Custom range</option> : null}
@@ -21,7 +29,7 @@ export function PeriodFilter({
       </Field>
 
       {value.mode === 'month' ? (
-        <Field label="Month" htmlFor={`${idPrefix}-month`} className="w-40">
+        <Field label="Month" htmlFor={`${idPrefix}-month`} className="w-full min-w-0 sm:w-40">
           <Input
             id={`${idPrefix}-month`}
             type="month"
@@ -33,7 +41,7 @@ export function PeriodFilter({
 
       {value.mode === 'range' ? (
         <>
-          <Field label="From" htmlFor={`${idPrefix}-from`} className="w-40">
+          <Field label="From" htmlFor={`${idPrefix}-from`} className="w-full min-w-0 sm:w-40">
             <Input
               id={`${idPrefix}-from`}
               type="date"
@@ -42,7 +50,7 @@ export function PeriodFilter({
               onChange={update('from')}
             />
           </Field>
-          <Field label="To" htmlFor={`${idPrefix}-to`} className="w-40">
+          <Field label="To" htmlFor={`${idPrefix}-to`} className="w-full min-w-0 sm:w-40">
             <Input
               id={`${idPrefix}-to`}
               type="date"

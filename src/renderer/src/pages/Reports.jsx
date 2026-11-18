@@ -173,7 +173,7 @@ export default function Reports() {
       />
 
       <Card className="p-4">
-        <Field label="Year" htmlFor="report-year" className="max-w-xs">
+        <Field label="Year" htmlFor="report-year" className="w-full sm:max-w-xs">
           <Input
             id="report-year"
             type="number"

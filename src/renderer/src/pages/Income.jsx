@@ -341,8 +341,8 @@ export default function Income() {
       />
 
       <Card>
-        <form onSubmit={applyFilters} className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Search" htmlFor="income-search">
+        <form onSubmit={applyFilters} className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="Search" htmlFor="income-search" className="col-span-2 sm:col-span-1">
             <Input
               id="income-search"
               placeholder="Source or notes"
@@ -366,7 +366,7 @@ export default function Income() {
               onChange={(event) => setDraft((prev) => ({ ...prev, to: event.target.value }))}
             />
           </Field>
-          <Field label="Sort" htmlFor="income-order">
+          <Field label="Sort" htmlFor="income-order" className="col-span-2 sm:col-span-1">
             <Select
               id="income-order"
               value={draft.order}

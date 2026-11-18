@@ -187,7 +187,7 @@ export default function Budgets() {
       />
 
       <Card className="p-4">
-        <Field label="Month" htmlFor="budget-month" className="max-w-xs">
+        <Field label="Month" htmlFor="budget-month" className="w-full sm:max-w-xs">
           <Input
             id="budget-month"
             type="month"

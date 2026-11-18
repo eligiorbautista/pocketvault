@@ -183,8 +183,8 @@ export default function Debts({ embedded = false } = {}) {
       </div>
 
       <Card>
-        <form onSubmit={applyFilters} className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Search" htmlFor="debt-search">
+        <form onSubmit={applyFilters} className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="Search" htmlFor="debt-search" className="col-span-2 sm:col-span-1">
             <Input
               id="debt-search"
               placeholder="Creditor or notes"
