@@ -24,6 +24,9 @@ All notable changes to PocketVault are documented here. The format follows
   fallback, skip invalid rows, and import income/expenses in one pass.
 - **Reconciliation** - mark income and expenses as cleared or uncleared from the
   row menu; the list shows the status. It is a flag only and never moves money.
+- **96-account catalog** - searchable banks and e-wallets in the type-first Add
+  wallet flow; the 16 bespoke faces are reused where available and the rest use
+  the generic Monogram face.
 
 ### Changed
 

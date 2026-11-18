@@ -88,6 +88,46 @@ export const WALLET_PROVIDERS = WALLET_PROVIDER_GROUPS.reduce((all, group) => {
   return all
 }, {})
 
+// Broader searchable catalog for the Add-wallet picker. Only the 16 presets
+// above have bespoke card art; the rest use the generic Monogram face.
+const BANK_NAMES = [
+  'BDO', 'BPI', 'Metrobank', 'UnionBank', 'Security Bank', 'RCBC', 'Landbank', 'PNB',
+  'PSBank', 'China Bank', 'EastWest', 'UCPB', 'DBP', 'AUB', 'Bank of Commerce',
+  'Philippine Trust', 'Philippine Veterans', 'Sterling Bank', 'Robinsons Bank',
+  'Cebuana Bank', 'Palawan Bank', 'M Lhuillier Bank', 'Maybank', 'Chinabank Savings',
+  'City Savings', 'CIMB Bank', 'ING Philippines', 'Tonik', 'Maya Bank', 'GoTyme Bank',
+  'SeaBank', 'UnionDigital', 'UNO Digital', 'Diskartech', 'Overseas Filipino Bank',
+  'Standard Chartered', 'HSBC', 'Citibank', 'JPMorgan Chase', 'Deutsche Bank',
+  'BPI Family Savings', 'BDO Network Bank', 'Metrobank Savings', 'Bank of Makati',
+  'Queen City Development Bank', 'Rural Bank of Manila', 'Producers Savings',
+  'First Consolidated Bank', 'CARD Bank', 'ASA Philippines'
+]
+
+const EWALLET_NAMES = [
+  'GCash', 'Maya', 'ShopeePay', 'GrabPay', 'Lazada Wallet', 'Coins.ph', 'PalawanPay',
+  'Cebuana Wallet', 'ML Wallet', 'Bayad', 'DragonPay', 'PayMongo', 'Xendit',
+  'InstaPay', 'PESONet', 'Wise', 'PayPal', 'Revolut', 'Venmo', 'Cash App',
+  'Apple Wallet', 'Google Wallet', 'Samsung Wallet', 'Alipay', 'WeChat Pay',
+  'Line Pay', 'Naver Pay', 'Kakao Pay', 'Toss', 'TrueMoney', 'DANA', 'OVO',
+  'GoPay', 'ShopeePay Later', 'Atome', 'BillEase', 'Salmon', 'JuanHand',
+  'Tala', 'Cashalo', 'Finbro', 'Pera247', 'Akulaku', 'BDO Pay'
+]
+
+const styleFor = (label) =>
+  WALLET_STYLE_PRESETS.find((preset) => preset.label.toLowerCase() === label.toLowerCase())?.id ??
+  'generic'
+
+const slug = (label) =>
+  label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+export const ACCOUNT_CATALOG = [
+  { id: 'cash', label: 'Cash', type: 'cash', style: 'cash' },
+  { id: 'other', label: 'Other wallet', type: 'other', style: 'custom' },
+  ...BANK_NAMES.map((label) => ({ id: slug(label), label, type: 'bank', style: styleFor(label) })),
+  ...EWALLET_NAMES.map((label) => ({ id: slug(label), label, type: 'ewallet', style: styleFor(label) }))
+]
+
+
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 const CARD_IMAGE_PATTERN = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/
 export const MAX_CARD_IMAGE_CHARS = 400_000

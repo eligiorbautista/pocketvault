@@ -5,7 +5,7 @@ import { Button } from '@renderer/components/ui/Button.jsx'
 import { Field } from '@renderer/components/ui/Field.jsx'
 import { Input, Select } from '@renderer/components/ui/Input.jsx'
 import { WalletFace } from './WalletCard.jsx'
-import { WALLET_PROVIDERS, WALLET_TYPES, WALLET_TYPE_LABELS } from '@shared/wallets.js'
+import { WALLET_TYPES, WALLET_TYPE_LABELS, ACCOUNT_CATALOG } from '@shared/wallets.js'
 import { fileToCardImage } from '@renderer/lib/cardImage.js'
 import { toast } from '@renderer/store/uiStore.js'
 import { formatCurrency } from '@renderer/lib/format.js'
@@ -13,12 +13,22 @@ import { cn } from '@renderer/lib/cn.js'
 
 function providerFor(wallet) {
   if (wallet.style === 'custom') return 'other'
-  return Object.values(WALLET_PROVIDERS).find((provider) => provider.style === wallet.style)?.id ?? 'other'
+  const byName = ACCOUNT_CATALOG.find(
+    (provider) => provider.label.toLowerCase() === String(wallet.name ?? '').trim().toLowerCase()
+  )
+  if (byName) return byName.id
+  return (
+    ACCOUNT_CATALOG.find(
+      (provider) =>
+        provider.type === wallet.type && provider.style === wallet.style && provider.style !== 'generic'
+    )?.id ?? 'other'
+  )
 }
 
 export function WalletForm({ open, initial, lockType = false, onClose, onSaved }) {
   const [walletType, setWalletType] = useState('cash')
   const [provider, setProvider] = useState('cash')
+  const [providerQuery, setProviderQuery] = useState('')
   const [name, setName] = useState('')
   const [style, setStyle] = useState('cash')
   const [color, setColor] = useState('#3b3b40')
@@ -47,6 +57,7 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
       const initialProvider = providerFor(initial)
       setWalletType(initial.type)
       setProvider(initialProvider)
+      setProviderQuery('')
       setName(initial.name)
       const isCash = initial.type === 'cash'
       setStyle(isCash ? 'cash' : initialProvider === 'other' ? 'custom' : initial.style)
@@ -71,6 +82,7 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
       // duplicate.
       setWalletType('cash')
       setProvider('cash')
+      setProviderQuery('')
       setName('')
       setStyle('cash')
       setColor('#3b3b40')
@@ -92,12 +104,13 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
     setFieldErrors({})
   }, [open, initial])
 
-  const providerOptions = Object.values(WALLET_PROVIDERS).filter(
+  const providerOptions = ACCOUNT_CATALOG.filter(
     (option) => option.type === walletType && option.id !== 'other'
-  )
+  ).filter((option) => option.label.toLowerCase().includes(providerQuery.trim().toLowerCase()))
 
   const chooseType = (value) => {
     setWalletType(value)
+    setProviderQuery('')
     setImage(null)
     setMode('color')
     if (value === 'cash') {
@@ -118,7 +131,7 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
       setStyle('generic')
       return
     }
-    const first = Object.values(WALLET_PROVIDERS).find((option) => option.type === value)
+    const first = ACCOUNT_CATALOG.find((option) => option.type === value)
     if (first) {
       setProvider(first.id)
       setName(first.label)
@@ -127,7 +140,7 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
   }
 
   const chooseProvider = (value) => {
-    const option = WALLET_PROVIDERS[value]
+    const option = ACCOUNT_CATALOG.find((entry) => entry.id === value)
     if (!option) return
     setProvider(value)
     setName(option.label)
@@ -276,19 +289,29 @@ export function WalletForm({ open, initial, lockType = false, onClose, onSaved }
         </Field>
 
         {providerLabel ? (
-          <Field label={providerLabel} htmlFor="wallet-provider" hint={providerHint}>
-            <Select
-              id="wallet-provider"
-              value={provider}
-              onChange={(event) => chooseProvider(event.target.value)}
-            >
-              {providerOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <>
+            <Field label="Search catalog" htmlFor="wallet-provider-search">
+              <Input
+                id="wallet-provider-search"
+                value={providerQuery}
+                placeholder={`Search ${providerLabel.toLowerCase()}s`}
+                onChange={(event) => setProviderQuery(event.target.value)}
+              />
+            </Field>
+            <Field label={providerLabel} htmlFor="wallet-provider" hint={providerHint}>
+              <Select
+                id="wallet-provider"
+                value={provider}
+                onChange={(event) => chooseProvider(event.target.value)}
+              >
+                {providerOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </>
         ) : null}
 
         <Field

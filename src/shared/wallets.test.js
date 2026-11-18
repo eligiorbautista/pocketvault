@@ -9,7 +9,8 @@ import {
   validateWalletId,
   validateWalletInput,
   WALLET_PROVIDERS,
-  WALLET_STYLE_PRESETS
+  WALLET_STYLE_PRESETS,
+  ACCOUNT_CATALOG
 } from './wallets.js'
 
 const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgo='
@@ -18,6 +19,7 @@ describe('wallet presets', () => {
   it('exposes 16 faces and 15 providers plus Other', () => {
     expect(WALLET_STYLE_PRESETS).toHaveLength(16)
     expect(Object.keys(WALLET_PROVIDERS)).toHaveLength(16)
+    expect(ACCOUNT_CATALOG).toHaveLength(96)
     expect(WALLET_PROVIDERS.other.style).toBe('custom')
   })
 })
