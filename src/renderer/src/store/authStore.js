@@ -70,8 +70,8 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  async unlock(pin) {
-    const { user } = await api.auth.unlock(pin)
+  async unlock() {
+    const { user } = await api.auth.unlock()
     persistSession(user)
     set({ user, status: 'authenticated', error: null, locked: false, viaRestore: true })
   },

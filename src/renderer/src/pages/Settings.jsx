@@ -32,6 +32,7 @@ import { AppLockDialog } from '@renderer/components/settings/AppLockDialog.jsx'
 import { DeleteDataForm } from '@renderer/components/settings/DeleteDataForm.jsx'
 import { ThemeSelect } from '@renderer/components/settings/ThemeSelect.jsx'
 import { useAuthStore } from '@renderer/store/authStore.js'
+import { isCapacitor } from '@renderer/lib/platform.js'
 import { useSettingsStore } from '@renderer/store/settingsStore.js'
 import { checkExactAlarms, requestExactAlarms, syncDebtReminders } from '@renderer/lib/notifications.js'
 import { currencyCodes, currencyName, currencySymbol } from '@shared/currency.js'
@@ -199,19 +200,21 @@ export default function Settings() {
             />
           </SettingRow>
 
-          <SettingRow
-            title="App lock PIN"
-            description={
-              appLockEnabled
-                ? 'A 4 to 6 digit PIN is required when PocketVault reopens.'
-                : 'Add a quick PIN lock for this device.'
-            }
-          >
-            <Button variant="secondary" size="sm" onClick={() => setAppLockOpen(true)}>
-              <KeyRound size={16} aria-hidden="true" />
-              {appLockEnabled ? 'Manage PIN' : 'Set PIN'}
-            </Button>
-          </SettingRow>
+          {isCapacitor ? (
+            <SettingRow
+              title="Device lock"
+              description={
+                appLockEnabled
+                  ? 'Your phone biometric or screen lock is required when PocketVault reopens.'
+                  : 'Use your phone biometric or screen lock as a quick app lock.'
+              }
+            >
+              <Button variant="secondary" size="sm" onClick={() => setAppLockOpen(true)}>
+                <KeyRound size={16} aria-hidden="true" />
+                {appLockEnabled ? 'Manage' : 'Enable'}
+              </Button>
+            </SettingRow>
+          ) : null}
 
           <SettingRow title="Sign out" description="End your session on this device." last>
             <Button variant="secondary" size="sm" onClick={logout}>

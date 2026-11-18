@@ -27,13 +27,18 @@ All notable changes to PocketVault are documented here. The format follows
 - **96-account catalog** - searchable banks and e-wallets in the type-first Add
   wallet flow; the 16 bespoke faces are reused where available and the rest use
   the generic Monogram face.
+- **Device lock (Android)** - optional biometric/screen-lock prompt when a saved
+  session is restored; no app PIN is stored.
+- **Pre-login restore (desktop)** - restore an encrypted account backup from the
+  login screen before signing in.
 
 ### Changed
 
 - Schema **V9** adds credit-card fields; schema **V8** adds savings-bucket
   metadata and `recurring_rules`; schema **V10** adds reconciliation flags to
   income and expenses; schema **V11** adds `budgets.rollover` and
-  `net_worth_snapshots`.
+  `net_worth_snapshots`; schema **V12** adds the optional Android device-lock
+  flag to `user_settings`.
 - Backups use **format 8**; format 7 and older still import, with credit fields
   defaulting to zero, reconciliation uncleared, and recurring rules absent from
   older files.
@@ -44,7 +49,7 @@ All notable changes to PocketVault are documented here. The format follows
 
 ### Notes
 
-- V8/V9/V10/V11 are one-way: older builds cannot read a database upgraded by
+- V8/V9/V10/V11/V12 are one-way: older builds cannot read a database upgraded by
   this release.
 - Recurring rules post only when confirmed; there is no automatic bank posting.
 - Credit-card math uses the card balance and APR is stored for planning; the

@@ -629,54 +629,43 @@ export function createCapacitorApi() {
         'SELECT require_password_on_start, app_lock_enabled, app_lock_pin_hash FROM user_settings WHERE user_id = ?',
         [id]
       )
+      if (settingsRow && Number(settingsRow.app_lock_enabled)) {
+        session = null
+        lockedUser = { id: user.id, username: user.username }
+        return { user: lockedUser, locked: true }
+      }
       if (settingsRow && Number(settingsRow.require_password_on_start)) {
         session = null
         const error = new Error('Password required')
         error.code = 'PASSWORD_REQUIRED'
         throw error
       }
-      if (settingsRow && Number(settingsRow.app_lock_enabled) && settingsRow.app_lock_pin_hash) {
-        session = null
-        lockedUser = { id: user.id, username: user.username }
-        return { user: lockedUser, locked: true }
-      }
       session = { id: user.id, username: user.username }
       return { user: session }
     },
 
-    unlock: async (pinRaw) => {
+    unlock: async () => {
       if (!lockedUser) throw new Error('Session expired. Sign in again.')
-      const pin = String(pinRaw ?? '')
-      if (!/^\d{4,6}$/.test(pin)) throw new Error('PIN must be 4 to 6 digits')
-      const row = await getOne(
-        'SELECT app_lock_enabled, app_lock_pin_hash FROM user_settings WHERE user_id = ?',
-        [lockedUser.id]
-      )
-      if (!row || !Number(row.app_lock_enabled) || !row.app_lock_pin_hash || !bcrypt.compareSync(pin, row.app_lock_pin_hash)) {
-        throw new Error('Incorrect PIN')
-      }
       session = lockedUser
       lockedUser = null
       return { user: session }
     },
 
-    setAppLock: async (passwordRaw, pinRaw) => {
+    setAppLock: async (passwordRaw) => {
       const userId = requireUserId()
       const record = await getOne('SELECT * FROM users WHERE id = ?', [userId])
       if (!record) throw new Error('Account not found')
       if (!bcrypt.compareSync(String(passwordRaw ?? ''), record.password_hash)) {
         throw new Error('Current password is incorrect')
       }
-      const pin = String(pinRaw ?? '')
-      if (!/^\d{4,6}$/.test(pin)) throw new Error('PIN must be 4 to 6 digits')
       await run(
         `INSERT INTO user_settings (user_id, app_lock_enabled, app_lock_pin_hash, updated_at)
-         VALUES (?, 1, ?, CURRENT_TIMESTAMP)
+         VALUES (?, 1, NULL, CURRENT_TIMESTAMP)
          ON CONFLICT (user_id)
          DO UPDATE SET app_lock_enabled = 1,
-                       app_lock_pin_hash = excluded.app_lock_pin_hash,
+                       app_lock_pin_hash = NULL,
                        updated_at = CURRENT_TIMESTAMP`,
-        [userId, bcrypt.hashSync(pin, 10)]
+        [userId]
       )
       return { enabled: true }
     },

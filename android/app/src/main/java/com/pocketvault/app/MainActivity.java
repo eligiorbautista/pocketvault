@@ -16,6 +16,8 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Must be registered before super.onCreate so the bridge includes it.
+        registerPlugin(BiometricPlugin.class);
         super.onCreate(savedInstanceState);
 
         Window window = getWindow();

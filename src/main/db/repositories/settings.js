@@ -32,12 +32,12 @@ export function getAppLock(db, userId) {
     .prepare('SELECT app_lock_enabled, app_lock_pin_hash FROM user_settings WHERE user_id = ?')
     .get(userId)
   return {
-    enabled: Boolean(row?.app_lock_enabled && row?.app_lock_pin_hash),
+    enabled: Boolean(row?.app_lock_enabled),
     hash: row?.app_lock_pin_hash ?? null
   }
 }
 
-export function setAppLock(db, userId, hash) {
+export function setAppLock(db, userId, hash = null) {
   db.prepare(
     `INSERT INTO user_settings (user_id, app_lock_enabled, app_lock_pin_hash, updated_at)
      VALUES (?, 1, ?, CURRENT_TIMESTAMP)

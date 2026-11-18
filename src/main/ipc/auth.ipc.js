@@ -89,6 +89,13 @@ export function registerAuthHandlers() {
       const db = getDatabase()
       const userId = validateId(payload.userId, 'userId')
       if (!users.exists(db, userId)) throw new Error('Saved session user no longer exists')
+      const lock = getAppLock(db, userId)
+      if (lock.enabled) {
+        clearSession(event.sender.id)
+        LOCKED.set(event.sender.id, userId)
+        const user = users.findById(db, userId)
+        return { user: { id: user.id, username: user.username }, locked: true }
+      }
       // If the user requires a password on start, a plain stored id is not
       // enough — force an interactive login instead of resuming silently.
       if (requirePasswordOnStart(db, userId)) {
@@ -96,13 +103,6 @@ export function registerAuthHandlers() {
         const error = new Error('Password required')
         error.code = 'PASSWORD_REQUIRED'
         throw error
-      }
-      const lock = getAppLock(db, userId)
-      if (lock.enabled) {
-        clearSession(event.sender.id)
-        LOCKED.set(event.sender.id, userId)
-        const user = users.findById(db, userId)
-        return { user: { id: user.id, username: user.username }, locked: true }
       }
       setSession(event.sender.id, userId)
       const user = users.findById(db, userId)
@@ -113,20 +113,10 @@ export function registerAuthHandlers() {
 
   handle(
     'auth:unlock',
-    ({ event, payload }) => {
+    ({ event }) => {
       const db = getDatabase()
       const userId = LOCKED.get(event.sender.id)
       if (!userId) throw new Error('Session expired. Sign in again.')
-      const key = throttleKey('unlock', event.sender.id)
-      assertNotThrottled(key)
-      const pin = String(payload.pin ?? '')
-      if (!/^\d{4,6}$/.test(pin)) throw new Error('PIN must be 4 to 6 digits')
-      const lock = getAppLock(db, userId)
-      if (!lock.enabled || !bcrypt.compareSync(pin, lock.hash ?? '')) {
-        recordFailure(key)
-        throw new Error('Incorrect PIN')
-      }
-      recordSuccess(key)
       LOCKED.delete(event.sender.id)
       setSession(event.sender.id, userId)
       const user = users.findById(db, userId)
@@ -142,9 +132,7 @@ export function registerAuthHandlers() {
     if (!bcrypt.compareSync(String(payload.password ?? ''), record.password_hash)) {
       throw new Error('Current password is incorrect')
     }
-    const pin = String(payload.pin ?? '')
-    if (!/^\d{4,6}$/.test(pin)) throw new Error('PIN must be 4 to 6 digits')
-    setAppLock(db, userId, bcrypt.hashSync(pin, 10))
+    setAppLock(db, userId)
     return { enabled: true }
   })
 
