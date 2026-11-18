@@ -50,6 +50,7 @@ const api = {
     remove: (id) => call('income:remove', { id }),
     restore: (id) => call('income:restore', { id }),
     archived: () => call('income:archived'),
+    setCleared: (id, cleared) => call('income:setCleared', { id, cleared }),
     all: (params) => call('income:all', params)
   },
 
@@ -61,6 +62,7 @@ const api = {
     remove: (id) => call('expenses:remove', { id }),
     restore: (id) => call('expenses:restore', { id }),
     archived: () => call('expenses:archived'),
+    setCleared: (id, cleared) => call('expenses:setCleared', { id, cleared }),
     categories: () => call('expenses:categories')
   },
 

@@ -73,6 +73,17 @@ export function registerIncomeHandlers() {
 
   handle('income:archived', ({ userId }) => incomeRepo.listArchived(getDatabase(), userId))
 
+  handle('income:setCleared', ({ userId, payload }) => {
+    const row = incomeRepo.setCleared(
+      getDatabase(),
+      userId,
+      validateId(payload.id),
+      Boolean(payload.cleared)
+    )
+    if (!row) throw new Error('Income record not found')
+    return row
+  })
+
   handle('income:all', ({ userId, payload }) =>
     incomeRepo.listAll(getDatabase(), userId, {
       from: payload.from || undefined,

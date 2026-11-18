@@ -236,6 +236,16 @@ export default function Expenses() {
     }
   }
 
+  const toggleCleared = async (row) => {
+    try {
+      await api.expenses.setCleared(row.id, !row.is_cleared)
+      toast(row.is_cleared ? 'Marked uncleared' : 'Marked cleared', 'success')
+      reload()
+    } catch (err) {
+      toast(err.message, 'error')
+    }
+  }
+
   const columns = [
     { key: 'date', header: 'Date', render: (row) => formatDate(row.date) },
     { key: 'wallet', header: 'Wallet', render: (row) => walletName(row.wallet_id) },
@@ -256,6 +266,15 @@ export default function Expenses() {
       mobile: false,
       className: 'max-w-xs',
       render: (row) => <span className="line-clamp-1 text-slate-500 dark:text-dark-faint">{row.notes || '\u2014'}</span>
+    },
+    {
+      key: 'cleared',
+      header: 'Reconciliation',
+      render: (row) => (
+        <span className={row.is_cleared ? 'text-accent-700 dark:text-accent-400' : 'text-slate-400 dark:text-dark-faint'}>
+          {row.is_cleared ? 'Cleared' : 'Uncleared'}
+        </span>
+      )
     }
   ]
 
@@ -267,6 +286,11 @@ export default function Expenses() {
         setEditing(row)
         setFormOpen(true)
       }
+    },
+    {
+      key: 'cleared',
+      label: row.is_cleared ? 'Mark uncleared' : 'Mark cleared',
+      onSelect: () => toggleCleared(row)
     },
     { key: 'archive', label: 'Archive', tone: 'danger', onSelect: () => setPendingDelete(row) }
   ]

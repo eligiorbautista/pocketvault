@@ -70,5 +70,16 @@ export function registerExpensesHandlers() {
 
   handle('expenses:archived', ({ userId }) => expensesRepo.listArchived(getDatabase(), userId))
 
+  handle('expenses:setCleared', ({ userId, payload }) => {
+    const row = expensesRepo.setCleared(
+      getDatabase(),
+      userId,
+      validateId(payload.id),
+      Boolean(payload.cleared)
+    )
+    if (!row) throw new Error('Expense record not found')
+    return row
+  })
+
   handle('expenses:categories', ({ userId }) => expensesRepo.distinctCategories(getDatabase(), userId))
 }

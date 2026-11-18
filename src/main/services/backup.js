@@ -9,7 +9,7 @@ import {
 import { validateBackupData, verifyBackupCounts } from '../../shared/backupValidate.js'
 import { validateWalletInput } from '../../shared/wallets.js'
 
-const FORMAT = 6
+const FORMAT = 7
 const RECEIPTS_PREFIX = 'receipts/'
 const DATA_KEYS = [
   'income',
@@ -38,13 +38,13 @@ export async function buildUserBackup(db, userId, receiptsDir) {
 
   const income = db
     .prepare(
-      `SELECT id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at
+      `SELECT id, wallet_id, amount, date, source, notes, receipt_path, is_archived, is_cleared, created_at, updated_at
        FROM income WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
   const expenses = db
     .prepare(
-      `SELECT wallet_id, category, amount, date, notes, is_archived, created_at, updated_at
+      `SELECT wallet_id, category, amount, date, notes, is_archived, is_cleared, created_at, updated_at
        FROM expenses WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
@@ -212,7 +212,7 @@ export async function parseUserBackup(buffer) {
     throw new Error('Invalid backup: the archive contents are corrupted')
   }
 
-  if (!manifest || ![2, 3, 4, 5, 6].includes(manifest.format)) {
+  if (!manifest || ![2, 3, 4, 5, 6, 7].includes(manifest.format)) {
     throw new Error('Unsupported backup format. This file was made by a different version.')
   }
   const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -387,8 +387,8 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
       value != null && walletMap.has(value) ? walletMap.get(value) : cash.id
 
     const insertIncome = db.prepare(
-      `INSERT INTO income (user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO income (user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, is_cleared, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const incomeMap = new Map()
     for (const row of data.income) {
@@ -403,6 +403,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         row.notes ?? null,
         receipt,
         row.is_archived ? 1 : 0,
+        row.is_cleared ? 1 : 0,
         row.created_at ?? now,
         row.updated_at ?? null
       )
@@ -410,8 +411,8 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     }
 
     const insertExpense = db.prepare(
-      `INSERT INTO expenses (user_id, wallet_id, category, amount, date, notes, is_archived, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO expenses (user_id, wallet_id, category, amount, date, notes, is_archived, is_cleared, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     for (const row of data.expenses) {
       insertExpense.run(
@@ -422,6 +423,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         row.date,
         row.notes ?? null,
         row.is_archived ? 1 : 0,
+        row.is_cleared ? 1 : 0,
         row.created_at ?? now,
         row.updated_at ?? null
       )

@@ -4,7 +4,7 @@ import { validateWalletId } from '../../../shared/wallets.js'
 import { ensureWallet } from './wallets.js'
 
 const COLUMNS =
-  'id, user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
+  'id, user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, is_cleared, created_at, updated_at'
 
 export function list(db, userId, opts = {}) {
   const where = ['user_id = ?', 'is_archived = 0']
@@ -112,4 +112,10 @@ export function listArchived(db, userId) {
       `SELECT ${COLUMNS} FROM income WHERE user_id = ? AND is_archived = 1 ORDER BY date DESC, id DESC`
     )
     .all(userId)
+}
+
+export function setCleared(db, userId, id, cleared) {
+  const info = db.prepare('UPDATE income SET is_cleared = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?').run(cleared ? 1 : 0, id, userId)
+  if (info.changes === 0) return null
+  return getById(db, userId, id)
 }

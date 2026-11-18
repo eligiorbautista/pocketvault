@@ -279,5 +279,14 @@ ALTER TABLE wallets ADD COLUMN apr REAL NOT NULL DEFAULT 0;
 ALTER TABLE wallets ADD COLUMN track_only INTEGER NOT NULL DEFAULT 0;
 `
 
-export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7, V8, V9]
+// v10: bank reconciliation. Cleared rows are still part of the ledger; the flag
+// only separates them from transactions that have not appeared on a statement.
+const V10 = `
+ALTER TABLE income ADD COLUMN is_cleared INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE expenses ADD COLUMN is_cleared INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_income_cleared ON income (user_id, is_cleared);
+CREATE INDEX IF NOT EXISTS idx_expenses_cleared ON expenses (user_id, is_cleared);
+`
+
+export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10]
 export const SCHEMA_VERSION = MIGRATIONS.length

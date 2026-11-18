@@ -249,6 +249,11 @@ await check('income update', async () => {
   const row = await api.income.update(incomeId, { wallet_id: walletId, amount: 2000, date: '2026-09-06', source: 'Salary', notes: null, receipt_path: null })
   return row.amount === 2000
 })
+await check('income can be marked cleared', async () => {
+  const row = await api.income.setCleared(incomeId, true)
+  const unset = await api.income.setCleared(incomeId, false)
+  return row.is_cleared === 1 && unset.is_cleared === 0
+})
 await check('income all', async () => (await api.income.all({ from: '2026-01-01', to: '2026-12-31' })).length === 1)
 
 await check('expense create + custom category', async () => {

@@ -22,17 +22,21 @@ All notable changes to PocketVault are documented here. The format follows
 - **Archive** now includes recurring bills and subscriptions.
 - **CSV import** - review a file before writing, map wallets by name with a Cash
   fallback, skip invalid rows, and import income/expenses in one pass.
+- **Reconciliation** - mark income and expenses as cleared or uncleared from the
+  row menu; the list shows the status. It is a flag only and never moves money.
 
 ### Changed
 
 - Schema **V9** adds credit-card fields; schema **V8** adds savings-bucket
-  metadata and `recurring_rules`.
-- Backups use **format 6**; format 5 and older still import, with credit fields
-  defaulting to zero and recurring rules absent from older files.
+  metadata and `recurring_rules`; schema **V10** adds reconciliation flags to
+  income and expenses.
+- Backups use **format 7**; format 6 and older still import, with credit fields
+  defaulting to zero, reconciliation uncleared, and recurring rules absent from
+  older files.
 
 ### Notes
 
-- V8/V9 are one-way: older builds cannot read a database upgraded by this release.
+- V8/V9/V10 are one-way: older builds cannot read a database upgraded by this release.
 - Recurring rules post only when confirmed; there is no automatic bank posting.
 - Credit-card math uses the card balance and APR is stored for planning; the
   payoff view does not compound interest yet.

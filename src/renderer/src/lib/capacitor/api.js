@@ -49,12 +49,12 @@ const MIME_BY_EXT = {
 }
 
 const RECEIPTS_DIR = 'receipts'
-const BACKUP_FORMAT = 6
+const BACKUP_FORMAT = 7
 const BACKUP_RECEIPTS_PREFIX = 'receipts/'
 const INCOME_COLUMNS =
-  'id, user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at'
+  'id, user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, is_cleared, created_at, updated_at'
 const EXPENSE_COLUMNS =
-  'id, user_id, wallet_id, category, amount, date, notes, is_archived, created_at, updated_at'
+  'id, user_id, wallet_id, category, amount, date, notes, is_archived, is_cleared, created_at, updated_at'
 const GOAL_COLUMNS =
   'id, user_id, goal_name, target_amount, current_amount, deadline, wallet_id, kind, is_archived, created_at, updated_at'
 const DEBT_COLUMNS = `id, user_id, wallet_id, creditor, total_amount, paid_amount, remaining_amount, due_date,
@@ -824,6 +824,16 @@ export function createCapacitorApi() {
       return info.changes > 0
     },
 
+    setCleared: async (id, cleared) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE income SET is_cleared = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+        [cleared ? 1 : 0, validateId(id), userId]
+      )
+      if (info.changes === 0) return null
+      return getOne(`SELECT ${INCOME_COLUMNS} FROM income WHERE id = ? AND user_id = ?`, [id, userId])
+    },
+
     archived: async () => {
       const userId = requireUserId()
       return query(
@@ -939,6 +949,16 @@ export function createCapacitorApi() {
         [validateId(id), userId]
       )
       return info.changes > 0
+    },
+
+    setCleared: async (id, cleared) => {
+      const userId = requireUserId()
+      const info = await run(
+        'UPDATE expenses SET is_cleared = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+        [cleared ? 1 : 0, validateId(id), userId]
+      )
+      if (info.changes === 0) return null
+      return getOne(`SELECT ${EXPENSE_COLUMNS} FROM expenses WHERE id = ? AND user_id = ?`, [id, userId])
     },
 
     archived: async () => {
@@ -1827,12 +1847,12 @@ export function createCapacitorApi() {
       if (!user) throw new Error('Account not found')
 
       const income = await query(
-        `SELECT id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at
+        `SELECT id, wallet_id, amount, date, source, notes, receipt_path, is_archived, is_cleared, created_at, updated_at
          FROM income WHERE user_id = ? ORDER BY id`,
         [userId]
       )
       const expenses = await query(
-        `SELECT wallet_id, category, amount, date, notes, is_archived, created_at, updated_at
+        `SELECT wallet_id, category, amount, date, notes, is_archived, is_cleared, created_at, updated_at
          FROM expenses WHERE user_id = ? ORDER BY id`,
         [userId]
       )
@@ -2023,7 +2043,7 @@ export function createCapacitorApi() {
         throw new Error('Invalid backup: the archive contents are corrupted')
       }
 
-      if (!manifest || ![2, 3, 4, 5, 6].includes(manifest.format)) {
+      if (!manifest || ![2, 3, 4, 5, 6, 7].includes(manifest.format)) {
         throw new Error('Unsupported backup format. This file was made by a different version.')
       }
       const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -2175,8 +2195,8 @@ export function createCapacitorApi() {
         const receipt =
           row.receipt_path && included.has(row.receipt_path) ? row.receipt_path : null
         const info = await run(
-          `INSERT INTO income (user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO income (user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, is_cleared, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
             resolveWallet(row.wallet_id),
@@ -2186,6 +2206,7 @@ export function createCapacitorApi() {
             row.notes ?? null,
             receipt,
             row.is_archived ? 1 : 0,
+            row.is_cleared ? 1 : 0,
             row.created_at ?? now,
             row.updated_at ?? null
           ]
@@ -2195,8 +2216,8 @@ export function createCapacitorApi() {
 
       for (const row of expenseRows) {
         await run(
-          `INSERT INTO expenses (user_id, wallet_id, category, amount, date, notes, is_archived, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO expenses (user_id, wallet_id, category, amount, date, notes, is_archived, is_cleared, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
             resolveWallet(row.wallet_id),
@@ -2205,6 +2226,7 @@ export function createCapacitorApi() {
             row.date,
             row.notes ?? null,
             row.is_archived ? 1 : 0,
+            row.is_cleared ? 1 : 0,
             row.created_at ?? now,
             row.updated_at ?? null
           ]

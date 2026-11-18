@@ -4,7 +4,7 @@ import { validateWalletId } from '../../../shared/wallets.js'
 import { ensureWallet } from './wallets.js'
 
 const COLUMNS =
-  'id, user_id, wallet_id, category, amount, date, notes, is_archived, created_at, updated_at'
+  'id, user_id, wallet_id, category, amount, date, notes, is_archived, is_cleared, created_at, updated_at'
 
 export function list(db, userId, opts = {}) {
   const where = ['user_id = ?', 'is_archived = 0']
@@ -113,4 +113,10 @@ export function distinctCategories(db, userId) {
     )
     .all(userId)
     .map((row) => row.category)
+}
+
+export function setCleared(db, userId, id, cleared) {
+  const info = db.prepare('UPDATE expenses SET is_cleared = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?').run(cleared ? 1 : 0, id, userId)
+  if (info.changes === 0) return null
+  return getById(db, userId, id)
 }
