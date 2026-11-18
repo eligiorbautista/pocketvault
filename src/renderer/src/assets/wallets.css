@@ -40,30 +40,6 @@
   white-space: nowrap;
 }
 
-.wallet-mid {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-}
-
-.wallet-chip {
-  width: 38px;
-  height: 28px;
-  border-radius: 5px;
-  flex: none;
-  background:
-    repeating-linear-gradient(90deg, rgba(120, 80, 10, 0.55) 0 1px, transparent 1px 9px),
-    repeating-linear-gradient(0deg, rgba(120, 80, 10, 0.55) 0 1px, transparent 1px 8px),
-    linear-gradient(135deg, #f6df9a, #d7ab45 55%, #f3d98b);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.35);
-}
-
-.wallet-contactless {
-  width: 20px;
-  height: 20px;
-  opacity: 0.9;
-}
-
 .wallet-bottom {
   display: flex;
   align-items: flex-end;
@@ -304,6 +280,4 @@
   .wallet-balance { font-size: 14px; }
   .wallet-label { font-size: 9px; letter-spacing: 0.06em; }
   .wallet-meta { display: none; }
-  .wallet-chip { width: 28px; height: 21px; }
-  .wallet-contactless { width: 15px; height: 15px; }
 }

@@ -32,7 +32,7 @@ const SCHEDULE_LABEL = { paid: 'Paid', partial: 'Partial', overdue: 'Overdue', u
 // Records one payment (a free-form payment, or one tied to a schedule row).
 function LedgerForm({ idPrefix, debtId, installment, defaultAmount, wallets = [], onDone }) {
   const [receiptPath, setReceiptPath] = useState(null)
-  const suggested = defaultAmount != null ? String(defaultAmount) : ''
+  const suggested = defaultAmount != null ? String(defaultAmount) : '0.00'
   const cashId = wallets.find((wallet) => wallet.type === 'cash')?.id ?? wallets[0]?.id ?? ''
   const {
     register,

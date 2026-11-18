@@ -32,7 +32,7 @@ export const Button = forwardRef(function Button(
       type={props.type ?? 'button'}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex cursor-pointer items-center justify-center gap-2 rounded-full font-medium transition-colors duration-200',
+        'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-colors duration-200',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
         'disabled:cursor-not-allowed',
         VARIANTS[variant],

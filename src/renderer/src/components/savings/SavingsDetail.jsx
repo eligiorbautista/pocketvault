@@ -21,7 +21,7 @@ function ContributionForm({ goalId, incomeOptions, onDone }) {
     handleSubmit,
     reset,
     formState: { errors }
-  } = useForm({ defaultValues: { amount: '', date: todayInput(), income_id: '', notes: '' } })
+  } = useForm({ defaultValues: { amount: '0.00', date: todayInput(), income_id: '', notes: '' } })
 
   const onSubmit = async (values) => {
     setBusy(true)
@@ -33,7 +33,7 @@ function ContributionForm({ goalId, incomeOptions, onDone }) {
         notes: values.notes
       })
       toast('Allocation added', 'success')
-      reset({ amount: '', date: todayInput(), income_id: '', notes: '' })
+      reset({ amount: '0.00', date: todayInput(), income_id: '', notes: '' })
       onDone()
     } catch (error) {
       toast(error.message, 'error')

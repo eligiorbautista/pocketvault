@@ -35,7 +35,7 @@ function BudgetForm({ open, initial, onClose, onSaved }) {
       reset({
         category: !initial ? 'food' : known ? initial.category : '__custom__',
         customCategory: initial && !known ? initial.category : '',
-        monthly_limit: initial?.monthly_limit ?? '',
+        monthly_limit: initial?.monthly_limit ?? '0.00',
         rollover: Boolean(initial?.rollover)
       })
     }

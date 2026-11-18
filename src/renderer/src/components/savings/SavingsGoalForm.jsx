@@ -22,7 +22,7 @@ export function SavingsGoalForm({ open, initial, onClose, onSaved }) {
     if (open) {
       reset({
         goal_name: initial?.goal_name ?? '',
-        target_amount: initial?.target_amount ?? '',
+        target_amount: initial?.target_amount ?? '0.00',
         deadline: initial?.deadline ?? '',
         wallet_id: String(initial?.wallet_id ?? ''),
         kind: initial?.kind ?? 'goal'

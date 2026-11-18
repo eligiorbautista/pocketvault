@@ -23,14 +23,27 @@ function a11y(hasError, id, describedBy) {
   }
 }
 
-export const Input = forwardRef(function Input({ hasError, className, id, ...props }, ref) {
+export const Input = forwardRef(function Input(
+  { hasError, className, id, onFocus, ...props },
+  ref
+) {
+  const money = props.type === 'number' && props.step === '0.01'
+  const moneyDefaults =
+    money && props.value === undefined && props.defaultValue === undefined
+      ? { defaultValue: '0.00' }
+      : {}
   return (
     <input
       ref={ref}
       id={id}
       className={cn(fieldClasses(hasError), className)}
       {...a11y(hasError, id, props['aria-describedby'])}
+      {...moneyDefaults}
       {...props}
+      onFocus={(event) => {
+        if (money) event.currentTarget.select()
+        onFocus?.(event)
+      }}
     />
   )
 })

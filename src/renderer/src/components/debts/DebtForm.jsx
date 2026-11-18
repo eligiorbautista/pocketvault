@@ -31,10 +31,10 @@ export function DebtForm({ open, initial, wallets = [], archivedWallets = [], on
       reset({
         wallet_id: String(initial?.wallet_id ?? cashId),
         creditor: initial?.creditor ?? '',
-        total_amount: initial?.total_amount ?? '',
+        total_amount: initial?.total_amount ?? '0.00',
         payment_type: initial?.payment_type ?? 'no-schedule',
         due_date: initial?.due_date ?? todayInput(),
-        monthly_amount: initial?.monthly_amount ?? '',
+        monthly_amount: initial?.monthly_amount ?? '0.00',
         first_payment_date: initial?.first_payment_date ?? todayInput(),
         notes: initial?.notes ?? ''
       })

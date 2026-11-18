@@ -10,7 +10,7 @@ import { toast } from '@renderer/store/uiStore.js'
 export function TransferForm({ open, initialFrom, wallets, hidden = false, onClose, onSaved }) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useState('0.00')
   const [date, setDate] = useState(todayInput())
   const [notes, setNotes] = useState('')
   const [formError, setFormError] = useState(null)
@@ -23,7 +23,7 @@ export function TransferForm({ open, initialFrom, wallets, hidden = false, onClo
     const second = wallets.find((wallet) => wallet.id !== first)?.id ?? ''
     setFrom(String(first))
     setTo(String(second))
-    setAmount('')
+    setAmount('0.00')
     setDate(todayInput())
     setNotes('')
     setFormError(null)

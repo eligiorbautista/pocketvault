@@ -40,7 +40,7 @@ test('wallet page and add-wallet dialog have no serious accessibility violations
     await page.getByLabel('Confirm password').fill('secret123')
     await page.getByRole('button', { name: 'Create account' }).click()
 
-    await page.getByRole('link', { name: 'Wallet' }).click()
+    await page.getByRole('link', { name: 'Wallet', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Wallet', exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Add wallet' }).first().click()

@@ -4,4 +4,12 @@
     <string name="title_activity_main">PocketVault</string>
     <string name="package_name">com.pocketvault.app</string>
     <string name="custom_url_scheme">com.pocketvault.app</string>
+    <string name="shortcut_add_income">Add income</string>
+    <string name="shortcut_add_income_long">Add income to PocketVault</string>
+    <string name="shortcut_add_expense">Add expense</string>
+    <string name="shortcut_add_expense_long">Add an expense to PocketVault</string>
+    <string name="shortcut_add_bill">Add bill</string>
+    <string name="shortcut_add_bill_long">Add a recurring bill</string>
+    <string name="shortcut_add_wallet">Add wallet</string>
+    <string name="shortcut_add_wallet_long">Add a wallet to PocketVault</string>
 </resources>

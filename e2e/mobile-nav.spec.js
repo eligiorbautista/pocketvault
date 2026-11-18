@@ -49,7 +49,15 @@ test('mobile shell uses bottom tabs, grouped More page, and quick add', async ()
     await page.getByRole('button', { name: 'Add income' }).click()
     const incomeDialog = page.getByRole('dialog', { name: 'Add income' })
     await expect(incomeDialog).toBeVisible()
+    await expect(incomeDialog.getByLabel('Amount')).toHaveValue('0.00')
     await expect.poll(async () => incomeDialog.getByLabel('Wallet').locator('option').count()).toBeGreaterThan(0)
+    await incomeDialog.getByRole('button', { name: 'Cancel' }).click()
+
+    // Native Android shortcuts land on this hash after unlock.
+    await page.evaluate(() => {
+      window.location.hash = '#/debts?tab=bills&new=1'
+    })
+    await expect(page.getByRole('dialog', { name: 'Add bill or income' })).toBeVisible()
   } finally {
     await app.close()
     rmSync(userData, { recursive: true, force: true })

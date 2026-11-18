@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add_income"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_add_income"
+        android:shortcutLongLabel="@string/shortcut_add_income_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="pocketvault://income?new=1"
+            android:targetPackage="com.pocketvault.app"
+            android:targetClass="com.pocketvault.app.MainActivity" />
+        <categories android:name="android.intent.category.DEFAULT" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="add_expense"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_add_expense"
+        android:shortcutLongLabel="@string/shortcut_add_expense_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="pocketvault://expenses?new=1"
+            android:targetPackage="com.pocketvault.app"
+            android:targetClass="com.pocketvault.app.MainActivity" />
+        <categories android:name="android.intent.category.DEFAULT" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="add_bill"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_add_bill"
+        android:shortcutLongLabel="@string/shortcut_add_bill_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="pocketvault://debts?tab=bills&amp;new=1"
+            android:targetPackage="com.pocketvault.app"
+            android:targetClass="com.pocketvault.app.MainActivity" />
+        <categories android:name="android.intent.category.DEFAULT" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="add_wallet"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_add_wallet"
+        android:shortcutLongLabel="@string/shortcut_add_wallet_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="pocketvault://wallet?new=wallet"
+            android:targetPackage="com.pocketvault.app"
+            android:targetClass="com.pocketvault.app.MainActivity" />
+        <categories android:name="android.intent.category.DEFAULT" />
+    </shortcut>
+</shortcuts>

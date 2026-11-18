@@ -13,6 +13,7 @@ import {
   Wallet
 } from 'lucide-react'
 import { PageHeader, StatCard } from '@renderer/components/ui/PageHeader.jsx'
+import { QuickActions } from '@renderer/components/dashboard/QuickActions.jsx'
 import { Card, CardBody, CardHeader, CardTitle } from '@renderer/components/ui/Card.jsx'
 import { ProgressBar } from '@renderer/components/ui/ProgressBar.jsx'
 import { EmptyState } from '@renderer/components/ui/EmptyState.jsx'
@@ -84,6 +85,8 @@ export default function Dashboard() {
         description={`Your finances at a glance for ${periodLabel}.`}
         actions={<PeriodFilter value={period} onChange={setPeriod} idPrefix="dash" />}
       />
+
+      <QuickActions />
 
       {error ? (
         <ErrorState message={error} onRetry={reload} />

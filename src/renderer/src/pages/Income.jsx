@@ -41,7 +41,7 @@ function IncomeForm({ open, initial, wallets, archivedWallets = [], onClose, onS
     if (open) {
       reset({
         wallet_id: String(initial?.wallet_id ?? cashId),
-        amount: initial?.amount ?? '',
+        amount: initial?.amount ?? '0.00',
         date: initial?.date ?? todayInput(),
         source: initial?.source ?? '',
         notes: initial?.notes ?? ''

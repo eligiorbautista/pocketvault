@@ -28,8 +28,8 @@ test('register, add a wallet, record income, spend, transfer, and open activity'
     await page.getByLabel('Confirm password').fill('secret123')
     await page.getByRole('button', { name: 'Create account' }).click()
 
-    await expect(page.getByRole('link', { name: 'Wallet' })).toBeVisible()
-    await page.getByRole('link', { name: 'Wallet' }).click()
+    await expect(page.getByRole('link', { name: 'Wallet', exact: true })).toBeVisible()
+    await page.getByRole('link', { name: 'Wallet', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Wallet', exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Add wallet' }).first().click()

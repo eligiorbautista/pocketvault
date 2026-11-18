@@ -44,7 +44,7 @@ function ExpenseForm({ open, initial, wallets, archivedWallets = [], onClose, on
         wallet_id: String(initial?.wallet_id ?? cashId),
         category: !initial ? 'food' : known ? initial.category : '__custom__',
         customCategory: initial && !known ? initial.category : '',
-        amount: initial?.amount ?? '',
+        amount: initial?.amount ?? '0.00',
         date: initial?.date ?? todayInput(),
         notes: initial?.notes ?? ''
       })

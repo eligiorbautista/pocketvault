@@ -43,7 +43,7 @@ function RuleForm({ open, initial, wallets, onClose, onSaved }) {
             kind: 'bill',
             wallet_id: String(cash),
             category: 'other',
-            amount: '',
+            amount: '0.00',
             frequency: 'monthly',
             next_due: todayInput(),
             reminder_days: '3'
@@ -143,7 +143,7 @@ function RuleForm({ open, initial, wallets, onClose, onSaved }) {
   )
 }
 
-export function RecurringPanel() {
+export function RecurringPanel({ openNew = false, onNewOpened }) {
   const { data, loading, error, reload } = useApiData(() => api.recurring.list(), [])
   const walletsQuery = useApiData(() => api.wallets.list(), [])
   const [formOpen, setFormOpen] = useState(false)
@@ -153,6 +153,13 @@ export function RecurringPanel() {
   const rules = data ?? []
   const wallets = walletsQuery.data ?? []
   const today = todayInput()
+
+  useEffect(() => {
+    if (!openNew || wallets.length === 0) return
+    setEditing(null)
+    setFormOpen(true)
+    onNewOpened?.()
+  }, [openNew, wallets.length, onNewOpened])
 
   const act = async (rule, action) => {
     setBusyId(rule.id)
@@ -186,12 +193,12 @@ export function RecurringPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-gray-100">Bills &amp; recurring</h2>
           <p className="text-sm text-slate-600 dark:text-dark-muted">Post a bill when it is due; nothing is automatic.</p>
         </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true) }}>
+        <Button className="w-full sm:w-auto" onClick={() => { setEditing(null); setFormOpen(true) }}>
           <Plus size={16} aria-hidden="true" /> Add bill
         </Button>
       </div>
