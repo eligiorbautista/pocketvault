@@ -30,6 +30,8 @@ All notable changes to PocketVault are documented here. The format follows
 - Quick-add now traps and restores focus, exposes `aria-expanded`/`aria-controls`
   and locks background scrolling.
 - Hidden Cash interest fields are ignored instead of leaking into the saved row.
+- Android encrypted backup export writes valid base64 data, treats a cancelled
+  share sheet as success, and the resulting `.pvbak` decrypts correctly.
 - Mobile E2E registration/wallet setup is stable and covered.
 
 ### Changed
@@ -37,6 +39,10 @@ All notable changes to PocketVault are documented here. The format follows
 - **Encrypted backups** - export writes a password-protected `.pvbak` (PBKDF2-SHA256 + AES-256-GCM); legacy `.zip` backups still import.
 - **Collapsible desktop sidebar** - collapses to a 76px icon rail with Ctrl/Cmd+B or the header toggle.
 - The hamburger and mobile drawer are removed; desktop keeps the sidebar.
+- iOS-style grouped surfaces: `#f2f2f7` light ground with white cards, true-black
+  dark ground with `#1c1c1e` cards, capsule buttons, filled inputs and larger page
+  titles. Wallet figures stack on phones without ellipsis; cards are one per row
+  below 480px and the monogram/balance stay inside the card.
 - Schema **V7** adds wallet interest fields; backups use **format 4** and still
   import v2/v3.
 - Brand palette notes from official bank/digital/e-wallet product pages are in
@@ -44,7 +50,7 @@ All notable changes to PocketVault are documented here. The format follows
 
 ### Tests
 
-- 132 unit, 371 smoke (61 db / 42 backup / 205 audit / 63 Capacitor), 23 stress,
+- 134 unit, 371 smoke (61 db / 42 backup / 205 audit / 63 Capacitor), 23 stress,
   4 Electron E2E including a 390×844 mobile shell, lint and production build.
 
 ## [1.1.3] - 2026-11-17

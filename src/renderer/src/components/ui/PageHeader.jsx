@@ -10,11 +10,11 @@ export function PageHeader({ title, description, actions, className }) {
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-gray-100">
+        <h1 className="text-[1.9rem] font-semibold leading-tight tracking-[-0.03em] text-slate-900 dark:text-gray-100 sm:text-[2.1rem]">
           {title}
         </h1>
         {description ? (
-          <p className="mt-1 text-sm text-slate-500 dark:text-dark-faint">{description}</p>
+          <p className="mt-1 text-[15px] leading-6 text-slate-600 dark:text-dark-muted">{description}</p>
         ) : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
@@ -32,18 +32,21 @@ export function StatCard({ label, value, hint, icon: Icon, tone = 'default', loa
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-dark-faint">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500 dark:text-dark-faint">
             {label}
           </p>
-          <p className={cn('mt-2 truncate text-2xl font-semibold', tones[tone])}>
+          <p
+            className={cn(
+              'mt-1.5 whitespace-nowrap text-[clamp(1.25rem,5vw,1.5rem)] font-semibold leading-tight tracking-tight tabular-nums',
+              tones[tone]
+            )}
+          >
             {loading ? '\u2014' : value}
           </p>
           {hint ? <p className="mt-1 text-xs text-slate-500 dark:text-dark-faint">{hint}</p> : null}
         </div>
         {Icon ? (
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-900 dark:text-accent-300">
-            <Icon size={18} aria-hidden="true" />
-          </span>
+          <Icon size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-slate-400 dark:text-dark-faint" />
         ) : null}
       </div>
     </Card>

@@ -13,6 +13,7 @@ import { WalletCard } from '@renderer/components/wallets/WalletCard.jsx'
 import { WalletForm } from '@renderer/components/wallets/WalletForm.jsx'
 import { TransferForm } from '@renderer/components/wallets/TransferForm.jsx'
 import { WalletActivity } from '@renderer/components/wallets/WalletActivity.jsx'
+import { cn } from '@renderer/lib/cn.js'
 import { formatCurrency } from '@renderer/lib/format.js'
 import { useApiData } from '@renderer/hooks/useApiData.js'
 import { toast } from '@renderer/store/uiStore.js'
@@ -120,7 +121,7 @@ export default function Wallet() {
           <>
             <Link
               to="/archive"
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-dark-border dark:bg-dark-surface-2 dark:text-gray-200 dark:hover:bg-dark-surface-2"
+              className="inline-flex h-11 items-center justify-center rounded-full border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-dark-border dark:bg-dark-surface-2 dark:text-gray-200 dark:hover:bg-dark-surface-2"
             >
               Archived
             </Link>
@@ -132,17 +133,17 @@ export default function Wallet() {
         }
       />
 
-      <Card className="p-5">
+      <Card className="p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-dark-faint">
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500 dark:text-dark-faint">
               Net worth
             </p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
+            <p className="mt-1 text-[2.1rem] font-semibold leading-none tracking-[-0.04em] text-slate-900 tabular-nums dark:text-white sm:text-4xl">
               {hidden ? '••••' : formatCurrency(netWorth)}
             </p>
             {finding ? (
-              <p className="mt-1 text-sm text-slate-500 dark:text-dark-faint">{finding}</p>
+              <p className="mt-2 text-sm text-slate-500 dark:text-dark-faint">{finding}</p>
             ) : null}
           </div>
           <button
@@ -150,21 +151,28 @@ export default function Wallet() {
             onClick={() => setHidden((value) => !value)}
             aria-label={hidden ? 'Show amounts' : 'Hide amounts'}
             aria-pressed={hidden}
-            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-dark-faint dark:hover:bg-dark-surface-2"
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 dark:bg-dark-surface-2 dark:text-dark-faint dark:hover:bg-[#3a3a3c]"
           >
             {hidden ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
           </button>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 divide-x divide-slate-100 border-t border-slate-100 pt-4 dark:divide-dark-rule dark:border-dark-rule">
+        <div className="mt-5 grid gap-2 border-t border-slate-100 pt-4 dark:border-white/[0.06] sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-slate-100 dark:sm:divide-white/[0.06]">
           {[
             ['Net balance', netBalance],
             ['Assets', assets],
             ['Liabilities', liabilities]
-          ].map(([label, value]) => (
-            <div key={label} className="px-3 first:pl-0 last:pr-0">
+          ].map(([label, value], index) => (
+            <div
+              key={label}
+              className={cn(
+                'flex items-baseline justify-between gap-3 py-0.5 sm:block sm:py-0 sm:px-4',
+                index === 0 && 'sm:pl-0',
+                index === 2 && 'sm:pr-0'
+              )}
+            >
               <p className="text-xs text-slate-500 dark:text-dark-faint">{label}</p>
-              <p className="mt-0.5 truncate text-sm font-medium text-slate-900 dark:text-gray-100">
+              <p className="whitespace-nowrap text-[15px] font-medium tabular-nums text-slate-900 dark:text-gray-100 sm:mt-0.5 sm:text-sm">
                 {hidden ? '••••' : formatCurrency(value)}
               </p>
             </div>
@@ -183,7 +191,7 @@ export default function Wallet() {
                 Cards <span className="text-slate-400 dark:text-dark-faint">{wallets.length}</span>
               </h2>
             </div>
-            <div className="grid grid-cols-1 gap-4 min-[360px]:grid-cols-2 md:grid-cols-3 2xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 2xl:grid-cols-4">
               {wallets.map((wallet, index) => (
                 <WalletCard
                   key={wallet.id}

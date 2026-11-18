@@ -35,7 +35,7 @@ export function AppShell() {
   }, [])
 
   return (
-    <div className="min-h-dvh bg-slate-50 dark:bg-dark-bg">
+    <div className="min-h-dvh bg-[#f2f2f7] dark:bg-black">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((current) => !current)} />
       <div
         className={cn(

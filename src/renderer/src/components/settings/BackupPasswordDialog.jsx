@@ -47,7 +47,15 @@ export function BackupPasswordDialog({ open, mode = 'export', loading, onClose, 
           <Button variant="secondary" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" form="backup-password-form" loading={loading}>
+          <Button
+            type="submit"
+            form="backup-password-form"
+            onClick={(event) => {
+              event.preventDefault()
+              submit(event)
+            }}
+            loading={loading}
+          >
             {isExport ? 'Encrypt & export' : 'Replace account data'}
           </Button>
         </div>

@@ -82,9 +82,11 @@ export function WalletCard({
     ? `${Number(wallet.interest_rate || 0).toFixed(2)}%`
     : null
   const meta = [
-    wallet.last4
-      ? `${wallet.type === 'bank' ? 'Debit' : typeLabel} · ${wallet.last4}`
-      : typeLabel,
+    wallet.type === 'cash'
+      ? null
+      : wallet.last4
+        ? `${wallet.type === 'bank' ? 'Debit' : typeLabel} · ${wallet.last4}`
+        : typeLabel,
     interestLabel
   ]
     .filter(Boolean)

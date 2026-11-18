@@ -1938,19 +1938,21 @@ export function createCapacitorApi() {
       const name = `pocketvault-${user.username}-backup-${stamp()}.pvbak`
       const written = await Filesystem.writeFile({
         path: name,
-        data: encrypted,
+        data: toBase64(new TextEncoder().encode(encrypted)),
         directory: Directory.Cache,
         recursive: true
       })
 
       // Hand the file to the Android share sheet so it can be saved to Files,
-      // Drive, or sent anywhere (no storage permission required).
+      // Drive, or sent anywhere (no storage permission required). Cancelling
+      // the share sheet is not an export failure: the encrypted file is already
+      // written to the app cache.
       await Share.share({
         title: 'PocketVault encrypted backup',
         text: `Encrypted PocketVault backup for ${user.username}`,
         url: written.uri,
         dialogTitle: 'Save or share your encrypted backup'
-      })
+      }).catch(() => {})
 
       return { saved: true, path: written.uri, counts, encrypted: true }
     },

@@ -5,8 +5,8 @@
 .wallet-face {
   position: relative;
   aspect-ratio: 1.586;
-  border-radius: 16px;
-  padding: 16px 18px;
+  border-radius: 18px;
+  padding: 15px 17px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -69,6 +69,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
+  min-width: 0;
 }
 
 .wallet-label {
@@ -81,8 +82,10 @@
 .wallet-balance {
   font-size: 18px;
   font-weight: 600;
+  line-height: 1.15;
   letter-spacing: -0.01em;
   margin-top: 2px;
+  font-variant-numeric: tabular-nums;
 }
 
 .wallet-meta {
@@ -102,18 +105,20 @@
 /* Monogram direction: the bank's initials sit behind the data at low alpha. */
 .wallet-monogram {
   position: absolute;
-  right: -4px;
-  bottom: -18px;
+  right: 10px;
+  bottom: 8px;
   z-index: 0;
+  max-width: 62%;
   color: currentColor;
-  opacity: 0.14;
-  font-size: clamp(56px, 38cqw, 124px);
+  opacity: 0.10;
+  font-size: clamp(38px, 26cqw, 88px);
   font-weight: 850;
-  line-height: 0.8;
+  line-height: 0.9;
   letter-spacing: -0.09em;
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
+  overflow: hidden;
 }
 
 /* BDO: royal blue, wave + halftone */

@@ -3,7 +3,7 @@ import { ChevronDown, Eye, EyeOff } from 'lucide-react'
 import { cn } from '@renderer/lib/cn.js'
 
 const base =
-  'w-full rounded-lg border bg-white text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent-500/40 focus:border-accent-500 disabled:bg-slate-50 disabled:text-slate-400 dark:bg-dark-surface-2 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-accent-400 dark:focus:ring-accent-400/30 dark:disabled:bg-gray-800 dark:disabled:text-gray-500'
+  'w-full rounded-xl border border-transparent bg-slate-100 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-500/30 disabled:bg-slate-100 disabled:text-slate-400 dark:bg-dark-surface-2 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:bg-dark-surface-2 dark:focus:ring-accent-400/30 dark:disabled:bg-dark-surface-2 dark:disabled:text-gray-500'
 
 function border(hasError) {
   return hasError ? 'border-red-400 dark:border-red-500' : 'border-slate-300 dark:border-dark-border'

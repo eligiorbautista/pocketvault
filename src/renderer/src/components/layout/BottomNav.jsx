@@ -99,9 +99,9 @@ export function BottomNav() {
     <>
       <nav
         aria-label="Mobile navigation"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-dark-border dark:bg-dark-surface/95 lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/80 bg-white pb-[env(safe-area-inset-bottom)] dark:border-white/[0.08] dark:bg-[#1c1c1e] lg:hidden"
       >
-        <div className="mx-auto flex h-16 max-w-lg items-stretch px-2">
+        <div className="mx-auto flex h-14 max-w-lg items-stretch px-2">
           {TABS.slice(0, 2).map((tab) => {
             const Icon = tab.icon
             const active = tab.end ? location.pathname === tab.to : location.pathname.startsWith(tab.to)

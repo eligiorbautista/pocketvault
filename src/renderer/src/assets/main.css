@@ -9,12 +9,12 @@
 
   /* App background in dark mode. */
   --color-dark-bg: #000000;
-  --color-dark-surface: #0a0a0b;
-  --color-dark-surface-2: #141416;
-  --color-dark-border: #242427;
-  --color-dark-rule: #1b1b1e;
-  --color-dark-muted: #b6b6b6;
-  --color-dark-faint: #8e8e91;
+  --color-dark-surface: #1c1c1e;
+  --color-dark-surface-2: #2c2c2e;
+  --color-dark-border: #3a3a3c;
+  --color-dark-rule: #2c2c2e;
+  --color-dark-muted: #aeaeb2;
+  --color-dark-faint: #8e8e93;
 
   --color-accent-50: #ecfdf5;
   --color-accent-100: #d1fae5;
@@ -49,7 +49,7 @@
   body {
     margin: 0;
     overflow-x: hidden;
-    background-color: var(--color-slate-50);
+    background-color: #f2f2f7;
     color: var(--color-slate-900);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
