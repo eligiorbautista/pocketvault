@@ -12,6 +12,7 @@ import { registerBackupHandlers } from './backup.ipc.js'
 import { registerDataHandlers } from './data.ipc.js'
 import { registerSettingsHandlers } from './settings.ipc.js'
 import { registerNotificationsHandlers } from './notifications.ipc.js'
+import { registerSnapshotsHandlers } from './snapshots.ipc.js'
 
 export function registerIpcHandlers() {
   registerAuthHandlers()
@@ -28,4 +29,5 @@ export function registerIpcHandlers() {
   registerDataHandlers()
   registerSettingsHandlers()
   registerNotificationsHandlers()
+  registerSnapshotsHandlers()
 }

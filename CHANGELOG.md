@@ -29,14 +29,20 @@ All notable changes to PocketVault are documented here. The format follows
 
 - Schema **V9** adds credit-card fields; schema **V8** adds savings-bucket
   metadata and `recurring_rules`; schema **V10** adds reconciliation flags to
-  income and expenses.
-- Backups use **format 7**; format 6 and older still import, with credit fields
+  income and expenses; schema **V11** adds `budgets.rollover` and
+  `net_worth_snapshots`.
+- Backups use **format 8**; format 7 and older still import, with credit fields
   defaulting to zero, reconciliation uncleared, and recurring rules absent from
   older files.
+- Schema **V11 / backup v8**: budgets can roll unused money into the next month
+  (carry is skipped for a budget created in the current month); the dashboard
+  captures a daily net-worth snapshot and shows the 30-day change. Snapshots are
+  derived and cleared by delete-all/import, so they are not backed up.
 
 ### Notes
 
-- V8/V9/V10 are one-way: older builds cannot read a database upgraded by this release.
+- V8/V9/V10/V11 are one-way: older builds cannot read a database upgraded by
+  this release.
 - Recurring rules post only when confirmed; there is no automatic bank posting.
 - Credit-card math uses the card balance and APR is stored for planning; the
   payoff view does not compound interest yet.

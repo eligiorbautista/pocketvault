@@ -9,7 +9,7 @@ import {
 import { validateBackupData, verifyBackupCounts } from '../../shared/backupValidate.js'
 import { validateWalletInput } from '../../shared/wallets.js'
 
-const FORMAT = 7
+const FORMAT = 8
 const RECEIPTS_PREFIX = 'receipts/'
 const DATA_KEYS = [
   'income',
@@ -67,7 +67,7 @@ export async function buildUserBackup(db, userId, receiptsDir) {
     : []
   const budgets = db
     .prepare(
-      `SELECT category, monthly_limit, is_archived, created_at, updated_at
+      `SELECT category, monthly_limit, rollover, is_archived, created_at, updated_at
        FROM budgets WHERE user_id = ? ORDER BY id`
     )
     .all(userId)
@@ -212,7 +212,7 @@ export async function parseUserBackup(buffer) {
     throw new Error('Invalid backup: the archive contents are corrupted')
   }
 
-  if (!manifest || ![2, 3, 4, 5, 6, 7].includes(manifest.format)) {
+  if (!manifest || ![2, 3, 4, 5, 6, 7, 8].includes(manifest.format)) {
     throw new Error('Unsupported backup format. This file was made by a different version.')
   }
   const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -307,6 +307,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     db.prepare('DELETE FROM recurring_rules WHERE user_id = ?').run(userId)
     db.prepare('DELETE FROM wallet_transfers WHERE user_id = ?').run(userId)
     db.prepare('DELETE FROM wallets WHERE user_id = ?').run(userId)
+    db.prepare('DELETE FROM net_worth_snapshots WHERE user_id = ?').run(userId)
 
     const insertWallet = db.prepare(
       `INSERT INTO wallets
@@ -506,10 +507,11 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
     }
 
     const insertBudget = db.prepare(
-      `INSERT INTO budgets (user_id, category, monthly_limit, is_archived, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO budgets (user_id, category, monthly_limit, rollover, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (user_id, category)
        DO UPDATE SET monthly_limit = excluded.monthly_limit,
+                     rollover = excluded.rollover,
                      is_archived = excluded.is_archived,
                      updated_at = excluded.updated_at`
     )
@@ -518,6 +520,7 @@ export function applyUserBackup(db, userId, payload, receiptsDir, currentUsernam
         userId,
         row.category,
         num(row.monthly_limit),
+        row.rollover ? 1 : 0,
         row.is_archived ? 1 : 0,
         row.created_at ?? now,
         row.updated_at ?? null

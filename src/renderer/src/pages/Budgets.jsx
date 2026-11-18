@@ -35,7 +35,8 @@ function BudgetForm({ open, initial, onClose, onSaved }) {
       reset({
         category: !initial ? 'food' : known ? initial.category : '__custom__',
         customCategory: initial && !known ? initial.category : '',
-        monthly_limit: initial?.monthly_limit ?? ''
+        monthly_limit: initial?.monthly_limit ?? '',
+        rollover: Boolean(initial?.rollover)
       })
     }
   }, [open, initial, reset])
@@ -51,7 +52,8 @@ function BudgetForm({ open, initial, onClose, onSaved }) {
     try {
       await api.budgets.upsert({
         category: resolvedCategory,
-        monthly_limit: Number(values.monthly_limit)
+        monthly_limit: Number(values.monthly_limit),
+        rollover: Boolean(values.rollover)
       })
       toast('Budget saved', 'success')
       onSaved()
@@ -122,6 +124,15 @@ function BudgetForm({ open, initial, onClose, onSaved }) {
             })}
           />
         </Field>
+        <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700 dark:border-dark-border dark:text-gray-200">
+          <input type="checkbox" className="mt-0.5 h-5 w-5 accent-accent-600" {...register('rollover')} />
+          <span>
+            Roll over unused amount
+            <span className="mt-0.5 block text-xs text-slate-500 dark:text-dark-faint">
+              Adds last month&apos;s unspent limit to this month&apos;s available amount.
+            </span>
+          </span>
+        </label>
       </form>
     </Modal>
   )
@@ -236,8 +247,13 @@ export default function Budgets() {
                     {categoryLabel(budget.category)}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-dark-faint">
-                    {formatCurrency(budget.spent)} of {formatCurrency(budget.monthly_limit)}
+                    {formatCurrency(budget.spent)} of {formatCurrency(budget.available ?? budget.monthly_limit)}
                   </p>
+                  {budget.rollover && budget.rollover_amount > 0 ? (
+                    <p className="text-xs text-accent-700 dark:text-accent-400">
+                      Includes {formatCurrency(budget.rollover_amount)} rollover
+                    </p>
+                  ) : null}
                 </div>
                 {budget.over ? <Badge variant="danger">Over</Badge> : null}
               </div>

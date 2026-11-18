@@ -146,6 +146,11 @@ const api = {
   notifications: {
     schedule: (plan) => call('notifications:schedule', { plan }),
     clear: () => call('notifications:clear')
+  },
+
+  snapshots: {
+    capture: () => call('snapshots:capture'),
+    list: (limit) => call('snapshots:list', { limit })
   }
 }
 

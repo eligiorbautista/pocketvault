@@ -1,5 +1,5 @@
 import { api } from '@renderer/lib/api.js'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowDownRight,
@@ -45,11 +45,28 @@ export default function Dashboard() {
     () => api.reports.dashboard(dashboardPeriodPayload(period, currentMonth)),
     [period.mode, period.month, period.from, period.to]
   )
+  const snapshots = useApiData(() => api.snapshots.list(30), [])
+
+  useEffect(() => {
+    api.snapshots
+      .capture()
+      .then(() => snapshots.reload())
+      .catch(() => {})
+    // Capture once per dashboard visit; the hook reloads after it resolves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const budgets = data?.budgets?.items ?? []
   const goals = data?.goals ?? []
   const recentIncome = data?.recentIncome ?? []
   const recentExpenses = data?.recentExpenses ?? []
+  const history = snapshots.data ?? []
+  const latestSnapshot = history.length ? history[history.length - 1] : null
+  const oldestSnapshot = history.length ? history[0] : null
+  const snapshotChange =
+    latestSnapshot && oldestSnapshot
+      ? latestSnapshot.net_worth - oldestSnapshot.net_worth
+      : 0
 
   const periodLabel =
     period.mode === 'all'
@@ -116,6 +133,39 @@ export default function Dashboard() {
           loading={loading}
         />
       </div>
+
+      <Card>
+        <CardHeader className="flex items-center justify-between">
+          <CardTitle>Net worth trend</CardTitle>
+          <span className="text-xs text-slate-500 dark:text-dark-faint">Last 30 days</span>
+        </CardHeader>
+        <CardBody>
+          {latestSnapshot ? (
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-gray-100">
+                {formatCurrency(latestSnapshot.net_worth)}
+              </span>
+              <span
+                className={
+                  snapshotChange >= 0
+                    ? 'text-sm font-medium text-accent-700 dark:text-accent-400'
+                    : 'text-sm font-medium text-red-600 dark:text-red-400'
+                }
+              >
+                {snapshotChange >= 0 ? '+' : ''}
+                {formatCurrency(snapshotChange)}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-dark-faint">
+                since {formatDate(oldestSnapshot.date)}
+              </span>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 dark:text-dark-faint">
+              Net worth is captured automatically each day you open the dashboard.
+            </p>
+          )}
+        </CardBody>
+      </Card>
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>

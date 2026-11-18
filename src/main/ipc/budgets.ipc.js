@@ -19,7 +19,8 @@ export function registerBudgetsHandlers() {
   handle('budgets:upsert', ({ userId, payload }) =>
     budgetsRepo.upsert(getDatabase(), userId, {
       category: validateCategory(payload.category),
-      monthly_limit: validateAmount(payload.monthly_limit, 'monthly_limit')
+      monthly_limit: validateAmount(payload.monthly_limit, 'monthly_limit'),
+      rollover: Boolean(payload.rollover)
     })
   )
 

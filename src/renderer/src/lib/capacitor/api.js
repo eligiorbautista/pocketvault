@@ -49,7 +49,7 @@ const MIME_BY_EXT = {
 }
 
 const RECEIPTS_DIR = 'receipts'
-const BACKUP_FORMAT = 7
+const BACKUP_FORMAT = 8
 const BACKUP_RECEIPTS_PREFIX = 'receipts/'
 const INCOME_COLUMNS =
   'id, user_id, wallet_id, amount, date, source, notes, receipt_path, is_archived, is_cleared, created_at, updated_at'
@@ -217,10 +217,17 @@ async function debtSummary(userId) {
   }
 }
 
+function previousMonth(month) {
+  const [year, monthNumber] = month.split('-').map(Number)
+  const date = new Date(Date.UTC(year, monthNumber - 2, 1))
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
 async function budgetListMonthly(userId, month) {
   const { from, to } = monthRange(month)
+  const prior = monthRange(previousMonth(month))
   const budgets = await query(
-    `SELECT id, user_id, category, monthly_limit, is_archived, created_at, updated_at
+    `SELECT id, user_id, category, monthly_limit, rollover, is_archived, created_at, updated_at
      FROM budgets WHERE user_id = ? AND is_archived = 0 ORDER BY category ASC`,
     [userId]
   )
@@ -228,20 +235,36 @@ async function budgetListMonthly(userId, month) {
     'SELECT category, amount FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0',
     [userId, from, to]
   )
+  const priorRows = await query(
+    'SELECT category, amount FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND is_archived = 0',
+    [userId, prior.from, prior.to]
+  )
   const spentMap = new Map()
   for (const row of spentRows) {
     spentMap.set(row.category, (spentMap.get(row.category) ?? 0) + toCents(row.amount))
   }
+  const priorMap = new Map()
+  for (const row of priorRows) {
+    priorMap.set(row.category, (priorMap.get(row.category) ?? 0) + toCents(row.amount))
+  }
   return budgets.map((budget) => {
     const spentCents = spentMap.get(budget.category) ?? 0
     const limitCents = toCents(budget.monthly_limit)
-    const percent = limitCents > 0 ? (spentCents / limitCents) * 100 : 0
+    const createdMonth = budget.created_at ? String(budget.created_at).slice(0, 7) : null
+    const carryCents =
+      budget.rollover && (!createdMonth || createdMonth < month)
+        ? Math.max(0, limitCents - (priorMap.get(budget.category) ?? 0))
+        : 0
+    const availableCents = limitCents + carryCents
+    const percent = availableCents > 0 ? (spentCents / availableCents) * 100 : 0
     return {
       ...budget,
+      rollover_amount: fromCents(carryCents),
+      available: fromCents(availableCents),
       spent: fromCents(spentCents),
-      remaining: fromCents(limitCents - spentCents),
+      remaining: fromCents(availableCents - spentCents),
       percent: Math.round(percent),
-      over: spentCents > limitCents
+      over: spentCents > availableCents
     }
   })
 }
@@ -1519,16 +1542,17 @@ export function createCapacitorApi() {
       const category = validateCategory(data.category)
       const limit = validateAmount(data.monthly_limit, 'monthly_limit')
       await run(
-        `INSERT INTO budgets (user_id, category, monthly_limit, is_archived, updated_at)
-         VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
+        `INSERT INTO budgets (user_id, category, monthly_limit, rollover, is_archived, updated_at)
+         VALUES (?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
          ON CONFLICT (user_id, category)
          DO UPDATE SET monthly_limit = excluded.monthly_limit,
+                       rollover = excluded.rollover,
                        is_archived = 0,
                        updated_at = CURRENT_TIMESTAMP`,
-        [userId, category, limit]
+        [userId, category, limit, data.rollover ? 1 : 0]
       )
       return getOne(
-        'SELECT id, user_id, category, monthly_limit, is_archived, created_at, updated_at FROM budgets WHERE user_id = ? AND category = ?',
+        'SELECT id, user_id, category, monthly_limit, rollover, is_archived, created_at, updated_at FROM budgets WHERE user_id = ? AND category = ?',
         [userId, category]
       )
     },
@@ -1554,7 +1578,7 @@ export function createCapacitorApi() {
     archived: async () => {
       const userId = requireUserId()
       return query(
-        `SELECT id, user_id, category, monthly_limit, is_archived, created_at, updated_at
+        `SELECT id, user_id, category, monthly_limit, rollover, is_archived, created_at, updated_at
          FROM budgets WHERE user_id = ? AND is_archived = 1 ORDER BY category ASC`,
         [userId]
       )
@@ -1872,7 +1896,7 @@ export function createCapacitorApi() {
           )
         : []
       const budgets = await query(
-        `SELECT category, monthly_limit, is_archived, created_at, updated_at
+        `SELECT category, monthly_limit, rollover, is_archived, created_at, updated_at
          FROM budgets WHERE user_id = ? ORDER BY id`,
         [userId]
       )
@@ -2043,7 +2067,7 @@ export function createCapacitorApi() {
         throw new Error('Invalid backup: the archive contents are corrupted')
       }
 
-      if (!manifest || ![2, 3, 4, 5, 6, 7].includes(manifest.format)) {
+      if (!manifest || ![2, 3, 4, 5, 6, 7, 8].includes(manifest.format)) {
         throw new Error('Unsupported backup format. This file was made by a different version.')
       }
       const username = typeof account.username === 'string' ? account.username : manifest.username
@@ -2132,6 +2156,7 @@ export function createCapacitorApi() {
         await run('DELETE FROM recurring_rules WHERE user_id = ?', [userId])
         await run('DELETE FROM wallet_transfers WHERE user_id = ?', [userId])
         await run('DELETE FROM wallets WHERE user_id = ?', [userId])
+        await run('DELETE FROM net_worth_snapshots WHERE user_id = ?', [userId])
 
       const walletMap = new Map()
       for (const [index, row] of walletRows.entries()) {
@@ -2311,16 +2336,18 @@ export function createCapacitorApi() {
 
       for (const row of budgetRows) {
         await run(
-          `INSERT INTO budgets (user_id, category, monthly_limit, is_archived, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?)
+          `INSERT INTO budgets (user_id, category, monthly_limit, rollover, is_archived, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT (user_id, category)
            DO UPDATE SET monthly_limit = excluded.monthly_limit,
+                         rollover = excluded.rollover,
                          is_archived = excluded.is_archived,
                          updated_at = excluded.updated_at`,
           [
             userId,
             row.category,
             num(row.monthly_limit),
+            row.rollover ? 1 : 0,
             row.is_archived ? 1 : 0,
             row.created_at ?? now,
             row.updated_at ?? null
@@ -2460,6 +2487,7 @@ export function createCapacitorApi() {
         { statement: 'DELETE FROM recurring_rules WHERE user_id = ?', values: [userId] },
         { statement: 'DELETE FROM wallet_transfers WHERE user_id = ?', values: [userId] },
         { statement: 'DELETE FROM wallets WHERE user_id = ?', values: [userId] },
+        { statement: 'DELETE FROM net_worth_snapshots WHERE user_id = ?', values: [userId] },
         {
           statement:
             "INSERT INTO wallets (user_id, name, type, style, opening_balance, sort_order) VALUES (?, 'Cash', 'cash', 'cash', 0, 0)",
@@ -2565,6 +2593,34 @@ export function createCapacitorApi() {
     }
   }
 
+  const snapshots = {
+    capture: async () => {
+      const userId = requireUserId()
+      const summary = await wallets.summary()
+      const date = new Date().toISOString().slice(0, 10)
+      await run(
+        `INSERT INTO net_worth_snapshots (user_id, date, assets, liabilities, net_worth)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT (user_id, date) DO UPDATE SET
+           assets = excluded.assets, liabilities = excluded.liabilities, net_worth = excluded.net_worth`,
+        [userId, date, summary.netBalance, summary.liabilities, summary.netWorth]
+      )
+      return getOne(
+        'SELECT id, user_id, date, assets, liabilities, net_worth, created_at FROM net_worth_snapshots WHERE user_id = ? AND date = ?',
+        [userId, date]
+      )
+    },
+    list: async (limit = 90) => {
+      const userId = requireUserId()
+      const rows = await query(
+        `SELECT id, user_id, date, assets, liabilities, net_worth, created_at
+         FROM net_worth_snapshots WHERE user_id = ? ORDER BY date DESC LIMIT ?`,
+        [userId, Math.min(Math.max(Number(limit) || 90, 1), 365)]
+      )
+      return rows.reverse()
+    }
+  }
+
   return {
     platform: 'android',
     auth,
@@ -2576,6 +2632,7 @@ export function createCapacitorApi() {
     budgets,
     savings,
     recurring,
+    snapshots,
     reports,
     files,
     backup,

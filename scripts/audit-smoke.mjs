@@ -13,6 +13,7 @@ import * as walletsRepo from '../src/main/db/repositories/wallets.js'
 import * as budgetsRepo from '../src/main/db/repositories/budgets.js'
 import * as savingsRepo from '../src/main/db/repositories/savings.js'
 import * as recurringRepo from '../src/main/db/repositories/recurring.js'
+import * as snapshotsRepo from '../src/main/db/repositories/snapshots.js'
 import * as reportsRepo from '../src/main/db/repositories/reports.js'
 import * as dashboardRepo from '../src/main/db/repositories/dashboard.js'
 import * as settingsRepo from '../src/main/db/repositories/settings.js'
@@ -353,6 +354,11 @@ check('budget over flag true after overspend', budgetsRepo.listMonthly(db, alice
 check('budget spent ignores other months', budgetsRepo.listMonthly(db, alice.id, '2026-07')[0].spent === 0)
 check('budget remove works', budgetsRepo.remove(db, alice.id, budgetList[0].id) === true)
 
+const firstSnapshot = snapshotsRepo.capture(db, alice.id)
+check('net worth snapshot captured', Boolean(firstSnapshot) && firstSnapshot.net_worth === walletsRepo.summary(db, alice.id).netWorth)
+check('net worth snapshot is daily-unique', snapshotsRepo.capture(db, alice.id).id === firstSnapshot.id)
+check('net worth snapshot list works', snapshotsRepo.list(db, alice.id, 30).some((row) => row.id === firstSnapshot.id))
+
 // ---------- savings ----------
 const goal = savingsRepo.create(db, alice.id, { goal_name: 'Trip', target_amount: 10000, deadline: '2026-12-31' })
 const incLink = incomeRepo.create(db, alice.id, { wallet_id: cashId(db, alice.id), amount: 500, date: '2026-06-01', source: 'Salary', notes: null, receipt_path: null })
@@ -516,6 +522,7 @@ check('deleteUserData removed all alice expenses', expensesRepo.list(db, alice.i
 check('deleteUserData removed all alice debts', debtsRepo.list(db, alice.id, {}).total === 0)
 check('deleteUserData removed all alice budgets', budgetsRepo.listMonthly(db, alice.id, '2026-06').length === 0)
 check('deleteUserData removed all alice goals', savingsRepo.list(db, alice.id).length === 0)
+check('deleteUserData removed net worth snapshots', snapshotsRepo.list(db, alice.id).length === 0)
 check('deleteUserData removed alice receipt file', !existsSync(join(delReceipts, delReceipt)))
 check('deleteUserData reports receipt count', delCounts.receipts === 1, delCounts.receipts)
 check('deleteUserData keeps the account', users.exists(db, alice.id) === true)

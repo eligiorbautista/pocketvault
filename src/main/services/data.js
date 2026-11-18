@@ -37,6 +37,7 @@ export function deleteUserData(db, userId, receiptsDir) {
     counts.expenses = db.prepare('DELETE FROM expenses WHERE user_id = ?').run(userId).changes
     counts.budgets = db.prepare('DELETE FROM budgets WHERE user_id = ?').run(userId).changes
     counts.recurring = db.prepare('DELETE FROM recurring_rules WHERE user_id = ?').run(userId).changes
+    db.prepare('DELETE FROM net_worth_snapshots WHERE user_id = ?').run(userId)
     counts.walletTransfers = db
       .prepare('DELETE FROM wallet_transfers WHERE user_id = ?')
       .run(userId).changes

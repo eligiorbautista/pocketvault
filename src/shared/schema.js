@@ -288,5 +288,23 @@ CREATE INDEX IF NOT EXISTS idx_income_cleared ON income (user_id, is_cleared);
 CREATE INDEX IF NOT EXISTS idx_expenses_cleared ON expenses (user_id, is_cleared);
 `
 
-export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10]
+const V11 = `
+ALTER TABLE budgets ADD COLUMN rollover INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS net_worth_snapshots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  date TEXT NOT NULL,
+  assets REAL NOT NULL DEFAULT 0,
+  liabilities REAL NOT NULL DEFAULT 0,
+  net_worth REAL NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, date),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_user_date ON net_worth_snapshots (user_id, date);
+`
+
+export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11]
 export const SCHEMA_VERSION = MIGRATIONS.length
