@@ -18,6 +18,8 @@ All notable changes to PocketVault are documented here. The format follows
 ### Changed
 
 - The hamburger and mobile drawer are removed; desktop keeps the sidebar.
+- Android keeps the status bar visible and insets the WebView below it (plus the
+  navigation bar), so the top bar and bottom tabs never draw underneath system UI.
 - Schema **V7** adds wallet interest fields; backups use **format 4** and still
   import v2/v3.
 - Brand palette notes from official bank/digital/e-wallet product pages are in

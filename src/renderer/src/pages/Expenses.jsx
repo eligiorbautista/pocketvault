@@ -175,15 +175,6 @@ export default function Expenses() {
   const [deleting, setDeleting] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
 
-  useEffect(() => {
-    if (searchParams.get('new') !== '1') return
-    setEditing(null)
-    setFormOpen(true)
-    const next = new URLSearchParams(searchParams)
-    next.delete('new')
-    setSearchParams(next, { replace: true })
-  }, [searchParams, setSearchParams])
-
   const { data, loading, error, reload } = useApiData(
     () => api.expenses.list({ page, ...filters }),
     [page, filters]
@@ -195,6 +186,15 @@ export default function Expenses() {
   const rows = data?.rows ?? []
   const wallets = walletsQuery.data ?? []
   const archivedWallets = archivedWalletsQuery.data ?? []
+
+  useEffect(() => {
+    if (searchParams.get('new') !== '1' || wallets.length === 0) return
+    setEditing(null)
+    setFormOpen(true)
+    const next = new URLSearchParams(searchParams)
+    next.delete('new')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, wallets.length])
   const walletName = (id) =>
     [...wallets, ...archivedWallets].find((wallet) => wallet.id === id)?.name ?? 'Wallet'
 

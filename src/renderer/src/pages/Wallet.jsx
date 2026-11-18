@@ -50,6 +50,8 @@ export default function Wallet() {
     } else if (mode === 'transfer' && canTransfer) {
       setTransferFrom(null)
       setTransferOpen(true)
+    } else if (mode === 'transfer') {
+      toast('Add another wallet first', 'info')
     }
     const next = new URLSearchParams(searchParams)
     next.delete('new')

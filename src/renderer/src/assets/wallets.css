@@ -86,8 +86,12 @@
 }
 
 .wallet-meta {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
   font-size: 11px;
   opacity: 0.72;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

@@ -42,6 +42,13 @@ test('mobile shell uses bottom tabs, grouped More page, and quick add', async ()
     const walletDialog = page.getByRole('dialog', { name: 'Add wallet' })
     await expect(walletDialog).toBeVisible()
     await expect(walletDialog.getByLabel('Wallet type')).toBeVisible()
+    await walletDialog.getByRole('button', { name: 'Cancel' }).click()
+
+    await page.getByRole('button', { name: 'Quick add' }).click()
+    await page.getByRole('button', { name: 'Add income' }).click()
+    const incomeDialog = page.getByRole('dialog', { name: 'Add income' })
+    await expect(incomeDialog).toBeVisible()
+    await expect.poll(async () => incomeDialog.getByLabel('Wallet').locator('option').count()).toBeGreaterThan(0)
   } finally {
     await app.close()
     rmSync(userData, { recursive: true, force: true })

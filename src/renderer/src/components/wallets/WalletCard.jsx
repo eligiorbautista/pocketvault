@@ -79,7 +79,7 @@ export function WalletCard({
 }) {
   const typeLabel = WALLET_TYPE_LABELS[wallet.type] ?? 'Wallet'
   const interestLabel = wallet.interest_enabled
-    ? `${Number(wallet.interest_rate || 0).toFixed(2)}% p.a.`
+    ? `${Number(wallet.interest_rate || 0).toFixed(2)}%`
     : null
   const meta = [
     wallet.last4

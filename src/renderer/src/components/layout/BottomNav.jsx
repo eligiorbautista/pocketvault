@@ -43,6 +43,7 @@ export function BottomNav() {
   const location = useLocation()
   const navigate = useNavigate()
   const [quickOpen, setQuickOpen] = useState(false)
+  const quickButtonRef = useRef(null)
   const sheetRef = useRef(null)
   const isMorePage = MORE_PATHS.some(
     (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
@@ -50,12 +51,40 @@ export function BottomNav() {
 
   useEffect(() => {
     if (!quickOpen) return undefined
+    const previouslyFocused = document.activeElement
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') setQuickOpen(false)
+      if (event.key === 'Escape') {
+        setQuickOpen(false)
+        return
+      }
+      if (event.key !== 'Tab') return
+      const panel = sheetRef.current
+      if (!panel) return
+      const focusable = panel.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusable.length === 0) {
+        event.preventDefault()
+        panel.focus()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (event.shiftKey && (active === first || active === panel)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     sheetRef.current?.focus()
-    return () => document.removeEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      previouslyFocused?.focus?.()
+    }
   }, [quickOpen])
 
   const go = (to) => {
@@ -83,10 +112,13 @@ export function BottomNav() {
 
           <div className="flex w-16 items-center justify-center">
             <button
+              ref={quickButtonRef}
               type="button"
               onClick={() => setQuickOpen(true)}
               aria-label="Quick add"
               aria-haspopup="dialog"
+              aria-expanded={quickOpen}
+              aria-controls="quick-add-sheet"
               className="flex h-12 w-12 -translate-y-2 cursor-pointer items-center justify-center rounded-full bg-accent-600 text-white shadow-lg shadow-accent-900/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:bg-accent-500 dark:text-accent-950 dark:focus-visible:outline-accent-300"
             >
               <Plus size={24} aria-hidden="true" />
@@ -116,14 +148,15 @@ export function BottomNav() {
           />
           <div
             ref={sheetRef}
+            id="quick-add-sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="Quick add"
+            aria-labelledby="quick-add-title"
             tabIndex={-1}
             className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-slate-200 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl outline-none dark:border-dark-border dark:bg-dark-surface"
           >
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-gray-100">Quick add</h2>
+              <h2 id="quick-add-title" className="text-base font-semibold text-slate-900 dark:text-gray-100">Quick add</h2>
               <button
                 type="button"
                 onClick={() => setQuickOpen(false)}
