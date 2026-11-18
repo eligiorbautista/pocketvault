@@ -65,7 +65,7 @@
     "jsdom": "^31.0.1",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.2",
-    "lucide-react": "^1.48.0",
+    "lucide-react": "^1.72.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-hook-form": "^7.89.0",
