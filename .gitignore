@@ -19,6 +19,7 @@ playwright-report/
 # Local design/AI artifacts (never committed)
 docs/superpowers/
 .taste-skill/
+AGENTS.md
 
 # Android signing (never commit keys)
 *.keystore
