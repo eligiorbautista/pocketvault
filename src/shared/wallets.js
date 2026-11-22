@@ -46,41 +46,69 @@ export const WALLET_STYLE_IDS = WALLET_STYLE_PRESETS.map((preset) => preset.id)
 
 export const DEFAULT_WALLET = { name: 'Cash', type: 'cash', style: 'cash' }
 
+// Philippine-focused provider list. International wallets can still be created
+// through "Other wallet"; keeping them out of the local catalog avoids mixing
+// lenders, payment rails and foreign wallets into the e-wallet picker.
+const CASH_OPTION = { id: 'cash', label: 'Cash', type: 'cash', style: 'cash' }
+const OTHER_OPTION = { id: 'other', label: 'Other wallet', type: 'other', style: 'custom' }
+
+export const BANK_OPTIONS = [
+  { id: 'bdo', label: 'BDO', type: 'bank', style: 'bdo' },
+  { id: 'bpi', label: 'BPI', type: 'bank', style: 'bpi' },
+  { id: 'metrobank', label: 'Metrobank', type: 'bank', style: 'metrobank' },
+  { id: 'unionbank', label: 'UnionBank', type: 'bank', style: 'unionbank' },
+  { id: 'securitybank', label: 'Security Bank', type: 'bank', style: 'securitybank' },
+  { id: 'rcbc', label: 'RCBC', type: 'bank', style: 'rcbc' },
+  { id: 'landbank', label: 'Landbank', type: 'bank', style: 'landbank' },
+  { id: 'pnb', label: 'PNB', type: 'bank', style: 'pnb' },
+  { id: 'psbank', label: 'PSBank', type: 'bank', style: 'psbank' },
+  { id: 'china-bank', label: 'China Bank', type: 'bank', style: 'generic' },
+  { id: 'eastwest', label: 'EastWest', type: 'bank', style: 'generic' },
+  { id: 'aub', label: 'AUB', type: 'bank', style: 'generic' },
+  { id: 'bank-of-commerce', label: 'Bank of Commerce', type: 'bank', style: 'generic' },
+  { id: 'dbp', label: 'DBP', type: 'bank', style: 'generic' },
+  { id: 'maybank', label: 'Maybank', type: 'bank', style: 'generic' },
+  { id: 'china-bank-savings', label: 'China Bank Savings', type: 'bank', style: 'generic' },
+  { id: 'city-savings', label: 'City Savings Bank', type: 'bank', style: 'generic' },
+  { id: 'cebuana-bank', label: 'Cebuana Lhuillier Bank', type: 'bank', style: 'generic' },
+  { id: 'palawan-bank', label: 'Palawan Bank', type: 'bank', style: 'generic' },
+  { id: 'm-lhuillier-bank', label: 'M Lhuillier Bank', type: 'bank', style: 'generic' }
+]
+
+export const DIGITAL_BANK_OPTIONS = [
+  { id: 'maya-bank', label: 'Maya Bank', type: 'bank', style: 'maya' },
+  { id: 'maribank', label: 'MariBank', type: 'bank', style: 'maribank' },
+  { id: 'gotyme-bank', label: 'GoTyme Bank', type: 'bank', style: 'gotyme' },
+  { id: 'cimb-bank', label: 'CIMB Bank', type: 'bank', style: 'cimb' },
+  { id: 'tonik', label: 'Tonik', type: 'bank', style: 'generic' },
+  { id: 'uniondigital', label: 'UnionDigital', type: 'bank', style: 'generic' },
+  { id: 'unobank', label: 'UNOBank', type: 'bank', style: 'generic' },
+  { id: 'ofbank', label: 'OFBank', type: 'bank', style: 'generic' },
+  { id: 'diskartech', label: 'DiskarTech', type: 'bank', style: 'generic' },
+  { id: 'komo', label: 'Komo', type: 'bank', style: 'generic' }
+]
+
+export const EWALLET_OPTIONS = [
+  { id: 'gcash', label: 'GCash', type: 'ewallet', style: 'gcash' },
+  { id: 'maya', label: 'Maya', type: 'ewallet', style: 'maya' },
+  { id: 'grabpay', label: 'GrabPay', type: 'ewallet', style: 'generic' },
+  { id: 'shopeepay', label: 'ShopeePay', type: 'ewallet', style: 'generic' },
+  { id: 'lazada-wallet', label: 'Lazada Wallet', type: 'ewallet', style: 'generic' },
+  { id: 'coins-ph', label: 'Coins.ph', type: 'ewallet', style: 'generic' },
+  { id: 'palawanpay', label: 'PalawanPay', type: 'ewallet', style: 'generic' },
+  { id: 'cebuana-wallet', label: 'Cebuana Wallet', type: 'ewallet', style: 'generic' },
+  { id: 'ml-wallet', label: 'ML Wallet', type: 'ewallet', style: 'generic' },
+  { id: 'bdo-pay', label: 'BDO Pay', type: 'ewallet', style: 'generic' }
+]
+
 // Add-wallet grouped select. `style` is the persisted face; `other` uses the
 // custom colour/image path instead of a preset.
 export const WALLET_PROVIDER_GROUPS = [
-  {
-    label: 'Cash',
-    options: [{ id: 'cash', label: 'Cash', type: 'cash', style: 'cash' }]
-  },
-  {
-    label: 'Banks',
-    options: [
-      { id: 'bdo', label: 'BDO', type: 'bank', style: 'bdo' },
-      { id: 'bpi', label: 'BPI', type: 'bank', style: 'bpi' },
-      { id: 'metrobank', label: 'Metrobank', type: 'bank', style: 'metrobank' },
-      { id: 'unionbank', label: 'UnionBank', type: 'bank', style: 'unionbank' },
-      { id: 'securitybank', label: 'Security Bank', type: 'bank', style: 'securitybank' },
-      { id: 'rcbc', label: 'RCBC', type: 'bank', style: 'rcbc' },
-      { id: 'landbank', label: 'Landbank', type: 'bank', style: 'landbank' },
-      { id: 'pnb', label: 'PNB', type: 'bank', style: 'pnb' },
-      { id: 'psbank', label: 'PSBank', type: 'bank', style: 'psbank' }
-    ]
-  },
-  {
-    label: 'E-wallets',
-    options: [
-      { id: 'gcash', label: 'GCash', type: 'ewallet', style: 'gcash' },
-      { id: 'maya', label: 'Maya', type: 'ewallet', style: 'maya' },
-      { id: 'gotyme', label: 'GoTyme', type: 'ewallet', style: 'gotyme' },
-      { id: 'maribank', label: 'MariBank', type: 'ewallet', style: 'maribank' },
-      { id: 'cimb', label: 'CIMB', type: 'ewallet', style: 'cimb' }
-    ]
-  },
-  {
-    label: 'Other',
-    options: [{ id: 'other', label: 'Other wallet', type: 'other', style: 'custom' }]
-  }
+  { label: 'Cash', options: [CASH_OPTION] },
+  { label: 'Banks', options: BANK_OPTIONS },
+  { label: 'Digital banks', options: DIGITAL_BANK_OPTIONS },
+  { label: 'E-wallets', options: EWALLET_OPTIONS },
+  { label: 'Other', options: [OTHER_OPTION] }
 ]
 
 export const WALLET_PROVIDERS = WALLET_PROVIDER_GROUPS.reduce((all, group) => {
@@ -88,44 +116,16 @@ export const WALLET_PROVIDERS = WALLET_PROVIDER_GROUPS.reduce((all, group) => {
   return all
 }, {})
 
-// Broader searchable catalog for the Add-wallet picker. Only the 16 presets
-// above have bespoke card art; the rest use the generic Monogram face.
-const BANK_NAMES = [
-  'BDO', 'BPI', 'Metrobank', 'UnionBank', 'Security Bank', 'RCBC', 'Landbank', 'PNB',
-  'PSBank', 'China Bank', 'EastWest', 'UCPB', 'DBP', 'AUB', 'Bank of Commerce',
-  'Philippine Trust', 'Philippine Veterans', 'Sterling Bank', 'Robinsons Bank',
-  'Cebuana Bank', 'Palawan Bank', 'M Lhuillier Bank', 'Maybank', 'Chinabank Savings',
-  'City Savings', 'CIMB Bank', 'ING Philippines', 'Tonik', 'Maya Bank', 'GoTyme Bank',
-  'SeaBank', 'UnionDigital', 'UNO Digital', 'Diskartech', 'Overseas Filipino Bank',
-  'Standard Chartered', 'HSBC', 'Citibank', 'JPMorgan Chase', 'Deutsche Bank',
-  'BPI Family Savings', 'BDO Network Bank', 'Metrobank Savings', 'Bank of Makati',
-  'Queen City Development Bank', 'Rural Bank of Manila', 'Producers Savings',
-  'First Consolidated Bank', 'CARD Bank', 'ASA Philippines'
-]
-
-const EWALLET_NAMES = [
-  'GCash', 'Maya', 'ShopeePay', 'GrabPay', 'Lazada Wallet', 'Coins.ph', 'PalawanPay',
-  'Cebuana Wallet', 'ML Wallet', 'Bayad', 'DragonPay', 'PayMongo', 'Xendit',
-  'InstaPay', 'PESONet', 'Wise', 'PayPal', 'Revolut', 'Venmo', 'Cash App',
-  'Apple Wallet', 'Google Wallet', 'Samsung Wallet', 'Alipay', 'WeChat Pay',
-  'Line Pay', 'Naver Pay', 'Kakao Pay', 'Toss', 'TrueMoney', 'DANA', 'OVO',
-  'GoPay', 'ShopeePay Later', 'Atome', 'BillEase', 'Salmon', 'JuanHand',
-  'Tala', 'Cashalo', 'Finbro', 'Pera247', 'Akulaku', 'BDO Pay'
-]
-
-const styleFor = (label) =>
-  WALLET_STYLE_PRESETS.find((preset) => preset.label.toLowerCase() === label.toLowerCase())?.id ??
-  'generic'
-
-const slug = (label) =>
-  label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-
+// The searchable picker is derived from the same options as the groups, so a
+// provider cannot appear in one place and be missing from the other.
 export const ACCOUNT_CATALOG = [
-  { id: 'cash', label: 'Cash', type: 'cash', style: 'cash' },
-  { id: 'other', label: 'Other wallet', type: 'other', style: 'custom' },
-  ...BANK_NAMES.map((label) => ({ id: slug(label), label, type: 'bank', style: styleFor(label) })),
-  ...EWALLET_NAMES.map((label) => ({ id: slug(label), label, type: 'ewallet', style: styleFor(label) }))
+  CASH_OPTION,
+  OTHER_OPTION,
+  ...BANK_OPTIONS,
+  ...DIGITAL_BANK_OPTIONS,
+  ...EWALLET_OPTIONS
 ]
+
 
 
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/

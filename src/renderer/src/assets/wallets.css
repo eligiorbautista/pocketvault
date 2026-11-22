@@ -1,6 +1,5 @@
 /* Wallet card faces. Each preset is a colour/pattern study, never a logo asset.
-   The card component renders the CSS chip/contactless marks; the shared module
-   only owns labels and validation. */
+   The shared module only owns labels and validation. */
 
 .wallet-face {
   position: relative;
@@ -97,7 +96,7 @@
   overflow: hidden;
 }
 
-/* BDO: royal blue, wave + halftone */
+/* BDO: royal blue, halftone */
 .wallet-face--bdo { background: linear-gradient(155deg, #144fc0 0%, #0a3796 42%, #06205c 100%); }
 .wallet-face--bdo::after {
   background:
@@ -115,16 +114,6 @@
   -webkit-mask-image: radial-gradient(58% 62% at 76% 28%, #000 0%, transparent 74%);
   mask-image: radial-gradient(58% 62% at 76% 28%, #000 0%, transparent 74%);
   opacity: 0.6;
-}
-.wallet-wave {
-  position: absolute;
-  left: -10%;
-  bottom: -46%;
-  width: 130%;
-  height: 80%;
-  border-radius: 50%;
-  border-top: 1.5px solid rgba(120, 170, 255, 0.35);
-  z-index: -1;
 }
 
 /* MariBank: orange over cream */
@@ -153,14 +142,6 @@
   background: repeating-radial-gradient(circle at 82% 40%, rgba(200, 240, 74, 0.2) 0 1.5px, transparent 1.5px 10px);
   opacity: 0.9;
 }
-.wallet-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #c8f04a;
-  display: inline-block;
-  margin-left: 6px;
-}
 
 /* Cash: Monogram face — charcoal, no chip, large peso watermark. */
 .wallet-face--cash {
@@ -175,12 +156,12 @@
 .wallet-face--cash .wallet-label,
 .wallet-face--cash .wallet-meta { opacity: 0.55; }
 
-/* BPI: deep red, white sweep */
+/* BPI: deep red, circular white sweep */
 .wallet-face--bpi { background: linear-gradient(150deg, #cf1230 0%, #9a0c24 62%, #6a0716 100%); }
 .wallet-face--bpi::after {
   background:
-    radial-gradient(90% 70% at 0% 110%, rgba(0, 0, 0, 0.35), transparent 60%),
-    linear-gradient(108deg, transparent 54%, rgba(255, 255, 255, 0.18) 55%, rgba(255, 255, 255, 0.05) 62%, transparent 63%);
+    radial-gradient(95% 85% at 0% 108%, rgba(255, 255, 255, 0.18), transparent 58%),
+    radial-gradient(110% 90% at 104% -8%, rgba(0, 0, 0, 0.22), transparent 58%);
 }
 
 /* Metrobank: navy, light ribbon + notch motif */
@@ -208,12 +189,12 @@
     linear-gradient(120deg, transparent 62%, rgba(255, 255, 255, 0.05));
 }
 
-/* RCBC: blue + red ribbon */
+/* RCBC: blue field with a red side chevron */
 .wallet-face--rcbc { background: linear-gradient(150deg, #0b4ea2 0%, #073573 60%, #052a5c 100%); }
 .wallet-face--rcbc::after {
   background:
-    linear-gradient(118deg, transparent 36%, #e2232b 37%, #e2232b 45%, transparent 46%),
-    radial-gradient(70% 60% at 0% 110%, rgba(0, 0, 0, 0.3), transparent 62%);
+    linear-gradient(90deg, transparent 67%, #e2232b 67%, #e2232b 88%, transparent 88%),
+    radial-gradient(90% 80% at 100% 115%, rgba(0, 0, 0, 0.3), transparent 65%);
 }
 
 /* Landbank: green + yellow */
@@ -224,12 +205,12 @@
     radial-gradient(60% 50% at 0% 0%, rgba(255, 255, 255, 0.1), transparent 60%);
 }
 
-/* PNB: navy + red band */
-.wallet-face--pnb { background: linear-gradient(150deg, #0b2f7a 0%, #061a44 100%); }
+/* PNB: navy field with a red top band */
+.wallet-face--pnb { background: linear-gradient(165deg, #0b2f7a 0%, #061a44 68%, #04132f 100%); }
 .wallet-face--pnb::after {
   background:
-    linear-gradient(114deg, transparent 58%, #c8102e 59%, #c8102e 73%, transparent 74%),
-    radial-gradient(60% 50% at 0% 110%, rgba(0, 0, 0, 0.3), transparent 65%);
+    linear-gradient(180deg, #c8102e 0%, #c8102e 14%, transparent 14.5%),
+    radial-gradient(85% 70% at 100% 115%, rgba(0, 0, 0, 0.35), transparent 65%);
 }
 
 /* PSBank: navy + yellow corner */

@@ -18,22 +18,21 @@ const MONOGRAMS = {
   maya: 'M',
   gotyme: 'GT',
   maribank: 'MB',
-  cimb: 'CIMB',
-  generic: 'PV'
+  cimb: 'CIMB'
+}
+
+function initialsFor(name) {
+  const words = String(name || '').match(/[A-Z]+(?![a-z])|[A-Z][a-z]+|[a-z]+/g) ?? []
+  return words
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 3)
+    .toUpperCase() || 'PV'
 }
 
 function monogramFor(wallet, style) {
-  if (style === 'custom') {
-    if (wallet.card_image) return ''
-    return String(wallet.name || 'PV')
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((part) => part[0])
-      .join('')
-      .slice(0, 3)
-      .toUpperCase() || 'PV'
-  }
-  return MONOGRAMS[style] ?? 'PV'
+  if (style === 'custom') return wallet.card_image ? '' : initialsFor(wallet.name)
+  return MONOGRAMS[style] ?? initialsFor(wallet.name)
 }
 
 export function WalletFace({ wallet, className, children }) {
@@ -133,17 +132,6 @@ export function WalletCard({
         </span>
       </div>
 
-      <div className="relative z-10 wallet-mid pointer-events-none">
-        {styleHasChip(wallet) ? <span className="wallet-chip" aria-hidden="true" /> : null}
-        {wallet.style !== 'cash' ? (
-          <svg className="wallet-contactless" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-            <path d="M8.5 8.5a5 5 0 0 0 0 7" />
-            <path d="M11.5 6a8.5 8.5 0 0 0 0 12" />
-            <path d="M14.5 3.5a12 12 0 0 0 0 17" />
-          </svg>
-        ) : null}
-      </div>
-
       <div className="relative z-10 wallet-bottom pointer-events-none">
         <div className="min-w-0">
           <div className="wallet-label">{valueLabel}</div>
@@ -155,8 +143,4 @@ export function WalletCard({
       </div>
     </WalletFace>
   )
-}
-
-function styleHasChip(wallet) {
-  return wallet.style !== 'cash'
 }

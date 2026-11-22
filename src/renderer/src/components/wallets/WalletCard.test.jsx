@@ -83,6 +83,17 @@ describe('WalletCard', () => {
     expect(container.querySelector('.wallet-chip')).not.toBeInTheDocument()
   })
 
+  it('does not render decorative contactless marks', () => {
+    const { container } = setup()
+    expect(container.querySelector('.wallet-contactless')).not.toBeInTheDocument()
+    expect(container.querySelector('.wallet-chip')).not.toBeInTheDocument()
+  })
+
+  it('uses initials for a generic provider monogram', () => {
+    const { container } = setup({ name: 'GrabPay', type: 'ewallet', style: 'generic' })
+    expect(container.querySelector('.wallet-monogram')).toHaveTextContent('GP')
+  })
+
   it('runs every menu action', () => {
     const { callbacks } = setup()
     const openMenu = () => {

@@ -9,18 +9,35 @@ import {
   validateWalletId,
   validateWalletInput,
   WALLET_PROVIDERS,
+  WALLET_STYLE_IDS,
   WALLET_STYLE_PRESETS,
+  WALLET_PROVIDER_GROUPS,
   ACCOUNT_CATALOG
 } from './wallets.js'
 
 const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgo='
 
 describe('wallet presets', () => {
-  it('exposes 16 faces and 15 providers plus Other', () => {
+  it('keeps every provider group and catalog entry in sync', () => {
     expect(WALLET_STYLE_PRESETS).toHaveLength(16)
-    expect(Object.keys(WALLET_PROVIDERS)).toHaveLength(16)
-    expect(ACCOUNT_CATALOG).toHaveLength(96)
+    expect(ACCOUNT_CATALOG).toHaveLength(42)
+    expect(Object.keys(WALLET_PROVIDERS)).toHaveLength(42)
     expect(WALLET_PROVIDERS.other.style).toBe('custom')
+    expect(new Set(ACCOUNT_CATALOG.map((provider) => provider.id)).size).toBe(ACCOUNT_CATALOG.length)
+    expect(
+      WALLET_PROVIDER_GROUPS.flatMap((group) => group.options.map((option) => option.id)).sort()
+    ).toEqual(ACCOUNT_CATALOG.map((provider) => provider.id).sort())
+    for (const provider of ACCOUNT_CATALOG) {
+      expect(provider.style === 'custom' || WALLET_STYLE_IDS.includes(provider.style)).toBe(true)
+    }
+    expect(ACCOUNT_CATALOG.find((provider) => provider.label === 'MariBank')).toMatchObject({
+      type: 'bank'
+    })
+    expect(ACCOUNT_CATALOG.some((provider) => ['JuanHand', 'Tala', 'Cashalo'].includes(provider.label))).toBe(false)
+    expect(ACCOUNT_CATALOG.some((provider) => provider.label === 'SeaBank')).toBe(false)
+    expect(
+      WALLET_PROVIDER_GROUPS.find((group) => group.label === 'E-wallets').options.map((option) => option.label)
+    ).not.toContain('GoTyme')
   })
 })
 
